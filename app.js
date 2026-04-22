@@ -1625,8 +1625,8 @@ function renderContentForm(content) {
         </div>
 
         <div class="mb-4">
-          <label class="text-sm font-medium mb-2 block">썸네일 제목 <span class="text-xs text-botanical-sage font-normal">(목록·캘린더에도 표시됨)</span></label>
-          <input type="text" value="${content.title ?? ''}" oninput="updateContentTitle(${content.id}, this.value)" placeholder="썸네일 제목 입력" class="w-full px-4 py-2 rounded-lg border border-botanical-stone text-sm focus:outline-none focus:border-botanical-sage">
+          <label class="text-sm font-medium mb-2 block">썸네일 제목 <span class="text-xs text-botanical-sage font-normal">(버전별 / 현재 버전 제목이 목록·캘린더에 표시됨)</span></label>
+          <input type="text" value="${scriptVersions[currentVer]?.title ?? content.title ?? ''}" oninput="updateContentTitle(${content.id}, this.value)" placeholder="V${currentVer+1} 썸네일 제목 입력" class="w-full px-4 py-2 rounded-lg border border-botanical-stone text-sm focus:outline-none focus:border-botanical-sage">
         </div>
 
         <div class="mb-4">
@@ -1864,8 +1864,14 @@ function addScriptVersion(contentId) {
   const content = contentsData.contents.find(c => c.id === contentId);
   if (!content) return;
   ensureScript(content);
-  content.script.versions.push({ rows: DEFAULT_SCRIPT_ROWS() });
+  content.script.versions.push({ rows: DEFAULT_SCRIPT_ROWS(), title: '' });
   content.script.currentVersion = content.script.versions.length - 1;
+  // 새 버전 제목은 빈 값 → 목록·캘린더 표시용 content.title도 비움
+  content.title = '';
+  calendarData.items.forEach(item => { if (item.contentId === contentId) item.title = ''; });
+  ['ad', 'sales', 'sponsor'].forEach(t => {
+    (revenueData.items?.[t] || []).forEach(item => { if (item.contentId === contentId) item.brand = '무제'; });
+  });
   saveAllData();
   renderContentList();
   reopenForm(contentId);
@@ -1875,6 +1881,15 @@ function switchScriptVersion(contentId, versionIdx) {
   const content = contentsData.contents.find(c => c.id === contentId);
   if (!content?.script?.versions?.[versionIdx]) return;
   content.script.currentVersion = versionIdx;
+  // 해당 버전에 저장된 제목이 있으면 목록·캘린더용 title 동기화
+  const verTitle = content.script.versions[versionIdx].title;
+  if (typeof verTitle === 'string') {
+    content.title = verTitle;
+    calendarData.items.forEach(item => { if (item.contentId === contentId) item.title = verTitle; });
+    ['ad', 'sales', 'sponsor'].forEach(t => {
+      (revenueData.items?.[t] || []).forEach(item => { if (item.contentId === contentId) item.brand = verTitle || '무제'; });
+    });
+  }
   saveAllData();
   renderContentList();
   reopenForm(contentId);
@@ -1926,6 +1941,10 @@ function updateContentTitle(contentId, value) {
   const content = contentsData.contents.find(c => c.id === contentId);
   if (!content) return;
   content.title = value;
+  // 현재 스크립트 버전에도 저장 (버전별 제목)
+  ensureScript(content);
+  const ver = content.script.currentVersion ?? 0;
+  if (content.script.versions[ver]) content.script.versions[ver].title = value;
   calendarData.items.forEach(item => {
     if (item.contentId === contentId) item.title = value;
   });
