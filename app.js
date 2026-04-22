@@ -4,6 +4,7 @@ let contentsData = null;
 let performanceData = null;
 let revenueData = null;
 let memosData = null;
+let selectedMemoId = null;
 
 // 현재 날짜 기준으로 초기화
 const now = new Date();
@@ -2916,58 +2917,147 @@ function renderRevenueList(title, items, color) {
   }).observe(document.body, { childList: true, subtree: true });
 })();
 
-// ========== Memos ==========
+// ========== Memos (macOS Notes 스타일) ==========
 function renderMemos() {
   if (!memosData) memosData = { memos: [] };
-  const memos = [...(memosData.memos || [])].sort((a, b) => {
-    if ((b.pinned ? 1 : 0) !== (a.pinned ? 1 : 0)) return (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0);
-    return (b.updatedAt || 0) - (a.updatedAt || 0);
-  });
+  const memos = memosData.memos || [];
 
-  const pinIconSolid = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M16 9V4l1-1V2H7v1l1 1v5l-2 2v2h5v7l1 1 1-1v-7h5v-2z"/></svg>`;
-  const pinIconOutline = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M16 9V4l1-1V2H7v1l1 1v5l-2 2v2h5v7l1 1 1-1v-7h5v-2z"/></svg>`;
+  // 선택 상태 초기화/보정
+  if (memos.length === 0) {
+    selectedMemoId = null;
+  } else if (!memos.find(m => m.id === selectedMemoId)) {
+    const sorted = [...memos].sort((a, b) => {
+      if ((b.pinned ? 1 : 0) !== (a.pinned ? 1 : 0)) return (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0);
+      return (b.updatedAt || 0) - (a.updatedAt || 0);
+    });
+    selectedMemoId = sorted[0].id;
+  }
+
+  // 날짜 그룹핑
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  const day7 = today.getTime() - 7 * 86400000;
+  const day30 = today.getTime() - 30 * 86400000;
+  const groups = { pinned: [], recent7: [], recent30: [], byYear: {} };
+  memos.forEach(m => {
+    if (m.pinned) { groups.pinned.push(m); return; }
+    const ts = m.updatedAt || 0;
+    if (ts >= day7) groups.recent7.push(m);
+    else if (ts >= day30) groups.recent30.push(m);
+    else {
+      const y = new Date(ts).getFullYear() || new Date().getFullYear();
+      (groups.byYear[y] = groups.byYear[y] || []).push(m);
+    }
+  });
+  const sortDesc = arr => arr.sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
+  sortDesc(groups.pinned); sortDesc(groups.recent7); sortDesc(groups.recent30);
+  Object.values(groups.byYear).forEach(sortDesc);
+  const years = Object.keys(groups.byYear).map(Number).sort((a, b) => b - a);
+
+  const pinIconSolid = `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M16 9V4l1-1V2H7v1l1 1v5l-2 2v2h5v7l1 1 1-1v-7h5v-2z"/></svg>`;
+  const pinIconOutline = `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M16 9V4l1-1V2H7v1l1 1v5l-2 2v2h5v7l1 1 1-1v-7h5v-2z"/></svg>`;
+
+  const listItem = (memo) => {
+    const isSel = memo.id === selectedMemoId;
+    const date = memo.updatedAt ? new Date(memo.updatedAt) : null;
+    const dateStr = date ? `${date.getFullYear()}. ${date.getMonth()+1}. ${date.getDate()}.` : '';
+    const preview = (memo.content || '').split('\n').find(l => l.trim()) || '';
+    const title = memo.title?.trim() || '제목 없음';
+    return `
+      <div onclick="selectMemo(${memo.id})" class="px-3 py-2 rounded-lg cursor-pointer transition-colors ${isSel ? 'bg-amber-100/80' : 'hover:bg-botanical-cream/50'}">
+        <div class="flex items-center gap-1">
+          ${memo.pinned ? `<span class="text-botanical-terracotta shrink-0">${pinIconSolid}</span>` : ''}
+          <p class="font-semibold text-sm truncate ${memo.title?.trim() ? '' : 'text-botanical-sage/60'}">${escapeHtml(title)}</p>
+        </div>
+        <div class="flex gap-2 text-xs mt-0.5">
+          <span class="text-botanical-fg/70 shrink-0">${dateStr}</span>
+          <span class="text-botanical-sage truncate">${escapeHtml(preview)}</span>
+        </div>
+      </div>
+    `;
+  };
+
+  const groupBlock = (label, items) => items.length === 0 ? '' : `
+    <div class="mb-3">
+      <p class="text-xs font-semibold text-botanical-fg px-3 py-1">${label}</p>
+      <div class="space-y-0.5">${items.map(listItem).join('')}</div>
+    </div>
+  `;
+
+  const selected = memos.find(m => m.id === selectedMemoId);
+  const selDate = selected?.updatedAt ? new Date(selected.updatedAt) : null;
+  const selDateStr = selDate ? `${selDate.getFullYear()}년 ${selDate.getMonth()+1}월 ${selDate.getDate()}일 ${selDate.toLocaleTimeString('ko-KR', {hour: 'numeric', minute: '2-digit'})}` : '';
 
   document.getElementById('memos-content').innerHTML = `
-    <div class="flex items-center justify-between mb-6">
-      <h2 class="font-serif text-2xl font-semibold">메모</h2>
-      <button onclick="addMemo()" class="px-4 py-2 bg-botanical-fg text-white rounded-full text-sm font-medium hover:opacity-90 transition-all">+ 새 메모</button>
-    </div>
-    ${memos.length === 0 ? `
-      <div class="bg-white rounded-2xl p-10 shadow-sm text-center">
-        <p class="text-botanical-sage">아직 메모가 없어요. "+ 새 메모" 버튼으로 시작하세요.</p>
-      </div>
-    ` : `
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-        ${memos.map(memo => `
-          <div class="bg-white rounded-2xl p-5 shadow-sm border ${memo.pinned ? 'border-botanical-terracotta/40' : 'border-botanical-stone'}">
-            <div class="flex items-start gap-2 mb-3">
-              <input type="text" value="${(memo.title || '').replace(/"/g, '&quot;')}" placeholder="제목" oninput="updateMemo(${memo.id}, 'title', this.value)" class="flex-1 font-serif text-lg font-semibold bg-transparent focus:outline-none">
-              <button onclick="toggleMemoPin(${memo.id})" title="${memo.pinned ? '고정 해제' : '상단 고정'}" class="p-1 rounded ${memo.pinned ? 'text-botanical-terracotta' : 'text-botanical-sage hover:text-botanical-fg'} transition-all">
-                ${memo.pinned ? pinIconSolid : pinIconOutline}
+    <div class="flex gap-0 bg-white rounded-2xl shadow-sm border border-botanical-stone overflow-hidden" style="height: calc(100vh - 220px); min-height: 500px;">
+      <!-- 좌측 리스트 -->
+      <aside class="w-72 shrink-0 border-r border-botanical-stone flex flex-col">
+        <div class="flex items-center justify-between px-3 py-3 border-b border-botanical-stone">
+          <span class="text-sm font-semibold text-botanical-fg">${memos.length}개</span>
+          <button onclick="addMemo()" title="새 메모" class="w-7 h-7 rounded-full bg-botanical-fg text-white flex items-center justify-center hover:opacity-90 transition-all">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+          </button>
+        </div>
+        <div class="flex-1 overflow-y-auto p-2">
+          ${memos.length === 0 ? `
+            <p class="text-sm text-botanical-sage px-3 py-6 text-center">아직 메모가 없어요.<br>우상단 + 버튼으로 시작.</p>
+          ` : `
+            ${groupBlock('고정', groups.pinned)}
+            ${groupBlock('최근 7일', groups.recent7)}
+            ${groupBlock('이전 30일', groups.recent30)}
+            ${years.map(y => groupBlock(`${y}년`, groups.byYear[y])).join('')}
+          `}
+        </div>
+      </aside>
+
+      <!-- 우측 상세 -->
+      <main class="flex-1 min-w-0 flex flex-col">
+        ${!selected ? `
+          <div class="flex-1 flex items-center justify-center text-botanical-sage text-sm">메모를 선택하거나 새로 만들어 보세요</div>
+        ` : `
+          <div class="flex items-center justify-between px-6 py-3 border-b border-botanical-stone">
+            <span class="text-xs text-botanical-sage">${selDateStr}</span>
+            <div class="flex gap-1">
+              <button onclick="toggleMemoPin(${selected.id})" title="${selected.pinned ? '고정 해제' : '상단 고정'}" class="p-1.5 rounded ${selected.pinned ? 'text-botanical-terracotta' : 'text-botanical-sage hover:text-botanical-fg'} transition-all">
+                ${selected.pinned ? pinIconSolid : pinIconOutline}
               </button>
-              <button onclick="deleteMemo(${memo.id})" title="삭제" class="p-1 rounded text-botanical-sage hover:text-red-400 transition-all">
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6h14z"/></svg>
+              <button onclick="deleteMemo(${selected.id})" title="삭제" class="p-1.5 rounded text-botanical-sage hover:text-red-400 transition-all">
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6h14z"/></svg>
               </button>
             </div>
-            <textarea rows="5" oninput="autoResize(this); updateMemo(${memo.id}, 'content', this.value)" placeholder="내용" class="memo-cell w-full text-sm bg-transparent focus:outline-none resize-none overflow-hidden leading-relaxed">${memo.content || ''}</textarea>
-            <p class="text-[10px] text-botanical-sage mt-3">${memo.updatedAt ? new Date(memo.updatedAt).toLocaleString('ko-KR') : ''}</p>
           </div>
-        `).join('')}
-      </div>
-    `}
+          <div class="flex-1 overflow-y-auto px-6 py-5">
+            <input type="text" value="${escapeHtml(selected.title || '')}" placeholder="제목" oninput="updateMemo(${selected.id}, 'title', this.value); updateMemoListItem(${selected.id})" class="w-full font-serif text-2xl font-semibold bg-transparent focus:outline-none mb-3">
+            <textarea oninput="updateMemo(${selected.id}, 'content', this.value); updateMemoListItem(${selected.id})" placeholder="내용" class="w-full text-sm bg-transparent focus:outline-none resize-none leading-relaxed" style="min-height: 400px;">${escapeHtml(selected.content || '')}</textarea>
+          </div>
+        `}
+      </main>
+    </div>
   `;
-  requestAnimationFrame(() => {
-    document.querySelectorAll('.memo-cell').forEach(autoResize);
-  });
+}
+
+function escapeHtml(s) {
+  return String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+function selectMemo(id) {
+  selectedMemoId = id;
+  renderMemos();
 }
 
 function addMemo() {
   if (!memosData) memosData = { memos: [] };
   if (!memosData.memos) memosData.memos = [];
   const now = Date.now();
-  memosData.memos.push({ id: now, title: '', content: '', pinned: false, createdAt: now, updatedAt: now });
+  const newMemo = { id: now, title: '', content: '', pinned: false, createdAt: now, updatedAt: now };
+  memosData.memos.push(newMemo);
+  selectedMemoId = now;
   saveAllData();
   renderMemos();
+  // 제목 input에 포커스
+  requestAnimationFrame(() => {
+    const input = document.querySelector('#memos-content main input[type="text"]');
+    input?.focus();
+  });
 }
 
 function updateMemo(id, field, value) {
@@ -2976,6 +3066,12 @@ function updateMemo(id, field, value) {
   memo[field] = value;
   memo.updatedAt = Date.now();
   saveAllData();
+}
+
+// 좌측 리스트 아이템만 갱신 (타이핑 중 전체 리렌더링 방지)
+function updateMemoListItem(id) {
+  // 제목/미리보기만 바뀌므로 디바운스 없이 가볍게 재렌더링할 수도 있지만
+  // 타이핑 포커스 유지를 위해 지금은 no-op. 탭 이탈/저장 완료 시 자연 갱신됨.
 }
 
 function toggleMemoPin(id) {
@@ -2990,6 +3086,7 @@ function toggleMemoPin(id) {
 function deleteMemo(id) {
   if (!confirm('이 메모를 삭제할까요?')) return;
   memosData.memos = memosData.memos.filter(m => m.id !== id);
+  if (selectedMemoId === id) selectedMemoId = null;
   saveAllData();
   renderMemos();
 }
