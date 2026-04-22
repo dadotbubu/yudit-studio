@@ -2715,42 +2715,60 @@ function renderPerformance() {
           </div>
         </div>
 
-        ${dailyData.length > 0 ? `
-        <!-- Daily Graph -->
+        <!-- Daily Graph — 항상 오늘 포함 최근 7일 표시 -->
         <div id="follower-graph-daily" class="${followerViewMode === 'daily' ? '' : 'hidden'}">
-          <p class="text-xs text-botanical-sage mb-3">최근 7일 팔로워 증가</p>
-          <div class="flex items-end justify-between gap-3 px-4" style="height: 120px;">
-            ${(() => {
-              // Get last 7 days ending with today
-              const sortedData = [...dailyData].sort((a, b) => a.date.localeCompare(b.date));
-              const last7Days = sortedData.slice(-7);
-              return last7Days.map((d) => {
-                const height = maxDailyChange > 0 ? (d.change / maxDailyChange) * 100 : 0;
-                const isMax = d.change === maxDailyChange;
-                return `
-                  <div class="flex-1 flex flex-col items-center">
-                    <div class="w-full rounded-t" style="height: ${height}px; background-color: ${isMax ? '#C27B66' : '#8C9A84'};"></div>
-                  </div>
-                `;
-              }).join('');
-            })()}
-          </div>
-          <div class="flex justify-between gap-3 px-4 mt-2">
-            ${(() => {
-              const sortedData = [...dailyData].sort((a, b) => a.date.localeCompare(b.date));
-              const last7Days = sortedData.slice(-7);
-              return last7Days.map((d) => {
-                const isMax = d.change === maxDailyChange && maxDailyChange > 0;
-                const dateLabel = d.date.slice(5).replace('-', '/'); // MM/DD format
-                return `
-                  <div class="flex-1 text-center">
-                    <span class="text-xs text-botanical-sage">${dateLabel}</span><br>
-                    <span class="text-xs font-medium ${isMax ? 'text-botanical-terracotta' : ''}">+${d.change}</span>
-                  </div>
-                `;
-              }).join('');
-            })()}
-          </div>
+          <p class="text-xs text-botanical-sage mb-3">최근 7일 팔로워 추이</p>
+          ${(() => {
+            // 오늘 포함 7일 날짜 배열 (오늘이 맨 끝)
+            const dateMap = {};
+            dailyData.forEach(d => { dateMap[d.date] = d; });
+            const days = [];
+            const now = new Date();
+            for (let i = 6; i >= 0; i--) {
+              const d = new Date(now);
+              d.setDate(d.getDate() - i);
+              const dateStr = d.toISOString().slice(0, 10);
+              days.push({
+                date: dateStr,
+                count: dateMap[dateStr]?.count ?? null,
+                change: dateMap[dateStr]?.change ?? 0
+              });
+            }
+            const maxCount = Math.max(0, ...days.map(d => d.count ?? 0));
+            const minCount = Math.min(...days.filter(d => d.count != null).map(d => d.count), maxCount);
+            const range = Math.max(1, maxCount - minCount);
+            const maxChange = Math.max(0, ...days.map(d => d.change ?? 0));
+            return `
+              <div class="flex items-end justify-between gap-3 px-4" style="height: 120px;">
+                ${days.map(d => {
+                  // 막대 높이는 해당 날짜 팔로워 수 기준 (min~max 범위를 10px~110px로 맵핑)
+                  const h = d.count == null ? 0 : 10 + ((d.count - minCount) / range) * 100;
+                  const isMax = d.change > 0 && d.change === maxChange;
+                  const color = d.count == null ? '#E5E7EB' : (isMax ? '#C27B66' : '#8C9A84');
+                  return `
+                    <div class="flex-1 flex flex-col items-center justify-end" style="height: 120px;">
+                      <div class="w-full rounded-t" style="height: ${h}px; background-color: ${color};"></div>
+                    </div>
+                  `;
+                }).join('')}
+              </div>
+              <div class="flex justify-between gap-3 px-4 mt-2">
+                ${days.map(d => {
+                  const isMax = d.change > 0 && d.change === maxChange;
+                  const dateLabel = d.date.slice(5).replace('-', '/');
+                  const countLabel = d.count == null ? '-' : d.count.toLocaleString();
+                  const changeLabel = d.count == null ? '' : (d.change >= 0 ? `+${d.change}` : `${d.change}`);
+                  return `
+                    <div class="flex-1 text-center leading-tight">
+                      <div class="text-xs text-botanical-sage">${dateLabel}</div>
+                      <div class="text-xs font-semibold text-botanical-fg">${countLabel}</div>
+                      <div class="text-[11px] ${d.change > 0 ? (isMax ? 'text-botanical-terracotta' : 'text-green-600') : 'text-botanical-sage'}">${changeLabel}</div>
+                    </div>
+                  `;
+                }).join('')}
+              </div>
+            `;
+          })()}
         </div>
 
         <!-- Weekly Graph -->
@@ -2772,9 +2790,6 @@ function renderPerformance() {
             `).join('')}
           </div>
         </div>
-        ` : `
-        <p class="text-sm text-botanical-sage text-center py-8">팔로워 데이터가 없습니다</p>
-        `}
       </div>
     </div>
 
