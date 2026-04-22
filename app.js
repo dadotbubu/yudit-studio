@@ -1544,19 +1544,11 @@ function renderContentForm(content) {
           </div>
         </div>
 
-        <div class="mb-5 p-4 bg-botanical-cream/50 rounded-lg">
-          <p class="text-sm font-medium text-botanical-terracotta mb-3">대본 확인하기</p>
-          <div class="flex gap-2">
-            <input type="text" value="${content.reference?.transcriptLink ?? DEFAULT_TRANSCRIPT_LINK}" oninput="updateReference(${content.id}, 'transcriptLink', this.value)" placeholder="https://..." class="flex-1 px-3 rounded-lg border border-botanical-stone text-sm focus:outline-none bg-white" style="height:38px;">
-            <a href="${content.reference?.transcriptLink ?? DEFAULT_TRANSCRIPT_LINK}" target="_blank" class="px-2 text-xs text-blue-500 border border-blue-200 rounded-lg hover:bg-blue-50 flex items-center shrink-0">열기</a>
-          </div>
-        </div>
-
         <div class="border border-botanical-stone rounded-lg overflow-hidden">
           <table class="w-full text-sm">
             <tbody>
               ${[
-                ['url', '링크', 'text', '인스타 URL'],
+                ['url', '링크', 'url', '인스타 URL'],
                 ['title', '썸네일 제목', 'text', ''],
                 ['hook', '첫 3초 훅킹 멘트, 장면 (1~2줄)', 'textarea', ''],
                 ['followers', '계정 팔로워 수', 'text', ''],
@@ -1570,9 +1562,19 @@ function renderContentForm(content) {
               ].map(([field, label, type, ph], i, arr) => `
                 <tr${i < arr.length - 1 ? ' class="border-b border-botanical-stone"' : ''}>
                   <td class="px-4 py-3 bg-botanical-cream/30 font-medium w-1/3 align-top">${label}</td>
-                  <td class="px-4 py-3">${type === 'textarea'
-                    ? `<textarea rows="1" oninput="autoResize(this);updateReference(${content.id}, '${field}', this.value)" placeholder="${ph}" class="auto-grow w-full bg-transparent focus:outline-none resize-none overflow-hidden leading-relaxed" style="min-height: 24px;">${content.reference?.[field] ?? ''}</textarea>`
-                    : `<input type="${type}" value="${content.reference?.[field] ?? ''}" placeholder="${ph}" oninput="updateReference(${content.id}, '${field}', this.value)" class="w-full bg-transparent focus:outline-none">`}</td>
+                  <td class="px-4 py-3">${
+                    type === 'textarea'
+                      ? `<textarea rows="1" oninput="autoResize(this);updateReference(${content.id}, '${field}', this.value)" placeholder="${ph}" class="auto-grow w-full bg-transparent focus:outline-none resize-none overflow-hidden leading-relaxed" style="min-height: 24px;">${content.reference?.[field] ?? ''}</textarea>`
+                      : type === 'url'
+                      ? `<div class="flex items-center gap-2">
+                          <input type="text" value="${content.reference?.[field] ?? ''}" placeholder="${ph}" oninput="updateReference(${content.id}, '${field}', this.value)" class="flex-1 bg-transparent focus:outline-none">
+                          ${content.reference?.[field]
+                            ? `<a href="${content.reference[field]}" target="_blank" class="px-2 py-0.5 text-xs text-blue-500 border border-blue-200 rounded-lg hover:bg-blue-50 shrink-0">열기</a>`
+                            : `<span class="px-2 py-0.5 text-xs text-botanical-sage/50 border border-botanical-stone rounded-lg shrink-0 cursor-default">열기</span>`}
+                          <a href="${DEFAULT_TRANSCRIPT_LINK}" target="_blank" class="px-2 py-0.5 text-xs text-botanical-terracotta border border-botanical-terracotta/40 rounded-lg hover:bg-botanical-terracotta/10 shrink-0">대본</a>
+                        </div>`
+                      : `<input type="${type}" value="${content.reference?.[field] ?? ''}" placeholder="${ph}" oninput="updateReference(${content.id}, '${field}', this.value)" class="w-full bg-transparent focus:outline-none">`
+                  }</td>
                 </tr>
               `).join('')}
             </tbody>
