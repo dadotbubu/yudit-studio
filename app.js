@@ -1223,7 +1223,7 @@ function renderContentForm(content) {
   const sectionColors = {
     'HOOK': '#6366F1',
     'INTRO': '#10B981',
-    'MAIN 1': '#10B981',
+    'MAIN 1': '#0EA5E9',
     'MAIN 2': '#F59E0B',
     'OUTRO': '#EC4899',
     'CTA': '#EF4444'
