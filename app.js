@@ -2368,6 +2368,21 @@ function renderPerformance() {
 
   const today = new Date().toISOString().slice(0, 10);
 
+  // 현재 팔로워 / 오늘 증가 / 이번 주 증가 계산
+  const sortedDailyAsc = [...dailyData].sort((a, b) => a.date.localeCompare(b.date));
+  const latestFollowerEntry = sortedDailyAsc[sortedDailyAsc.length - 1];
+  const currentFollowerCount = latestFollowerEntry?.count ?? performanceData.follower?.current ?? 0;
+  const latestDateStr = latestFollowerEntry?.date ? latestFollowerEntry.date.slice(5).replace('-', '/') : '';
+  const todayEntry = sortedDailyAsc.find(d => d.date === today);
+  const todayChange = todayEntry ? todayEntry.change : 0;
+  const todayHasEntry = !!todayEntry;
+  const sevenDaysAgoDate = new Date();
+  sevenDaysAgoDate.setDate(sevenDaysAgoDate.getDate() - 6);
+  const sevenDaysAgoStr = sevenDaysAgoDate.toISOString().slice(0, 10);
+  const weekChange = sortedDailyAsc
+    .filter(d => d.date >= sevenDaysAgoStr && d.date <= today)
+    .reduce((sum, d) => sum + d.change, 0);
+
   document.getElementById('performance-content').innerHTML = `
     <div class="flex gap-6 mb-6 border-b border-botanical-stone/30">
       <button onclick="switchPerfTab('detail')" id="perf-tab-detail" class="perf-tab-btn pb-3 text-sm font-medium border-b-2 border-botanical-fg text-botanical-fg">월 상세</button>
@@ -2475,17 +2490,21 @@ function renderPerformance() {
         </div>
 
         <!-- Summary Cards -->
-        <div class="grid grid-cols-3 gap-4 mb-6">
+        <div class="grid grid-cols-4 gap-4 mb-6">
+          <div class="p-4 bg-botanical-sage/10 rounded-xl text-center">
+            <p class="text-2xl font-semibold text-botanical-fg">${currentFollowerCount.toLocaleString()}</p>
+            <p class="text-xs text-botanical-sage">${todayHasEntry ? '오늘 팔로워' : (latestDateStr ? `${latestDateStr} 기준` : '팔로워 수')}</p>
+          </div>
           <div class="p-4 bg-botanical-cream/30 rounded-xl text-center">
-            <p class="text-2xl font-semibold ${dailyData.length > 0 ? 'text-green-600' : 'text-botanical-sage'}">+${dailyData[dailyData.length - 1]?.change || 0}</p>
+            <p class="text-2xl font-semibold ${todayChange > 0 ? 'text-green-600' : (todayChange < 0 ? 'text-red-500' : 'text-botanical-sage')}">${todayChange > 0 ? '+' : ''}${todayChange.toLocaleString()}</p>
             <p class="text-xs text-botanical-sage">오늘 증가</p>
           </div>
           <div class="p-4 bg-botanical-cream/30 rounded-xl text-center">
-            <p class="text-2xl font-semibold ${dailyData.length > 0 ? 'text-green-600' : 'text-botanical-sage'}">+${dailyData.reduce((sum, d) => sum + d.change, 0)}</p>
-            <p class="text-xs text-botanical-sage">이번 주 증가</p>
+            <p class="text-2xl font-semibold ${weekChange > 0 ? 'text-green-600' : (weekChange < 0 ? 'text-red-500' : 'text-botanical-sage')}">${weekChange > 0 ? '+' : ''}${weekChange.toLocaleString()}</p>
+            <p class="text-xs text-botanical-sage">최근 7일 증가</p>
           </div>
           <div class="p-4 bg-botanical-cream/30 rounded-xl text-center">
-            <p class="text-2xl font-semibold ${monthPerf.followerGain ? 'text-green-600' : 'text-botanical-sage'}">+${(monthPerf.followerGain || 0).toLocaleString()}</p>
+            <p class="text-2xl font-semibold ${(monthPerf.followerGain || 0) > 0 ? 'text-green-600' : 'text-botanical-sage'}">${(monthPerf.followerGain || 0) > 0 ? '+' : ''}${(monthPerf.followerGain || 0).toLocaleString()}</p>
             <p class="text-xs text-botanical-sage">이번 달 증가</p>
           </div>
         </div>
@@ -2751,11 +2770,15 @@ function saveFollowerCount() {
     performanceData.follower.history.monthly.push({ month: monthKey, change: monthChange });
   }
 
+  // 월간 카드에서 쓰는 followerGain 동기화
+  if (!performanceData.monthly) performanceData.monthly = {};
+  if (!performanceData.monthly[monthKey]) performanceData.monthly[monthKey] = {};
+  performanceData.monthly[monthKey].followerGain = monthChange;
+
   // Clear input
   document.getElementById('follower-count').value = '';
 
   saveAllData();
-  alert('저장되었습니다');
   renderPerformance();
 }
 
