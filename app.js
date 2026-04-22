@@ -1531,18 +1531,16 @@ function renderContentForm(content) {
         <div class="mb-5 p-4 bg-botanical-cream/50 rounded-lg">
           <p class="text-sm font-medium text-botanical-terracotta mb-3">레퍼런스 체크리스트</p>
           <div class="space-y-2">
-            <label class="flex items-center gap-2 text-sm cursor-pointer">
-              <input type="checkbox" class="w-4 h-4 rounded border-botanical-stone">
-              <span>6개월~1년 이내의 최신 영상인가요?</span>
-            </label>
-            <label class="flex items-center gap-2 text-sm cursor-pointer">
-              <input type="checkbox" class="w-4 h-4 rounded border-botanical-stone">
-              <span>팔로워는 낮은데 조회수가 높은 <strong>콘텐츠인가요?</strong> (조회수가 팔로워의 최소 10배수)</span>
-            </label>
-            <label class="flex items-center gap-2 text-sm cursor-pointer">
-              <input type="checkbox" class="w-4 h-4 rounded border-botanical-stone">
-              <span>내 주제와 관련성이 있나요?</span>
-            </label>
+            ${[
+              '6개월~1년 이내의 최신 영상인가요?',
+              '팔로워는 낮은데 조회수가 높은 <strong>콘텐츠인가요?</strong> (조회수가 팔로워의 최소 10배수)',
+              '내 주제와 관련성이 있나요?'
+            ].map((text, i) => `
+              <label class="flex items-center gap-2 text-sm cursor-pointer">
+                <input type="checkbox" ${content.reference?.checklist?.[i] ? 'checked' : ''} onchange="toggleChecklist(${content.id}, 'reference', ${i}, this.checked)" class="w-4 h-4 rounded border-botanical-stone">
+                <span>${text}</span>
+              </label>
+            `).join('')}
           </div>
         </div>
 
@@ -1630,13 +1628,20 @@ function renderContentForm(content) {
         <div class="mb-5 p-4 bg-botanical-cream/50 rounded-lg">
           <p class="text-sm font-medium text-botanical-terracotta mb-3">기획 체크리스트</p>
           <div class="space-y-2">
-            <label class="flex items-center gap-2 text-sm cursor-pointer"><input type="checkbox" class="w-4 h-4 rounded border-botanical-stone"><span>이 영상을 봐야할 타겟이 명확한가요?</span></label>
-            <label class="flex items-center gap-2 text-sm cursor-pointer"><input type="checkbox" class="w-4 h-4 rounded border-botanical-stone"><span>공유 또는 저장할 이유가 있나요?</span></label>
-            <label class="flex items-center gap-2 text-sm cursor-pointer"><input type="checkbox" class="w-4 h-4 rounded border-botanical-stone"><span>첫 3~5초 안에 주제 / 미끼를 드러냈나요?</span></label>
-            <label class="flex items-center gap-2 text-sm cursor-pointer"><input type="checkbox" class="w-4 h-4 rounded border-botanical-stone"><span>영상 길이가 30초 이내로 간결한가요?</span></label>
-            <label class="flex items-center gap-2 text-sm cursor-pointer"><input type="checkbox" class="w-4 h-4 rounded border-botanical-stone"><span>콘텐츠에서 다 못 알려준 정보는 본문에 상세히 풀었나요?</span></label>
-            <label class="flex items-center gap-2 text-sm cursor-pointer"><input type="checkbox" class="w-4 h-4 rounded border-botanical-stone"><span>본문 글이 간결하고 잘 읽히나요?</span></label>
-            <label class="flex items-center gap-2 text-sm cursor-pointer"><input type="checkbox" class="w-4 h-4 rounded border-botanical-stone"><span>레퍼런스 카피가 아닌지 냉정하게 판단해주세요.</span></label>
+            ${[
+              '이 영상을 봐야할 타겟이 명확한가요?',
+              '공유 또는 저장할 이유가 있나요?',
+              '첫 3~5초 안에 주제 / 미끼를 드러냈나요?',
+              '영상 길이가 30초 이내로 간결한가요?',
+              '콘텐츠에서 다 못 알려준 정보는 본문에 상세히 풀었나요?',
+              '본문 글이 간결하고 잘 읽히나요?',
+              '레퍼런스 카피가 아닌지 냉정하게 판단해주세요.'
+            ].map((text, i) => `
+              <label class="flex items-center gap-2 text-sm cursor-pointer">
+                <input type="checkbox" ${content.planChecklist?.[i] ? 'checked' : ''} onchange="toggleChecklist(${content.id}, 'plan', ${i}, this.checked)" class="w-4 h-4 rounded border-botanical-stone">
+                <span>${text}</span>
+              </label>
+            `).join('')}
           </div>
         </div>
 
@@ -1999,6 +2004,20 @@ function updateContentField(contentId, field, value) {
   const content = contentsData.contents.find(c => c.id === contentId);
   if (!content) return;
   content[field] = value;
+  saveAllData();
+}
+
+function toggleChecklist(contentId, kind, idx, checked) {
+  const content = contentsData.contents.find(c => c.id === contentId);
+  if (!content) return;
+  if (kind === 'reference') {
+    if (!content.reference) content.reference = {};
+    if (!content.reference.checklist) content.reference.checklist = [];
+    content.reference.checklist[idx] = !!checked;
+  } else if (kind === 'plan') {
+    if (!content.planChecklist) content.planChecklist = [];
+    content.planChecklist[idx] = !!checked;
+  }
   saveAllData();
 }
 
