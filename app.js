@@ -1556,7 +1556,7 @@ function renderContentForm(content) {
               ${[
                 ['url', '링크', 'text', '인스타 URL'],
                 ['title', '썸네일 제목', 'text', ''],
-                ['hook', '첫 3초 훅킹 멘트, 장면 (1~2줄)', 'text', ''],
+                ['hook', '첫 3초 훅킹 멘트, 장면 (1~2줄)', 'textarea', ''],
                 ['followers', '계정 팔로워 수', 'text', ''],
                 ['views', '조회수', 'text', ''],
                 ['likes', '좋아요', 'text', ''],
@@ -1564,11 +1564,13 @@ function renderContentForm(content) {
                 ['saves', '저장', 'text', ''],
                 ['comments', '댓글', 'text', ''],
                 ['length', '영상 길이', 'text', ''],
-                ['reason', '잘 터진 이유 (정보 / 공감 / 유머 등)', 'text', ''],
+                ['reason', '잘 터진 이유 (정보 / 공감 / 유머 등)', 'textarea', ''],
               ].map(([field, label, type, ph], i, arr) => `
                 <tr${i < arr.length - 1 ? ' class="border-b border-botanical-stone"' : ''}>
-                  <td class="px-4 py-3 bg-botanical-cream/30 font-medium w-1/3">${label}</td>
-                  <td class="px-4 py-3"><input type="${type}" value="${content.reference?.[field] ?? ''}" placeholder="${ph}" oninput="updateReference(${content.id}, '${field}', this.value)" class="w-full bg-transparent focus:outline-none"></td>
+                  <td class="px-4 py-3 bg-botanical-cream/30 font-medium w-1/3 align-top">${label}</td>
+                  <td class="px-4 py-3">${type === 'textarea'
+                    ? `<textarea rows="1" oninput="autoResize(this);updateReference(${content.id}, '${field}', this.value)" placeholder="${ph}" class="auto-grow w-full bg-transparent focus:outline-none resize-y leading-relaxed" style="min-height: 24px;">${content.reference?.[field] ?? ''}</textarea>`
+                    : `<input type="${type}" value="${content.reference?.[field] ?? ''}" placeholder="${ph}" oninput="updateReference(${content.id}, '${field}', this.value)" class="w-full bg-transparent focus:outline-none">`}</td>
                 </tr>
               `).join('')}
             </tbody>
@@ -1861,7 +1863,7 @@ function autoResize(el) {
 }
 
 function autoResizeAllScriptCells() {
-  document.querySelectorAll('.script-table textarea.script-cell').forEach(autoResize);
+  document.querySelectorAll('.script-table textarea.script-cell, textarea.auto-grow').forEach(autoResize);
 }
 
 // 창 크기 줄어들면 셀 내용이 여러 줄로 감싸져서 짤림 → 리사이즈 시 높이 재계산
@@ -1883,7 +1885,7 @@ const _scriptCellObserver = typeof ResizeObserver !== 'undefined'
 
 function attachScriptCellObservers() {
   if (!_scriptCellObserver) return;
-  document.querySelectorAll('.script-table textarea.script-cell').forEach(el => {
+  document.querySelectorAll('.script-table textarea.script-cell, textarea.auto-grow').forEach(el => {
     _scriptCellObserver.observe(el);
   });
 }
@@ -1891,7 +1893,7 @@ function attachScriptCellObservers() {
 // 사용자가 리사이즈 핸들 끌면 그 셀은 자동 리사이즈에서 제외
 document.addEventListener('mousedown', (e) => {
   const el = e.target;
-  if (el?.classList?.contains('script-cell')) {
+  if (el?.classList?.contains('script-cell') || el?.classList?.contains('auto-grow')) {
     const rect = el.getBoundingClientRect();
     // 우하단 리사이즈 핸들 영역 감지 (~16x16)
     if (e.clientX > rect.right - 16 && e.clientY > rect.bottom - 16) {
@@ -1899,10 +1901,10 @@ document.addEventListener('mousedown', (e) => {
     }
   }
 });
-// 셀 비우면 수동 리사이즈 해제
+// 더블클릭하면 자동 리사이즈 모드로 복귀
 document.addEventListener('dblclick', (e) => {
   const el = e.target;
-  if (el?.classList?.contains('script-cell') && el.dataset.userResized === '1') {
+  if ((el?.classList?.contains('script-cell') || el?.classList?.contains('auto-grow')) && el.dataset.userResized === '1') {
     delete el.dataset.userResized;
     el.style.height = '';
     autoResize(el);
