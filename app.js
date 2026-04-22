@@ -1269,7 +1269,7 @@ function renderContentForm(content) {
           <div>
             <label class="text-xs text-botanical-sage mb-1 block">상태</label>
             ${content.isRevenue ? `
-            <select class="w-full px-3 py-2 rounded-lg border border-botanical-stone bg-white text-sm focus:outline-none">
+            <select oninput="updateContentStatus(${content.id}, this.value)" onchange="updateContentStatus(${content.id}, this.value)" class="w-full px-3 py-2 rounded-lg border border-botanical-stone bg-white text-sm focus:outline-none">
               <option value="계약완료" ${content.status === '계약완료' ? 'selected' : ''}>계약완료</option>
               <option value="기획안1차공유" ${content.status === '기획안1차공유' ? 'selected' : ''}>기획안 1차 공유</option>
               <option value="기획안최종컨펌" ${content.status === '기획안최종컨펌' ? 'selected' : ''}>기획안 최종 컨펌</option>
@@ -1278,7 +1278,7 @@ function renderContentForm(content) {
               <option value="업로드완료" ${content.status === '업로드완료' ? 'selected' : ''}>업로드 완료</option>
             </select>
             ` : `
-            <select class="w-full px-3 py-2 rounded-lg border border-botanical-stone bg-white text-sm focus:outline-none">
+            <select oninput="updateContentStatus(${content.id}, this.value)" onchange="updateContentStatus(${content.id}, this.value)" class="w-full px-3 py-2 rounded-lg border border-botanical-stone bg-white text-sm focus:outline-none">
               <option value="아이디어" ${content.status === '아이디어' ? 'selected' : ''}>아이디어</option>
               <option value="기획중" ${content.status === '기획중' ? 'selected' : ''}>기획중</option>
               <option value="제작중" ${content.status === '제작중' ? 'selected' : ''}>제작중</option>
@@ -1288,7 +1288,7 @@ function renderContentForm(content) {
           </div>
           <div>
             <label class="text-xs text-botanical-sage mb-1 block">카테고리</label>
-            <select class="w-full px-3 py-2 rounded-lg border border-botanical-stone bg-white text-sm focus:outline-none">
+            <select oninput="updateContentCategory(${content.id}, this.value)" onchange="updateContentCategory(${content.id}, this.value)" class="w-full px-3 py-2 rounded-lg border border-botanical-stone bg-white text-sm focus:outline-none">
               <optgroup label="일반">
                 <option value="취업/이직" ${content.category === '취업/이직' ? 'selected' : ''}>취업/이직</option>
                 <option value="AI활용" ${content.category === 'AI활용' ? 'selected' : ''}>AI활용</option>
@@ -1305,7 +1305,7 @@ function renderContentForm(content) {
           </div>
           <div>
             <label class="text-xs text-botanical-sage mb-1 block">예정일</label>
-            <input type="date" value="${content.uploadDate}" class="w-full px-3 py-2 rounded-lg border border-botanical-stone text-sm focus:outline-none">
+            <input type="date" value="${content.uploadDate || ''}" oninput="updateContentField(${content.id}, 'uploadDate', this.value)" class="w-full px-3 py-2 rounded-lg border border-botanical-stone text-sm focus:outline-none">
           </div>
           <div>
             <label class="text-xs text-botanical-sage mb-1 block">${content.isRevenue ? '브랜드 / 상품' : '핵심 키워드'}</label>
@@ -1315,27 +1315,27 @@ function renderContentForm(content) {
         <div class="grid grid-cols-6 gap-4">
           <div>
             <label class="text-xs text-botanical-sage mb-1 block">URL</label>
-            <input type="text" placeholder="인스타 링크" value="${content.url || ''}" class="w-full px-3 py-2 rounded-lg border border-botanical-stone text-sm focus:outline-none">
+            <input type="text" placeholder="인스타 링크" value="${content.url || ''}" oninput="updateContentField(${content.id}, 'url', this.value)" class="w-full px-3 py-2 rounded-lg border border-botanical-stone text-sm focus:outline-none">
           </div>
           <div>
             <label class="text-xs text-botanical-sage mb-1 block">조회수</label>
-            <input type="text" placeholder="-" value="${content.performance.views || ''}" class="w-full px-3 py-2 rounded-lg border border-botanical-stone text-sm focus:outline-none">
+            <input type="number" placeholder="-" value="${content.performance.views || ''}" oninput="updatePerformance(${content.id}, 'views', this.value)" class="w-full px-3 py-2 rounded-lg border border-botanical-stone text-sm focus:outline-none">
           </div>
           <div>
             <label class="text-xs text-botanical-sage mb-1 block">좋아요</label>
-            <input type="text" placeholder="-" value="${content.performance.likes || ''}" class="w-full px-3 py-2 rounded-lg border border-botanical-stone text-sm focus:outline-none">
+            <input type="number" placeholder="-" value="${content.performance.likes || ''}" oninput="updatePerformance(${content.id}, 'likes', this.value)" class="w-full px-3 py-2 rounded-lg border border-botanical-stone text-sm focus:outline-none">
           </div>
           <div>
             <label class="text-xs text-botanical-sage mb-1 block">공유</label>
-            <input type="text" placeholder="-" value="${content.performance.shares || ''}" class="w-full px-3 py-2 rounded-lg border border-botanical-stone text-sm focus:outline-none">
+            <input type="number" placeholder="-" value="${content.performance.shares || ''}" oninput="updatePerformance(${content.id}, 'shares', this.value)" class="w-full px-3 py-2 rounded-lg border border-botanical-stone text-sm focus:outline-none">
           </div>
           <div>
             <label class="text-xs text-botanical-sage mb-1 block">댓글</label>
-            <input type="text" placeholder="-" value="${content.performance.comments || ''}" class="w-full px-3 py-2 rounded-lg border border-botanical-stone text-sm focus:outline-none">
+            <input type="number" placeholder="-" value="${content.performance.comments || ''}" oninput="updatePerformance(${content.id}, 'comments', this.value)" class="w-full px-3 py-2 rounded-lg border border-botanical-stone text-sm focus:outline-none">
           </div>
           <div>
             <label class="text-xs text-botanical-sage mb-1 block">저장</label>
-            <input type="text" placeholder="-" value="${content.performance.saves || ''}" class="w-full px-3 py-2 rounded-lg border border-botanical-stone text-sm focus:outline-none">
+            <input type="number" placeholder="-" value="${content.performance.saves || ''}" oninput="updatePerformance(${content.id}, 'saves', this.value)" class="w-full px-3 py-2 rounded-lg border border-botanical-stone text-sm focus:outline-none">
           </div>
         </div>
 
@@ -1996,6 +1996,48 @@ function updateContentField(contentId, field, value) {
   if (!content) return;
   content[field] = value;
   saveAllData();
+}
+
+function updatePerformance(contentId, field, value) {
+  const content = contentsData.contents.find(c => c.id === contentId);
+  if (!content) return;
+  if (!content.performance) content.performance = {};
+  const num = parseFloat(value);
+  content.performance[field] = isNaN(num) ? 0 : num;
+  saveAllData();
+}
+
+function updateContentStatus(contentId, value) {
+  const content = contentsData.contents.find(c => c.id === contentId);
+  if (!content) return;
+  content.status = value;
+  // 캘린더 항목 상태도 동기화
+  calendarData.items.forEach(item => {
+    if (item.contentId === contentId) item.status = value;
+  });
+  saveAllData();
+  renderContentList();
+  renderCalendar();
+  reopenForm(contentId);
+}
+
+function updateContentCategory(contentId, value) {
+  const content = contentsData.contents.find(c => c.id === contentId);
+  if (!content) return;
+  content.category = value;
+  // 수익 카테고리 여부 갱신
+  content.isRevenue = ['광고', '판매', '협찬'].includes(value);
+  // 캘린더 항목도 동기화
+  calendarData.items.forEach(item => {
+    if (item.contentId === contentId) {
+      item.category = value;
+      item.type = content.isRevenue ? '광고' : '일반';
+    }
+  });
+  saveAllData();
+  renderContentList();
+  renderCalendar();
+  reopenForm(contentId);
 }
 
 // 제목 변경 — 편집 중인 버전에 저장, 최종버전일 때만 목록/캘린더/수익 연동
