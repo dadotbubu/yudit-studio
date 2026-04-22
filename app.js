@@ -1668,9 +1668,9 @@ function renderContentForm(content) {
                       <input type="text" value="${row.section || ''}" oninput="updateScriptRow(${content.id}, ${idx}, 'section', this.value)" class="w-full bg-transparent focus:outline-none font-semibold pr-5" style="color: ${sectionColors[row.section] || '#8C9A84'};">
                       <button onclick="removeScriptRow(${content.id}, ${idx})" title="행 삭제" class="absolute top-1 right-1 w-5 h-5 rounded text-xs text-red-400 opacity-0 group-hover:opacity-100 hover:bg-red-50 transition-opacity">×</button>
                     </td>
-                    <td class="px-4 py-3 border-l border-botanical-stone"><textarea rows="1" oninput="autoResize(this);updateScriptRow(${content.id}, ${idx}, 'dialogue', this.value)" class="script-cell w-full bg-transparent focus:outline-none resize-none overflow-hidden">${row.dialogue || ''}</textarea></td>
-                    <td class="px-4 py-3 border-l border-botanical-stone"><textarea rows="1" oninput="autoResize(this);updateScriptRow(${content.id}, ${idx}, 'subtitle', this.value)" class="script-cell w-full bg-transparent focus:outline-none resize-none overflow-hidden">${row.subtitle || ''}</textarea></td>
-                    <td class="px-4 py-3 border-l border-botanical-stone"><textarea rows="1" oninput="autoResize(this);updateScriptRow(${content.id}, ${idx}, 'scene', this.value)" class="script-cell w-full bg-transparent focus:outline-none resize-none overflow-hidden">${row.scene || ''}</textarea></td>
+                    <td class="px-4 py-3 border-l border-botanical-stone"><textarea rows="1" oninput="autoResize(this);updateScriptRow(${content.id}, ${idx}, 'dialogue', this.value)" class="script-cell w-full bg-transparent focus:outline-none resize-y">${row.dialogue || ''}</textarea></td>
+                    <td class="px-4 py-3 border-l border-botanical-stone"><textarea rows="1" oninput="autoResize(this);updateScriptRow(${content.id}, ${idx}, 'subtitle', this.value)" class="script-cell w-full bg-transparent focus:outline-none resize-y">${row.subtitle || ''}</textarea></td>
+                    <td class="px-4 py-3 border-l border-botanical-stone"><textarea rows="1" oninput="autoResize(this);updateScriptRow(${content.id}, ${idx}, 'scene', this.value)" class="script-cell w-full bg-transparent focus:outline-none resize-y">${row.scene || ''}</textarea></td>
                   </tr>
                 `).join('')}
               </tbody>
@@ -1787,7 +1787,7 @@ function toggleContentForm(id) {
   const arrow = document.getElementById('arrow-' + id);
   form.classList.toggle('active');
   arrow.style.transform = form.classList.contains('active') ? 'rotate(180deg)' : 'rotate(0deg)';
-  if (form.classList.contains('active')) requestAnimationFrame(autoResizeAllScriptCells);
+  if (form.classList.contains('active')) requestAnimationFrame(() => { autoResizeAllScriptCells(); attachScriptCellObservers(); });
 }
 
 function collapseAllContentForms() {
@@ -1835,7 +1835,7 @@ function reopenForm(contentId) {
   if (form) form.classList.add('active');
   const arrow = document.getElementById('arrow-' + contentId);
   if (arrow) arrow.style.transform = 'rotate(180deg)';
-  requestAnimationFrame(autoResizeAllScriptCells);
+  requestAnimationFrame(() => { autoResizeAllScriptCells(); attachScriptCellObservers(); });
 }
 
 function addScriptRow(contentId) {
@@ -1852,6 +1852,8 @@ function addScriptRow(contentId) {
 
 function autoResize(el) {
   if (!el) return;
+  // 사용자가 수동으로 리사이즈한 경우 존중
+  if (el.dataset.userResized === '1') return;
   el.style.height = 'auto';
   el.style.height = (el.scrollHeight + 2) + 'px';
 }
@@ -1865,6 +1867,44 @@ let _scriptResizeTimer;
 window.addEventListener('resize', () => {
   clearTimeout(_scriptResizeTimer);
   _scriptResizeTimer = setTimeout(autoResizeAllScriptCells, 80);
+});
+
+// 셀 폭이 변할 때도 높이 재계산 (다른 셀 타이핑으로 열 폭 밀려도 감지)
+const _scriptCellObserver = typeof ResizeObserver !== 'undefined'
+  ? new ResizeObserver((entries) => {
+      entries.forEach(e => {
+        const el = e.target;
+        if (el.classList?.contains('script-cell')) autoResize(el);
+      });
+    })
+  : null;
+
+function attachScriptCellObservers() {
+  if (!_scriptCellObserver) return;
+  document.querySelectorAll('.script-table textarea.script-cell').forEach(el => {
+    _scriptCellObserver.observe(el);
+  });
+}
+
+// 사용자가 리사이즈 핸들 끌면 그 셀은 자동 리사이즈에서 제외
+document.addEventListener('mousedown', (e) => {
+  const el = e.target;
+  if (el?.classList?.contains('script-cell')) {
+    const rect = el.getBoundingClientRect();
+    // 우하단 리사이즈 핸들 영역 감지 (~16x16)
+    if (e.clientX > rect.right - 16 && e.clientY > rect.bottom - 16) {
+      el.dataset.userResized = '1';
+    }
+  }
+});
+// 셀 비우면 수동 리사이즈 해제
+document.addEventListener('dblclick', (e) => {
+  const el = e.target;
+  if (el?.classList?.contains('script-cell') && el.dataset.userResized === '1') {
+    delete el.dataset.userResized;
+    el.style.height = '';
+    autoResize(el);
+  }
 });
 
 function removeScriptRow(contentId, rowIdx) {
