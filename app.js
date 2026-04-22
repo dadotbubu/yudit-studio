@@ -1222,8 +1222,8 @@ function renderContentList() {
 function renderContentForm(content) {
   const sectionColors = {
     'HOOK': '#6366F1',
-    'INTRO': '#10B981',
-    'MAIN 1': '#0EA5E9',
+    'INTRO': '#0EA5E9',
+    'MAIN 1': '#10B981',
     'MAIN 2': '#F59E0B',
     'OUTRO': '#EC4899',
     'CTA': '#EF4444'
@@ -1827,6 +1827,13 @@ function autoResize(el) {
 function autoResizeAllScriptCells() {
   document.querySelectorAll('.script-table textarea.script-cell').forEach(autoResize);
 }
+
+// 창 크기 줄어들면 셀 내용이 여러 줄로 감싸져서 짤림 → 리사이즈 시 높이 재계산
+let _scriptResizeTimer;
+window.addEventListener('resize', () => {
+  clearTimeout(_scriptResizeTimer);
+  _scriptResizeTimer = setTimeout(autoResizeAllScriptCells, 80);
+});
 
 function removeScriptRow(contentId, rowIdx) {
   const content = contentsData.contents.find(c => c.id === contentId);
