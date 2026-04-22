@@ -1477,7 +1477,7 @@ function renderContentForm(content) {
               <tr class="border-b border-botanical-stone">
                 <td class="px-4 py-3 bg-botanical-cream/40 font-medium align-top">메모</td>
                 <td class="px-4 py-2">
-                  <textarea rows="2" oninput="updateAdInfo(${content.id}, 'note', this.value)" placeholder="제작 시 참고사항..." class="w-full px-3 py-2 rounded-lg border border-botanical-stone text-sm focus:outline-none resize-y">${content.adInfo?.note || ''}</textarea>
+                  <textarea rows="2" oninput="autoResize(this);updateAdInfo(${content.id}, 'note', this.value)" placeholder="제작 시 참고사항..." class="auto-grow w-full px-3 py-2 rounded-lg border border-botanical-stone text-sm focus:outline-none resize-none overflow-hidden">${content.adInfo?.note || ''}</textarea>
                 </td>
               </tr>
 
@@ -1569,7 +1569,7 @@ function renderContentForm(content) {
                 <tr${i < arr.length - 1 ? ' class="border-b border-botanical-stone"' : ''}>
                   <td class="px-4 py-3 bg-botanical-cream/30 font-medium w-1/3 align-top">${label}</td>
                   <td class="px-4 py-3">${type === 'textarea'
-                    ? `<textarea rows="1" oninput="autoResize(this);updateReference(${content.id}, '${field}', this.value)" placeholder="${ph}" class="auto-grow w-full bg-transparent focus:outline-none resize-y leading-relaxed" style="min-height: 24px;">${content.reference?.[field] ?? ''}</textarea>`
+                    ? `<textarea rows="1" oninput="autoResize(this);updateReference(${content.id}, '${field}', this.value)" placeholder="${ph}" class="auto-grow w-full bg-transparent focus:outline-none resize-none overflow-hidden leading-relaxed" style="min-height: 24px;">${content.reference?.[field] ?? ''}</textarea>`
                     : `<input type="${type}" value="${content.reference?.[field] ?? ''}" placeholder="${ph}" oninput="updateReference(${content.id}, '${field}', this.value)" class="w-full bg-transparent focus:outline-none">`}</td>
                 </tr>
               `).join('')}
@@ -1672,9 +1672,9 @@ function renderContentForm(content) {
                       <input type="text" value="${row.section || ''}" oninput="updateScriptRow(${content.id}, ${idx}, 'section', this.value)" class="w-full bg-transparent focus:outline-none font-semibold pr-5" style="color: ${sectionColors[row.section] || '#8C9A84'};">
                       <button onclick="removeScriptRow(${content.id}, ${idx})" title="행 삭제" class="absolute top-1 right-1 w-5 h-5 rounded text-xs text-red-400 opacity-0 group-hover:opacity-100 hover:bg-red-50 transition-opacity">×</button>
                     </td>
-                    <td class="px-4 py-3 border-l border-botanical-stone"><textarea rows="1" oninput="autoResize(this);updateScriptRow(${content.id}, ${idx}, 'dialogue', this.value)" class="script-cell w-full bg-transparent focus:outline-none resize-y">${row.dialogue || ''}</textarea></td>
-                    <td class="px-4 py-3 border-l border-botanical-stone"><textarea rows="1" oninput="autoResize(this);updateScriptRow(${content.id}, ${idx}, 'subtitle', this.value)" class="script-cell w-full bg-transparent focus:outline-none resize-y">${row.subtitle || ''}</textarea></td>
-                    <td class="px-4 py-3 border-l border-botanical-stone"><textarea rows="1" oninput="autoResize(this);updateScriptRow(${content.id}, ${idx}, 'scene', this.value)" class="script-cell w-full bg-transparent focus:outline-none resize-y">${row.scene || ''}</textarea></td>
+                    <td class="px-4 py-3 border-l border-botanical-stone"><textarea rows="1" oninput="autoResize(this);updateScriptRow(${content.id}, ${idx}, 'dialogue', this.value)" class="script-cell w-full bg-transparent focus:outline-none resize-none overflow-hidden">${row.dialogue || ''}</textarea></td>
+                    <td class="px-4 py-3 border-l border-botanical-stone"><textarea rows="1" oninput="autoResize(this);updateScriptRow(${content.id}, ${idx}, 'subtitle', this.value)" class="script-cell w-full bg-transparent focus:outline-none resize-none overflow-hidden">${row.subtitle || ''}</textarea></td>
+                    <td class="px-4 py-3 border-l border-botanical-stone"><textarea rows="1" oninput="autoResize(this);updateScriptRow(${content.id}, ${idx}, 'scene', this.value)" class="script-cell w-full bg-transparent focus:outline-none resize-none overflow-hidden">${row.scene || ''}</textarea></td>
                   </tr>
                 `).join('')}
               </tbody>
@@ -1697,7 +1697,7 @@ function renderContentForm(content) {
           </h3>
           <button onclick="copyCaption(${content.id})" class="px-3 py-1 rounded-full text-xs border border-botanical-stone hover:bg-botanical-cream transition-all">캡션 복사</button>
         </div>
-        <textarea id="caption-${content.id}" rows="3" oninput="updateContentField(${content.id}, 'caption', this.value)" placeholder="인스타그램 캡션 입력..." class="w-full px-3 py-2 rounded-lg border border-botanical-stone text-sm focus:outline-none focus:border-botanical-sage resize-y">${content.caption || ''}</textarea>
+        <textarea id="caption-${content.id}" rows="3" oninput="autoResize(this);updateContentField(${content.id}, 'caption', this.value)" placeholder="인스타그램 캡션 입력..." class="auto-grow w-full px-3 py-2 rounded-lg border border-botanical-stone text-sm focus:outline-none focus:border-botanical-sage resize-none overflow-hidden">${content.caption || ''}</textarea>
       </div>
 
       <!-- 4. 공유 링크 + DM 자동 답변 -->
@@ -1714,7 +1714,7 @@ function renderContentForm(content) {
         </div>
         <div>
           <label class="text-xs text-botanical-sage mb-2 block">DM 자동 답변</label>
-          <textarea id="dm-${content.id}" rows="4" oninput="updateContentField(${content.id}, 'dm', this.value)" class="w-full px-3 py-2 rounded-lg border border-botanical-stone text-sm focus:outline-none focus:border-botanical-sage resize-y">${content.dm || '안녕하세요 🙋‍♀️\n버튼 누르시면 👇🏻\n[ ]\n자료 확인하실 수 있어요'}</textarea>
+          <textarea id="dm-${content.id}" rows="4" oninput="autoResize(this);updateContentField(${content.id}, 'dm', this.value)" class="auto-grow w-full px-3 py-2 rounded-lg border border-botanical-stone text-sm focus:outline-none focus:border-botanical-sage resize-none overflow-hidden">${content.dm || '안녕하세요 🙋‍♀️\n버튼 누르시면 👇🏻\n[ ]\n자료 확인하실 수 있어요'}</textarea>
         </div>
       </div>
 
@@ -1856,8 +1856,6 @@ function addScriptRow(contentId) {
 
 function autoResize(el) {
   if (!el) return;
-  // 사용자가 수동으로 리사이즈한 경우 존중
-  if (el.dataset.userResized === '1') return;
   el.style.height = 'auto';
   el.style.height = (el.scrollHeight + 2) + 'px';
 }
@@ -1890,26 +1888,6 @@ function attachScriptCellObservers() {
   });
 }
 
-// 사용자가 리사이즈 핸들 끌면 그 셀은 자동 리사이즈에서 제외
-document.addEventListener('mousedown', (e) => {
-  const el = e.target;
-  if (el?.classList?.contains('script-cell') || el?.classList?.contains('auto-grow')) {
-    const rect = el.getBoundingClientRect();
-    // 우하단 리사이즈 핸들 영역 감지 (~16x16)
-    if (e.clientX > rect.right - 16 && e.clientY > rect.bottom - 16) {
-      el.dataset.userResized = '1';
-    }
-  }
-});
-// 더블클릭하면 자동 리사이즈 모드로 복귀
-document.addEventListener('dblclick', (e) => {
-  const el = e.target;
-  if ((el?.classList?.contains('script-cell') || el?.classList?.contains('auto-grow')) && el.dataset.userResized === '1') {
-    delete el.dataset.userResized;
-    el.style.height = '';
-    autoResize(el);
-  }
-});
 
 function removeScriptRow(contentId, rowIdx) {
   const content = contentsData.contents.find(c => c.id === contentId);
