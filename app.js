@@ -1512,17 +1512,24 @@ function renderContentForm(content) {
         <div class="border border-botanical-stone rounded-lg overflow-hidden">
           <table class="w-full text-sm">
             <tbody>
-              <tr class="border-b border-botanical-stone"><td class="px-4 py-3 bg-botanical-cream/30 font-medium w-1/3">링크</td><td class="px-4 py-3"><input type="text" placeholder="인스타 URL" class="w-full bg-transparent focus:outline-none"></td></tr>
-              <tr class="border-b border-botanical-stone"><td class="px-4 py-3 bg-botanical-cream/30 font-medium">썸네일 제목</td><td class="px-4 py-3"><input type="text" class="w-full bg-transparent focus:outline-none"></td></tr>
-              <tr class="border-b border-botanical-stone"><td class="px-4 py-3 bg-botanical-cream/30 font-medium">첫 3초 훅킹 멘트, 장면 (1~2줄)</td><td class="px-4 py-3"><input type="text" class="w-full bg-transparent focus:outline-none"></td></tr>
-              <tr class="border-b border-botanical-stone"><td class="px-4 py-3 bg-botanical-cream/30 font-medium">계정 팔로워 수</td><td class="px-4 py-3"><input type="text" class="w-full bg-transparent focus:outline-none"></td></tr>
-              <tr class="border-b border-botanical-stone"><td class="px-4 py-3 bg-botanical-cream/30 font-medium">조회수</td><td class="px-4 py-3"><input type="text" class="w-full bg-transparent focus:outline-none"></td></tr>
-              <tr class="border-b border-botanical-stone"><td class="px-4 py-3 bg-botanical-cream/30 font-medium">좋아요</td><td class="px-4 py-3"><input type="text" class="w-full bg-transparent focus:outline-none"></td></tr>
-              <tr class="border-b border-botanical-stone"><td class="px-4 py-3 bg-botanical-cream/30 font-medium">공유</td><td class="px-4 py-3"><input type="text" class="w-full bg-transparent focus:outline-none"></td></tr>
-              <tr class="border-b border-botanical-stone"><td class="px-4 py-3 bg-botanical-cream/30 font-medium">저장</td><td class="px-4 py-3"><input type="text" class="w-full bg-transparent focus:outline-none"></td></tr>
-              <tr class="border-b border-botanical-stone"><td class="px-4 py-3 bg-botanical-cream/30 font-medium">댓글</td><td class="px-4 py-3"><input type="text" class="w-full bg-transparent focus:outline-none"></td></tr>
-              <tr class="border-b border-botanical-stone"><td class="px-4 py-3 bg-botanical-cream/30 font-medium">영상 길이</td><td class="px-4 py-3"><input type="text" class="w-full bg-transparent focus:outline-none"></td></tr>
-              <tr><td class="px-4 py-3 bg-botanical-cream/30 font-medium">잘 터진 이유 (정보 / 공감 / 유머 등)</td><td class="px-4 py-3"><input type="text" class="w-full bg-transparent focus:outline-none"></td></tr>
+              ${[
+                ['url', '링크', 'text', '인스타 URL'],
+                ['title', '썸네일 제목', 'text', ''],
+                ['hook', '첫 3초 훅킹 멘트, 장면 (1~2줄)', 'text', ''],
+                ['followers', '계정 팔로워 수', 'text', ''],
+                ['views', '조회수', 'text', ''],
+                ['likes', '좋아요', 'text', ''],
+                ['shares', '공유', 'text', ''],
+                ['saves', '저장', 'text', ''],
+                ['comments', '댓글', 'text', ''],
+                ['length', '영상 길이', 'text', ''],
+                ['reason', '잘 터진 이유 (정보 / 공감 / 유머 등)', 'text', ''],
+              ].map(([field, label, type, ph], i, arr) => `
+                <tr${i < arr.length - 1 ? ' class="border-b border-botanical-stone"' : ''}>
+                  <td class="px-4 py-3 bg-botanical-cream/30 font-medium w-1/3">${label}</td>
+                  <td class="px-4 py-3"><input type="${type}" value="${content.reference?.[field] ?? ''}" placeholder="${ph}" onchange="updateReference(${content.id}, '${field}', this.value)" class="w-full bg-transparent focus:outline-none"></td>
+                </tr>
+              `).join('')}
             </tbody>
           </table>
         </div>
@@ -1915,6 +1922,14 @@ function updateAdRefLink(contentId, idx, value) {
   if (form) form.classList.add('active');
   const arrow = document.getElementById('arrow-' + contentId);
   if (arrow) arrow.style.transform = 'rotate(180deg)';
+}
+
+function updateReference(contentId, field, value) {
+  const content = contentsData.contents.find(c => c.id === contentId);
+  if (!content) return;
+  if (!content.reference) content.reference = {};
+  content.reference[field] = value;
+  saveAllData();
 }
 
 function updateClientNotion(contentId, value) {
