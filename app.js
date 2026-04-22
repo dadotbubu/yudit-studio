@@ -1605,17 +1605,19 @@ function renderContentForm(content) {
           </h3>
           <div class="flex gap-2 items-center flex-wrap">
             ${scriptVersions.map((_, i) => {
-              const isFinal = (content.script.finalVersion ?? 0) === i;
+              const isFinal = (content.script?.finalVersion ?? 0) === i;
               const isActive = i === currentVer;
+              const canDelete = scriptVersions.length > 1;
               return `
                 <span class="inline-flex items-center rounded-full overflow-hidden border ${isActive ? 'border-botanical-sage' : 'border-botanical-stone'}">
                   <button onclick="switchScriptVersion(${content.id}, ${i})" class="px-3 py-1 text-xs ${isActive ? 'bg-botanical-sage text-white' : 'hover:bg-botanical-cream transition-all'}">V${i+1}</button>
-                  <button onclick="setFinalVersion(${content.id}, ${i})" title="${isFinal ? '최종 버전 (목록·캘린더에 표시)' : '최종으로 지정'}" class="px-1.5 py-1 text-xs border-l ${isActive ? 'border-botanical-sage/50' : 'border-botanical-stone'} ${isFinal ? (isActive ? 'bg-amber-400 text-white' : 'bg-amber-50 text-amber-500') : (isActive ? 'bg-botanical-sage text-white/60 hover:text-white' : 'text-botanical-sage/40 hover:text-amber-500 hover:bg-amber-50')}">★</button>
+                  <button onclick="setFinalVersion(${content.id}, ${i})" title="${isFinal ? '최종 버전 (목록·캘린더에 표시)' : '최종으로 지정'}" class="px-1.5 py-1 text-sm border-l ${isActive ? 'border-white/30' : 'border-botanical-stone'} ${isFinal ? (isActive ? 'bg-amber-400 text-white' : 'bg-amber-50 text-amber-500') : (isActive ? 'bg-botanical-sage text-white/60 hover:text-white' : 'text-botanical-sage/50 hover:text-amber-500 hover:bg-amber-50')}">★</button>
+                  ${canDelete ? `<button onclick="deleteScriptVersion(${content.id}, ${i})" title="V${i+1} 삭제" class="px-1.5 py-1 text-xs border-l ${isActive ? 'border-white/30 bg-botanical-sage text-white/70 hover:text-red-200' : 'border-botanical-stone text-botanical-sage/50 hover:text-red-500 hover:bg-red-50'}">×</button>` : ''}
                 </span>
               `;
             }).join('')}
-            <button onclick="addScriptVersion(${content.id})" class="px-3 py-1 rounded-full text-xs border border-botanical-stone hover:bg-botanical-cream transition-all">+</button>
-            <span class="text-xs text-botanical-sage ml-1">★ = 목록·캘린더 표시 버전</span>
+            <button onclick="addScriptVersion(${content.id})" class="px-3 py-1 rounded-full text-xs border border-botanical-stone hover:bg-botanical-cream transition-all">+ 버전</button>
+            <span class="text-xs text-botanical-sage ml-1">★ 채워진 버전의 제목이 목록·캘린더에 표시</span>
           </div>
         </div>
 
@@ -1936,6 +1938,40 @@ function switchScriptVersion(contentId, versionIdx) {
   if (!content?.script?.versions?.[versionIdx]) return;
   content.script.currentVersion = versionIdx;
   // 활성 버전 전환만. 최종 버전은 별도로 ★ 버튼으로 지정
+  saveAllData();
+  renderContentList();
+  reopenForm(contentId);
+}
+
+function deleteScriptVersion(contentId, versionIdx) {
+  const content = contentsData.contents.find(c => c.id === contentId);
+  if (!content?.script?.versions) return;
+  if (content.script.versions.length <= 1) return; // 마지막 하나는 삭제 불가
+  const versionTitle = content.script.versions[versionIdx].title || '(제목 없음)';
+  if (!confirm(`V${versionIdx + 1} "${versionTitle}" 삭제할까요? 복구 불가.`)) return;
+  content.script.versions.splice(versionIdx, 1);
+  // currentVersion 재조정
+  if (content.script.currentVersion === versionIdx) {
+    content.script.currentVersion = Math.max(0, versionIdx - 1);
+  } else if (content.script.currentVersion > versionIdx) {
+    content.script.currentVersion -= 1;
+  }
+  // finalVersion 재조정 — 삭제된 게 최종이었으면 V1(0)으로
+  if (content.script.finalVersion === versionIdx) {
+    content.script.finalVersion = 0;
+    const newFinalTitle = content.script.versions[0].title ?? '';
+    content.title = newFinalTitle;
+    calendarData.items.forEach(item => {
+      if (item.contentId === contentId) item.title = newFinalTitle;
+    });
+    ['ad', 'sales', 'sponsor'].forEach(t => {
+      (revenueData.items?.[t] || []).forEach(item => {
+        if (item.contentId === contentId) item.brand = newFinalTitle || '무제';
+      });
+    });
+  } else if (content.script.finalVersion > versionIdx) {
+    content.script.finalVersion -= 1;
+  }
   saveAllData();
   renderContentList();
   reopenForm(contentId);
