@@ -36,13 +36,26 @@ const DEFAULT_CLIENT_NOTION = 'https://www.notion.so/34a066f53222807e9fc9e625d5e
 const DEFAULT_TRANSCRIPT_LINK = 'https://getthescript.app/instagram-transcript';
 const fmt = (n) => (Number(n) || 0).toLocaleString();
 
+let _saveStatusFadeTimer;
 function updateSaveStatus(status) {
   const el = document.getElementById('save-status');
   if (!el) return;
-  if (status === 'saving') el.innerHTML = '<span class="text-botanical-sage">저장 중…</span>';
-  else if (status === 'saved') el.innerHTML = '<span class="text-botanical-sage">✓ 저장됨</span>';
-  else if (status === 'error') el.innerHTML = '<span class="text-red-500">⚠️ 저장 실패 (로컬 백업만 됨)</span>';
-  else if (status === 'offline') el.innerHTML = '<span class="text-red-500">⚠️ 오프라인 모드</span>';
+  clearTimeout(_saveStatusFadeTimer);
+  el.style.transition = 'opacity 0.5s ease';
+  if (status === 'saving') {
+    el.innerHTML = '<span class="text-botanical-sage italic">저장 중…</span>';
+    el.style.opacity = '0.55';
+  } else if (status === 'saved') {
+    el.innerHTML = '<span class="text-botanical-sage">✓ 저장됨</span>';
+    el.style.opacity = '0.85';
+    _saveStatusFadeTimer = setTimeout(() => { el.style.opacity = '0'; }, 1500);
+  } else if (status === 'error') {
+    el.innerHTML = '<span class="text-red-500">⚠️ 저장 실패 (로컬 백업만 됨)</span>';
+    el.style.opacity = '1';
+  } else if (status === 'offline') {
+    el.innerHTML = '<span class="text-red-500">⚠️ 오프라인 모드</span>';
+    el.style.opacity = '1';
+  }
 }
 
 async function loadFromSupabase() {
