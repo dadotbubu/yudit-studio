@@ -1296,7 +1296,7 @@ function renderContentForm(content) {
           </div>
           <div>
             <label class="text-xs text-botanical-sage mb-1 block">${content.isRevenue ? '브랜드 / 상품' : '핵심 키워드'}</label>
-            <input type="text" value="${content.keywords ?? content.title ?? ''}" onchange="updateContentField(${content.id}, 'keywords', this.value)" placeholder="${content.isRevenue ? '브랜드 / 상품명' : '핵심 키워드'}" class="w-full px-3 py-2 rounded-lg border border-botanical-stone text-sm focus:outline-none">
+            <input type="text" value="${content.keywords ?? content.title ?? ''}" oninput="updateContentField(${content.id}, 'keywords', this.value)" placeholder="${content.isRevenue ? '브랜드 / 상품명' : '핵심 키워드'}" class="w-full px-3 py-2 rounded-lg border border-botanical-stone text-sm focus:outline-none">
           </div>
         </div>
         <div class="grid grid-cols-6 gap-4">
@@ -1333,46 +1333,46 @@ function renderContentForm(content) {
           <div class="grid grid-cols-3 gap-3">
             <div>
               <label class="text-xs text-botanical-sage block mb-1">계약완료</label>
-              <input type="date" id="milestone-${content.id}-contract" value="${getMilestoneDate(content, '계약완료')}" onchange="updateMilestone(${content.id}, '계약완료', this.value)" class="w-full px-3 py-2 rounded-lg border border-botanical-stone text-sm focus:outline-none">
+              <input type="date" id="milestone-${content.id}-contract" value="${getMilestoneDate(content, '계약완료')}" oninput="updateMilestone(${content.id}, '계약완료', this.value)" class="w-full px-3 py-2 rounded-lg border border-botanical-stone text-sm focus:outline-none">
             </div>
             <div>
               <label class="text-xs text-botanical-sage block mb-1">기획안 1차 공유</label>
-              <input type="date" id="milestone-${content.id}-plan1" value="${getMilestoneDate(content, '기획안1차공유')}" onchange="updateMilestone(${content.id}, '기획안1차공유', this.value)" class="w-full px-3 py-2 rounded-lg border border-botanical-stone text-sm focus:outline-none">
+              <input type="date" id="milestone-${content.id}-plan1" value="${getMilestoneDate(content, '기획안1차공유')}" oninput="updateMilestone(${content.id}, '기획안1차공유', this.value)" class="w-full px-3 py-2 rounded-lg border border-botanical-stone text-sm focus:outline-none">
             </div>
             <div>
               <label class="text-xs text-botanical-sage block mb-1">기획안 최종 컨펌</label>
-              <input type="date" id="milestone-${content.id}-planfinal" value="${getMilestoneDate(content, '기획안최종컨펌')}" onchange="updateMilestone(${content.id}, '기획안최종컨펌', this.value)" class="w-full px-3 py-2 rounded-lg border border-botanical-stone text-sm focus:outline-none">
+              <input type="date" id="milestone-${content.id}-planfinal" value="${getMilestoneDate(content, '기획안최종컨펌')}" oninput="updateMilestone(${content.id}, '기획안최종컨펌', this.value)" class="w-full px-3 py-2 rounded-lg border border-botanical-stone text-sm focus:outline-none">
             </div>
             <div>
               <label class="text-xs text-botanical-sage block mb-1">영상 1차 공유</label>
-              <input type="date" id="milestone-${content.id}-video1" value="${getMilestoneDate(content, '영상1차공유')}" onchange="updateMilestone(${content.id}, '영상1차공유', this.value)" class="w-full px-3 py-2 rounded-lg border border-botanical-stone text-sm focus:outline-none">
+              <input type="date" id="milestone-${content.id}-video1" value="${getMilestoneDate(content, '영상1차공유')}" oninput="updateMilestone(${content.id}, '영상1차공유', this.value)" class="w-full px-3 py-2 rounded-lg border border-botanical-stone text-sm focus:outline-none">
             </div>
             <div>
               <label class="text-xs text-botanical-sage block mb-1">영상 최종 컨펌</label>
-              <input type="date" id="milestone-${content.id}-videofinal" value="${getMilestoneDate(content, '영상최종컨펌')}" onchange="updateMilestone(${content.id}, '영상최종컨펌', this.value)" class="w-full px-3 py-2 rounded-lg border border-botanical-stone text-sm focus:outline-none">
+              <input type="date" id="milestone-${content.id}-videofinal" value="${getMilestoneDate(content, '영상최종컨펌')}" oninput="updateMilestone(${content.id}, '영상최종컨펌', this.value)" class="w-full px-3 py-2 rounded-lg border border-botanical-stone text-sm focus:outline-none">
             </div>
             <div>
               <label class="text-xs text-botanical-sage block mb-1">업로드 완료</label>
-              <input type="date" id="milestone-${content.id}-upload" value="${getMilestoneDate(content, '업로드완료')}" onchange="updateMilestone(${content.id}, '업로드완료', this.value)" class="w-full px-3 py-2 rounded-lg border border-botanical-stone text-sm focus:outline-none">
+              <input type="date" id="milestone-${content.id}-upload" value="${getMilestoneDate(content, '업로드완료')}" oninput="updateMilestone(${content.id}, '업로드완료', this.value)" class="w-full px-3 py-2 rounded-lg border border-botanical-stone text-sm focus:outline-none">
             </div>
           </div>
           ` : `
           <div class="grid grid-cols-4 gap-3">
             <div>
               <label class="text-xs text-botanical-sage block mb-1">아이디어</label>
-              <input type="date" id="milestone-${content.id}-idea" value="${getMilestoneDate(content, '아이디어')}" onchange="updateMilestone(${content.id}, '아이디어', this.value)" class="w-full px-3 py-2 rounded-lg border border-botanical-stone text-sm focus:outline-none">
+              <input type="date" id="milestone-${content.id}-idea" value="${getMilestoneDate(content, '아이디어')}" oninput="updateMilestone(${content.id}, '아이디어', this.value)" class="w-full px-3 py-2 rounded-lg border border-botanical-stone text-sm focus:outline-none">
             </div>
             <div>
               <label class="text-xs text-botanical-sage block mb-1">기획중</label>
-              <input type="date" id="milestone-${content.id}-planning" value="${getMilestoneDate(content, '기획중')}" onchange="updateMilestone(${content.id}, '기획중', this.value)" class="w-full px-3 py-2 rounded-lg border border-botanical-stone text-sm focus:outline-none">
+              <input type="date" id="milestone-${content.id}-planning" value="${getMilestoneDate(content, '기획중')}" oninput="updateMilestone(${content.id}, '기획중', this.value)" class="w-full px-3 py-2 rounded-lg border border-botanical-stone text-sm focus:outline-none">
             </div>
             <div>
               <label class="text-xs text-botanical-sage block mb-1">제작중</label>
-              <input type="date" id="milestone-${content.id}-production" value="${getMilestoneDate(content, '제작중')}" onchange="updateMilestone(${content.id}, '제작중', this.value)" class="w-full px-3 py-2 rounded-lg border border-botanical-stone text-sm focus:outline-none">
+              <input type="date" id="milestone-${content.id}-production" value="${getMilestoneDate(content, '제작중')}" oninput="updateMilestone(${content.id}, '제작중', this.value)" class="w-full px-3 py-2 rounded-lg border border-botanical-stone text-sm focus:outline-none">
             </div>
             <div>
               <label class="text-xs text-botanical-sage block mb-1">업로드 완료</label>
-              <input type="date" id="milestone-${content.id}-upload" value="${getMilestoneDate(content, '업로드완료')}" onchange="updateMilestone(${content.id}, '업로드완료', this.value)" class="w-full px-3 py-2 rounded-lg border border-botanical-stone text-sm focus:outline-none">
+              <input type="date" id="milestone-${content.id}-upload" value="${getMilestoneDate(content, '업로드완료')}" oninput="updateMilestone(${content.id}, '업로드완료', this.value)" class="w-full px-3 py-2 rounded-lg border border-botanical-stone text-sm focus:outline-none">
             </div>
           </div>
           `}
@@ -1397,7 +1397,7 @@ function renderContentForm(content) {
               <tr class="border-b border-botanical-stone">
                 <td class="px-4 py-3 bg-botanical-cream/40 font-medium w-40 align-middle">소득 구분</td>
                 <td class="px-4 py-2">
-                  <select onchange="updateAdInfo(${content.id}, 'incomeType', this.value); syncRevenueFromContent(contentsData.contents.find(c => c.id === ${content.id}));" class="w-60 px-3 rounded-lg border border-botanical-stone text-sm focus:outline-none bg-white" style="height:38px;">
+                  <select oninput="updateAdInfo(${content.id}, 'incomeType', this.value); syncRevenueFromContent(contentsData.contents.find(c => c.id === ${content.id}));" class="w-60 px-3 rounded-lg border border-botanical-stone text-sm focus:outline-none bg-white" style="height:38px;">
                     <option value="etc" ${(content.adInfo?.incomeType ?? 'etc') === 'etc' ? 'selected' : ''}>기타소득</option>
                     <option value="biz" ${content.adInfo?.incomeType === 'biz' ? 'selected' : ''}>사업소득</option>
                   </select>
@@ -1407,9 +1407,9 @@ function renderContentForm(content) {
                 <td class="px-4 py-3 bg-botanical-cream/40 font-medium align-middle">광고비 (원)</td>
                 <td class="px-4 py-2">
                   <div class="grid grid-cols-4 gap-2 items-center">
-                    <input type="number" id="adfee-reels-${content.id}" value="${content.adInfo?.reelsFee || ''}" onchange="updateAdFee(${content.id})" placeholder="0" class="w-full px-3 rounded-lg border border-botanical-stone text-sm focus:outline-none" style="height:38px;">
-                    <input type="number" id="adfee-content-${content.id}" value="${content.adInfo?.contentFee || ''}" onchange="updateAdFee(${content.id})" placeholder="0" class="w-full px-3 rounded-lg border border-botanical-stone text-sm focus:outline-none" style="height:38px;">
-                    <input type="number" id="adfee-secondary-${content.id}" value="${content.adInfo?.secondaryFee || ''}" onchange="updateAdFee(${content.id})" placeholder="0" class="w-full px-3 rounded-lg border border-botanical-stone text-sm focus:outline-none" style="height:38px;">
+                    <input type="number" id="adfee-reels-${content.id}" value="${content.adInfo?.reelsFee || ''}" oninput="updateAdFee(${content.id})" placeholder="0" class="w-full px-3 rounded-lg border border-botanical-stone text-sm focus:outline-none" style="height:38px;">
+                    <input type="number" id="adfee-content-${content.id}" value="${content.adInfo?.contentFee || ''}" oninput="updateAdFee(${content.id})" placeholder="0" class="w-full px-3 rounded-lg border border-botanical-stone text-sm focus:outline-none" style="height:38px;">
+                    <input type="number" id="adfee-secondary-${content.id}" value="${content.adInfo?.secondaryFee || ''}" oninput="updateAdFee(${content.id})" placeholder="0" class="w-full px-3 rounded-lg border border-botanical-stone text-sm focus:outline-none" style="height:38px;">
                     <div class="text-right text-sm"><span class="text-botanical-sage text-xs">합계 </span><span class="font-serif font-semibold" id="adfee-total-${content.id}">${fmt((content.adInfo?.reelsFee || 0) + (content.adInfo?.contentFee || 0) + (content.adInfo?.secondaryFee || 0))}</span></div>
                   </div>
                   <div class="grid grid-cols-4 gap-2 mt-1 text-[10px] text-botanical-sage text-center">
@@ -1421,7 +1421,7 @@ function renderContentForm(content) {
                 <td class="px-4 py-3 bg-botanical-cream/40 font-medium align-middle">제작 가이드</td>
                 <td class="px-4 py-2">
                   <div class="flex gap-2">
-                    <input type="text" value="${content.adInfo?.guideLink || ''}" onchange="updateAdInfo(${content.id}, 'guideLink', this.value)" placeholder="https://..." class="flex-1 px-3 rounded-lg border border-botanical-stone text-sm focus:outline-none" style="height:38px;">
+                    <input type="text" value="${content.adInfo?.guideLink || ''}" oninput="updateAdInfo(${content.id}, 'guideLink', this.value)" placeholder="https://..." class="flex-1 px-3 rounded-lg border border-botanical-stone text-sm focus:outline-none" style="height:38px;">
                     ${content.adInfo?.guideLink
                       ? `<a href="${content.adInfo.guideLink}" target="_blank" class="px-2 text-xs text-blue-500 border border-blue-200 rounded-lg hover:bg-blue-50 flex items-center shrink-0">열기</a>`
                       : `<span class="px-2 text-xs text-botanical-sage/50 border border-botanical-stone rounded-lg flex items-center shrink-0 cursor-default">열기</span>`}
@@ -1431,21 +1431,21 @@ function renderContentForm(content) {
               <tr class="border-b border-botanical-stone">
                 <td class="px-4 py-3 bg-botanical-cream/40 font-medium align-middle">계약서</td>
                 <td class="px-4 py-2">
-                  <input type="text" value="${content.adInfo?.contractLink || ''}" onchange="updateAdInfo(${content.id}, 'contractLink', this.value)" placeholder="https://... 또는 이미지 URL" class="w-full px-3 rounded-lg border border-botanical-stone text-sm focus:outline-none" style="height:38px;">
+                  <input type="text" value="${content.adInfo?.contractLink || ''}" oninput="updateAdInfo(${content.id}, 'contractLink', this.value)" placeholder="https://... 또는 이미지 URL" class="w-full px-3 rounded-lg border border-botanical-stone text-sm focus:outline-none" style="height:38px;">
                 </td>
               </tr>
               ` : content.category === '판매' ? `
               <tr class="border-b border-botanical-stone">
                 <td class="px-4 py-3 bg-botanical-cream/40 font-medium w-40 align-middle">판매 상품명</td>
                 <td class="px-4 py-2">
-                  <input type="text" value="${content.adInfo?.productName || ''}" onchange="updateAdInfo(${content.id}, 'productName', this.value)" placeholder="상품명 입력" class="w-full px-3 rounded-lg border border-botanical-stone text-sm focus:outline-none" style="height:38px;">
+                  <input type="text" value="${content.adInfo?.productName || ''}" oninput="updateAdInfo(${content.id}, 'productName', this.value)" placeholder="상품명 입력" class="w-full px-3 rounded-lg border border-botanical-stone text-sm focus:outline-none" style="height:38px;">
                 </td>
               </tr>
               <tr class="border-b border-botanical-stone">
                 <td class="px-4 py-3 bg-botanical-cream/40 font-medium align-middle">판매 링크</td>
                 <td class="px-4 py-2">
                   <div class="flex gap-2">
-                    <input type="text" value="${content.adInfo?.saleLink || ''}" onchange="updateAdInfo(${content.id}, 'saleLink', this.value)" placeholder="https://..." class="flex-1 px-3 rounded-lg border border-botanical-stone text-sm focus:outline-none" style="height:38px;">
+                    <input type="text" value="${content.adInfo?.saleLink || ''}" oninput="updateAdInfo(${content.id}, 'saleLink', this.value)" placeholder="https://..." class="flex-1 px-3 rounded-lg border border-botanical-stone text-sm focus:outline-none" style="height:38px;">
                     ${content.adInfo?.saleLink
                       ? `<a href="${content.adInfo.saleLink}" target="_blank" class="px-2 text-xs text-blue-500 border border-blue-200 rounded-lg hover:bg-blue-50 flex items-center shrink-0">열기</a>`
                       : `<span class="px-2 text-xs text-botanical-sage/50 border border-botanical-stone rounded-lg flex items-center shrink-0 cursor-default">열기</span>`}
@@ -1456,7 +1456,7 @@ function renderContentForm(content) {
               <tr class="border-b border-botanical-stone">
                 <td class="px-4 py-3 bg-botanical-cream/40 font-medium w-40 align-middle">협찬 상품명</td>
                 <td class="px-4 py-2">
-                  <input type="text" value="${content.adInfo?.productName || ''}" onchange="updateAdInfo(${content.id}, 'productName', this.value)" placeholder="협찬 받은 상품명" class="w-full px-3 rounded-lg border border-botanical-stone text-sm focus:outline-none" style="height:38px;">
+                  <input type="text" value="${content.adInfo?.productName || ''}" oninput="updateAdInfo(${content.id}, 'productName', this.value)" placeholder="협찬 받은 상품명" class="w-full px-3 rounded-lg border border-botanical-stone text-sm focus:outline-none" style="height:38px;">
                 </td>
               </tr>
               `}
@@ -1464,7 +1464,7 @@ function renderContentForm(content) {
               <tr class="border-b border-botanical-stone">
                 <td class="px-4 py-3 bg-botanical-cream/40 font-medium align-top">메모</td>
                 <td class="px-4 py-2">
-                  <textarea rows="2" onchange="updateAdInfo(${content.id}, 'note', this.value)" placeholder="제작 시 참고사항..." class="w-full px-3 py-2 rounded-lg border border-botanical-stone text-sm focus:outline-none resize-y">${content.adInfo?.note || ''}</textarea>
+                  <textarea rows="2" oninput="updateAdInfo(${content.id}, 'note', this.value)" placeholder="제작 시 참고사항..." class="w-full px-3 py-2 rounded-lg border border-botanical-stone text-sm focus:outline-none resize-y">${content.adInfo?.note || ''}</textarea>
                 </td>
               </tr>
 
@@ -1476,7 +1476,7 @@ function renderContentForm(content) {
                       const link = content.adInfo?.refLinks?.[idx] || '';
                       return `
                       <div class="flex gap-2">
-                        <input type="text" value="${link}" onchange="updateAdRefLink(${content.id}, ${idx}, this.value)" placeholder="https://..." class="flex-1 min-w-0 px-3 rounded-lg border border-botanical-stone text-sm focus:outline-none" style="height:38px;">
+                        <input type="text" value="${link}" oninput="updateAdRefLink(${content.id}, ${idx}, this.value)" placeholder="https://..." class="flex-1 min-w-0 px-3 rounded-lg border border-botanical-stone text-sm focus:outline-none" style="height:38px;">
                         ${link
                           ? `<a href="${link}" target="_blank" class="px-2 text-xs text-blue-500 border border-blue-200 rounded-lg hover:bg-blue-50 flex items-center shrink-0">열기</a>`
                           : `<span class="px-2 text-xs text-botanical-sage/50 border border-botanical-stone rounded-lg flex items-center shrink-0 cursor-default">열기</span>`}
@@ -1491,7 +1491,7 @@ function renderContentForm(content) {
                 <td class="px-4 py-3 bg-botanical-terracotta/10 font-medium text-botanical-terracotta align-middle">광고주 전달 기획안</td>
                 <td class="px-4 py-2">
                   <div class="flex gap-2">
-                    <input type="text" value="${content.adInfo?.clientNotion ?? DEFAULT_CLIENT_NOTION}" onchange="updateClientNotion(${content.id}, this.value)" placeholder="노션 링크" class="flex-1 px-3 rounded-lg border border-botanical-stone text-sm focus:outline-none" style="height:38px;">
+                    <input type="text" value="${content.adInfo?.clientNotion ?? DEFAULT_CLIENT_NOTION}" oninput="updateClientNotion(${content.id}, this.value)" placeholder="노션 링크" class="flex-1 px-3 rounded-lg border border-botanical-stone text-sm focus:outline-none" style="height:38px;">
                     <a href="${content.adInfo?.clientNotion ?? DEFAULT_CLIENT_NOTION}" target="_blank" class="px-2 text-xs text-blue-500 border border-blue-200 rounded-lg hover:bg-blue-50 flex items-center">열기</a>
                   </div>
                 </td>
@@ -1532,7 +1532,7 @@ function renderContentForm(content) {
         <div class="mb-5 p-4 bg-botanical-cream/50 rounded-lg">
           <p class="text-sm font-medium text-botanical-terracotta mb-3">대본 확인하기</p>
           <div class="flex gap-2">
-            <input type="text" value="${content.reference?.transcriptLink ?? DEFAULT_TRANSCRIPT_LINK}" onchange="updateReference(${content.id}, 'transcriptLink', this.value)" placeholder="https://..." class="flex-1 px-3 rounded-lg border border-botanical-stone text-sm focus:outline-none bg-white" style="height:38px;">
+            <input type="text" value="${content.reference?.transcriptLink ?? DEFAULT_TRANSCRIPT_LINK}" oninput="updateReference(${content.id}, 'transcriptLink', this.value)" placeholder="https://..." class="flex-1 px-3 rounded-lg border border-botanical-stone text-sm focus:outline-none bg-white" style="height:38px;">
             <a href="${content.reference?.transcriptLink ?? DEFAULT_TRANSCRIPT_LINK}" target="_blank" class="px-2 text-xs text-blue-500 border border-blue-200 rounded-lg hover:bg-blue-50 flex items-center shrink-0">열기</a>
           </div>
         </div>
@@ -1555,7 +1555,7 @@ function renderContentForm(content) {
               ].map(([field, label, type, ph], i, arr) => `
                 <tr${i < arr.length - 1 ? ' class="border-b border-botanical-stone"' : ''}>
                   <td class="px-4 py-3 bg-botanical-cream/30 font-medium w-1/3">${label}</td>
-                  <td class="px-4 py-3"><input type="${type}" value="${content.reference?.[field] ?? ''}" placeholder="${ph}" onchange="updateReference(${content.id}, '${field}', this.value)" class="w-full bg-transparent focus:outline-none"></td>
+                  <td class="px-4 py-3"><input type="${type}" value="${content.reference?.[field] ?? ''}" placeholder="${ph}" oninput="updateReference(${content.id}, '${field}', this.value)" class="w-full bg-transparent focus:outline-none"></td>
                 </tr>
               `).join('')}
             </tbody>
@@ -1571,7 +1571,7 @@ function renderContentForm(content) {
           <div id="notion-links-${content.id}" class="space-y-2">
             ${(content.notionLinks && content.notionLinks.length > 0 ? content.notionLinks : ['']).map((link, idx) => `
               <div class="flex gap-2">
-                <input type="text" value="${link}" onchange="updateNotionLink(${content.id}, ${idx}, this.value)" placeholder="노션 링크 (분석 자료)" class="flex-1 px-4 py-2 rounded-lg border border-botanical-stone text-sm focus:outline-none focus:border-botanical-sage">
+                <input type="text" value="${link}" oninput="updateNotionLink(${content.id}, ${idx}, this.value)" placeholder="노션 링크 (분석 자료)" class="flex-1 px-4 py-2 rounded-lg border border-botanical-stone text-sm focus:outline-none focus:border-botanical-sage">
                 ${link
                   ? `<a href="${link}" target="_blank" class="px-2 text-xs text-blue-500 border border-blue-200 rounded-lg hover:bg-blue-50 flex items-center shrink-0">열기</a>`
                   : `<span class="px-2 text-xs text-botanical-sage/50 border border-botanical-stone rounded-lg flex items-center shrink-0 cursor-default">열기</span>`}
@@ -1613,7 +1613,7 @@ function renderContentForm(content) {
 
         <div class="mb-4">
           <label class="text-sm font-medium mb-2 block">썸네일 제목 <span class="text-xs text-botanical-sage font-normal">(목록·캘린더에도 표시됨)</span></label>
-          <input type="text" value="${content.title ?? ''}" onchange="updateContentTitle(${content.id}, this.value)" placeholder="썸네일 제목 입력" class="w-full px-4 py-2 rounded-lg border border-botanical-stone text-sm focus:outline-none focus:border-botanical-sage">
+          <input type="text" value="${content.title ?? ''}" oninput="updateContentTitle(${content.id}, this.value)" placeholder="썸네일 제목 입력" class="w-full px-4 py-2 rounded-lg border border-botanical-stone text-sm focus:outline-none focus:border-botanical-sage">
         </div>
 
         <div class="mb-4">
@@ -1644,12 +1644,12 @@ function renderContentForm(content) {
                 ${scriptRows.map((row, idx) => `
                   <tr class="border-t border-botanical-stone group">
                     <td class="px-4 py-3 font-semibold relative">
-                      <input type="text" value="${row.section || ''}" onchange="updateScriptRow(${content.id}, ${idx}, 'section', this.value)" class="w-full bg-transparent focus:outline-none font-semibold pr-5" style="color: ${sectionColors[row.section] || '#8C9A84'};">
+                      <input type="text" value="${row.section || ''}" oninput="updateScriptRow(${content.id}, ${idx}, 'section', this.value)" class="w-full bg-transparent focus:outline-none font-semibold pr-5" style="color: ${sectionColors[row.section] || '#8C9A84'};">
                       <button onclick="removeScriptRow(${content.id}, ${idx})" title="행 삭제" class="absolute top-1 right-1 w-5 h-5 rounded text-xs text-red-400 opacity-0 group-hover:opacity-100 hover:bg-red-50 transition-opacity">×</button>
                     </td>
-                    <td class="px-4 py-3 border-l border-botanical-stone"><textarea rows="1" oninput="autoResize(this)" onchange="updateScriptRow(${content.id}, ${idx}, 'dialogue', this.value)" class="script-cell w-full bg-transparent focus:outline-none resize-none overflow-hidden">${row.dialogue || ''}</textarea></td>
-                    <td class="px-4 py-3 border-l border-botanical-stone"><textarea rows="1" oninput="autoResize(this)" onchange="updateScriptRow(${content.id}, ${idx}, 'subtitle', this.value)" class="script-cell w-full bg-transparent focus:outline-none resize-none overflow-hidden">${row.subtitle || ''}</textarea></td>
-                    <td class="px-4 py-3 border-l border-botanical-stone"><textarea rows="1" oninput="autoResize(this)" onchange="updateScriptRow(${content.id}, ${idx}, 'scene', this.value)" class="script-cell w-full bg-transparent focus:outline-none resize-none overflow-hidden">${row.scene || ''}</textarea></td>
+                    <td class="px-4 py-3 border-l border-botanical-stone"><textarea rows="1" oninput="autoResize(this);updateScriptRow(${content.id}, ${idx}, 'dialogue', this.value)" class="script-cell w-full bg-transparent focus:outline-none resize-none overflow-hidden">${row.dialogue || ''}</textarea></td>
+                    <td class="px-4 py-3 border-l border-botanical-stone"><textarea rows="1" oninput="autoResize(this);updateScriptRow(${content.id}, ${idx}, 'subtitle', this.value)" class="script-cell w-full bg-transparent focus:outline-none resize-none overflow-hidden">${row.subtitle || ''}</textarea></td>
+                    <td class="px-4 py-3 border-l border-botanical-stone"><textarea rows="1" oninput="autoResize(this);updateScriptRow(${content.id}, ${idx}, 'scene', this.value)" class="script-cell w-full bg-transparent focus:outline-none resize-none overflow-hidden">${row.scene || ''}</textarea></td>
                   </tr>
                 `).join('')}
               </tbody>
@@ -1672,7 +1672,7 @@ function renderContentForm(content) {
           </h3>
           <button onclick="copyCaption(${content.id})" class="px-3 py-1 rounded-full text-xs border border-botanical-stone hover:bg-botanical-cream transition-all">캡션 복사</button>
         </div>
-        <textarea id="caption-${content.id}" rows="3" onchange="updateContentField(${content.id}, 'caption', this.value)" placeholder="인스타그램 캡션 입력..." class="w-full px-3 py-2 rounded-lg border border-botanical-stone text-sm focus:outline-none focus:border-botanical-sage resize-y">${content.caption || ''}</textarea>
+        <textarea id="caption-${content.id}" rows="3" oninput="updateContentField(${content.id}, 'caption', this.value)" placeholder="인스타그램 캡션 입력..." class="w-full px-3 py-2 rounded-lg border border-botanical-stone text-sm focus:outline-none focus:border-botanical-sage resize-y">${content.caption || ''}</textarea>
       </div>
 
       <!-- 4. 공유 링크 + DM 자동 답변 -->
@@ -1685,11 +1685,11 @@ function renderContentForm(content) {
           <button onclick="copyDM(${content.id})" class="px-3 py-1 rounded-full text-xs border border-botanical-stone hover:bg-botanical-cream transition-all">DM 복사</button>
         </div>
         <div class="mb-4">
-          <input type="text" value="${content.shareLink || ''}" onchange="updateContentField(${content.id}, 'shareLink', this.value)" placeholder="팔로워 공유용 링크" class="w-full px-4 py-2 rounded-lg border border-botanical-stone text-sm focus:outline-none focus:border-botanical-sage">
+          <input type="text" value="${content.shareLink || ''}" oninput="updateContentField(${content.id}, 'shareLink', this.value)" placeholder="팔로워 공유용 링크" class="w-full px-4 py-2 rounded-lg border border-botanical-stone text-sm focus:outline-none focus:border-botanical-sage">
         </div>
         <div>
           <label class="text-xs text-botanical-sage mb-2 block">DM 자동 답변</label>
-          <textarea id="dm-${content.id}" rows="4" onchange="updateContentField(${content.id}, 'dm', this.value)" class="w-full px-3 py-2 rounded-lg border border-botanical-stone text-sm focus:outline-none focus:border-botanical-sage resize-y">${content.dm || '안녕하세요 🙋‍♀️\n버튼 누르시면 👇🏻\n[ ]\n자료 확인하실 수 있어요'}</textarea>
+          <textarea id="dm-${content.id}" rows="4" oninput="updateContentField(${content.id}, 'dm', this.value)" class="w-full px-3 py-2 rounded-lg border border-botanical-stone text-sm focus:outline-none focus:border-botanical-sage resize-y">${content.dm || '안녕하세요 🙋‍♀️\n버튼 누르시면 👇🏻\n[ ]\n자료 확인하실 수 있어요'}</textarea>
         </div>
       </div>
 
