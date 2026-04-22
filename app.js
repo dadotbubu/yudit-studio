@@ -3,6 +3,7 @@ let calendarData = null;
 let contentsData = null;
 let performanceData = null;
 let revenueData = null;
+let memosData = null;
 
 // 현재 날짜 기준으로 초기화
 const now = new Date();
@@ -84,6 +85,7 @@ async function loadData() {
       contentsData = remote.contents || { contents: [] };
       performanceData = remote.performance || { follower: { current: 0, history: { daily: [], monthly: [] } }, monthly: {} };
       revenueData = remote.revenue || { summary: { thisMonth: 0, thisYear: 0 }, byType: { ad: {}, sales: {}, sponsor: {} }, tax: {}, monthly: [], items: { ad: [], sales: [], sponsor: [] } };
+      memosData = remote.memos || { memos: [] };
       console.log('Supabase에서 데이터 로드됨');
     } else {
       // Supabase에 아직 데이터 없음 → localStorage에 있으면 마이그레이션
@@ -93,12 +95,14 @@ async function loadData() {
         contentsData = JSON.parse(savedContents);
         performanceData = JSON.parse(localStorage.getItem('yudit_performance') || '{"follower":{"current":0,"history":{"daily":[],"monthly":[]}},"monthly":{}}');
         revenueData = JSON.parse(localStorage.getItem('yudit_revenue') || '{"summary":{"thisMonth":0,"thisYear":0},"byType":{"ad":{},"sales":{},"sponsor":{}},"tax":{},"monthly":[],"items":{"ad":[],"sales":[],"sponsor":[]}}');
+        memosData = JSON.parse(localStorage.getItem('yudit_memos') || '{"memos":[]}');
         console.log('localStorage에서 로드 → Supabase로 마이그레이션 중...');
         await Promise.all([
           upsertToSupabase('calendar', calendarData),
           upsertToSupabase('contents', contentsData),
           upsertToSupabase('performance', performanceData),
-          upsertToSupabase('revenue', revenueData)
+          upsertToSupabase('revenue', revenueData),
+          upsertToSupabase('memos', memosData)
         ]);
         console.log('마이그레이션 완료');
       } else {
@@ -113,6 +117,7 @@ async function loadData() {
         contentsData = contents;
         performanceData = performance;
         revenueData = revenue;
+        memosData = { memos: [] };
       }
     }
 
@@ -127,6 +132,7 @@ async function loadData() {
       contentsData = JSON.parse(savedContents);
       performanceData = JSON.parse(localStorage.getItem('yudit_performance') || '{}');
       revenueData = JSON.parse(localStorage.getItem('yudit_revenue') || '{}');
+      memosData = JSON.parse(localStorage.getItem('yudit_memos') || '{"memos":[]}');
       updateSaveStatus('offline');
       alert('⚠️ Supabase 연결 실패 — 로컬 백업 데이터로 실행합니다.\n인터넷 확인 후 새로고침하세요.');
       initApp();
@@ -144,6 +150,7 @@ function saveAllData() {
   localStorage.setItem('yudit_contents', JSON.stringify(contentsData));
   localStorage.setItem('yudit_performance', JSON.stringify(performanceData));
   localStorage.setItem('yudit_revenue', JSON.stringify(revenueData));
+  localStorage.setItem('yudit_memos', JSON.stringify(memosData));
 
   // 2) Supabase에는 디바운스 (연속 호출 시 500ms 후 1번만)
   updateSaveStatus('saving');
@@ -154,7 +161,8 @@ function saveAllData() {
         upsertToSupabase('calendar', calendarData),
         upsertToSupabase('contents', contentsData),
         upsertToSupabase('performance', performanceData),
-        upsertToSupabase('revenue', revenueData)
+        upsertToSupabase('revenue', revenueData),
+        upsertToSupabase('memos', memosData)
       ]);
       updateSaveStatus('saved');
       console.log('Supabase 저장 완료:', new Date().toLocaleTimeString());
@@ -173,6 +181,7 @@ function initApp() {
   renderContentList();
   renderPerformance();
   renderRevenue();
+  renderMemos();
 }
 
 function setTodayDate() {
@@ -2906,6 +2915,84 @@ function renderRevenueList(title, items, color) {
     }));
   }).observe(document.body, { childList: true, subtree: true });
 })();
+
+// ========== Memos ==========
+function renderMemos() {
+  if (!memosData) memosData = { memos: [] };
+  const memos = [...(memosData.memos || [])].sort((a, b) => {
+    if ((b.pinned ? 1 : 0) !== (a.pinned ? 1 : 0)) return (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0);
+    return (b.updatedAt || 0) - (a.updatedAt || 0);
+  });
+
+  const pinIconSolid = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M16 9V4l1-1V2H7v1l1 1v5l-2 2v2h5v7l1 1 1-1v-7h5v-2z"/></svg>`;
+  const pinIconOutline = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M16 9V4l1-1V2H7v1l1 1v5l-2 2v2h5v7l1 1 1-1v-7h5v-2z"/></svg>`;
+
+  document.getElementById('memos-content').innerHTML = `
+    <div class="flex items-center justify-between mb-6">
+      <h2 class="font-serif text-2xl font-semibold">메모</h2>
+      <button onclick="addMemo()" class="px-4 py-2 bg-botanical-fg text-white rounded-full text-sm font-medium hover:opacity-90 transition-all">+ 새 메모</button>
+    </div>
+    ${memos.length === 0 ? `
+      <div class="bg-white rounded-2xl p-10 shadow-sm text-center">
+        <p class="text-botanical-sage">아직 메모가 없어요. "+ 새 메모" 버튼으로 시작하세요.</p>
+      </div>
+    ` : `
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        ${memos.map(memo => `
+          <div class="bg-white rounded-2xl p-5 shadow-sm border ${memo.pinned ? 'border-botanical-terracotta/40' : 'border-botanical-stone'}">
+            <div class="flex items-start gap-2 mb-3">
+              <input type="text" value="${(memo.title || '').replace(/"/g, '&quot;')}" placeholder="제목" oninput="updateMemo(${memo.id}, 'title', this.value)" class="flex-1 font-serif text-lg font-semibold bg-transparent focus:outline-none">
+              <button onclick="toggleMemoPin(${memo.id})" title="${memo.pinned ? '고정 해제' : '상단 고정'}" class="p-1 rounded ${memo.pinned ? 'text-botanical-terracotta' : 'text-botanical-sage hover:text-botanical-fg'} transition-all">
+                ${memo.pinned ? pinIconSolid : pinIconOutline}
+              </button>
+              <button onclick="deleteMemo(${memo.id})" title="삭제" class="p-1 rounded text-botanical-sage hover:text-red-400 transition-all">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6h14z"/></svg>
+              </button>
+            </div>
+            <textarea rows="5" oninput="autoResize(this); updateMemo(${memo.id}, 'content', this.value)" placeholder="내용" class="memo-cell w-full text-sm bg-transparent focus:outline-none resize-none overflow-hidden leading-relaxed">${memo.content || ''}</textarea>
+            <p class="text-[10px] text-botanical-sage mt-3">${memo.updatedAt ? new Date(memo.updatedAt).toLocaleString('ko-KR') : ''}</p>
+          </div>
+        `).join('')}
+      </div>
+    `}
+  `;
+  requestAnimationFrame(() => {
+    document.querySelectorAll('.memo-cell').forEach(autoResize);
+  });
+}
+
+function addMemo() {
+  if (!memosData) memosData = { memos: [] };
+  if (!memosData.memos) memosData.memos = [];
+  const now = Date.now();
+  memosData.memos.push({ id: now, title: '', content: '', pinned: false, createdAt: now, updatedAt: now });
+  saveAllData();
+  renderMemos();
+}
+
+function updateMemo(id, field, value) {
+  const memo = memosData?.memos?.find(m => m.id === id);
+  if (!memo) return;
+  memo[field] = value;
+  memo.updatedAt = Date.now();
+  saveAllData();
+}
+
+function toggleMemoPin(id) {
+  const memo = memosData?.memos?.find(m => m.id === id);
+  if (!memo) return;
+  memo.pinned = !memo.pinned;
+  memo.updatedAt = Date.now();
+  saveAllData();
+  renderMemos();
+}
+
+function deleteMemo(id) {
+  if (!confirm('이 메모를 삭제할까요?')) return;
+  memosData.memos = memosData.memos.filter(m => m.id !== id);
+  saveAllData();
+  renderMemos();
+}
 
 // ========== Init ==========
 loadData();
