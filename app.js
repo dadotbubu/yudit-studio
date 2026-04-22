@@ -1210,7 +1210,7 @@ function renderContentList() {
             <span class="w-20"><span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full flex-shrink-0" style="background-color: ${categoryColor};"></span><span class="text-xs text-botanical-sage truncate">${content.category}</span></span></span>
             <span class="w-16"><span class="px-2 py-1 rounded-full text-xs whitespace-nowrap" style="background-color: ${statusStyle.bg}; color: ${statusStyle.text};">${content.status}</span></span>
             <span class="w-14"><span class="px-2 py-1 rounded-full text-xs font-medium whitespace-nowrap bg-botanical-sage/20 text-botanical-sage">${content.type}</span></span>
-            <span class="font-medium flex-1 flex items-center gap-2">${content.title}${needsPerformance ? '<span class="text-sm" title="성과 입력 필요">🔔</span>' : ''}</span>
+            <span class="font-medium flex-1 flex items-center gap-2"><span data-content-title="${content.id}">${content.title || '무제'}</span>${needsPerformance ? '<span class="text-sm" title="성과 입력 필요">🔔</span>' : ''}</span>
             <span class="w-12 text-botanical-sage text-xs text-center">${content.uploadDate ? content.uploadDate.slice(5).replace('-', '/') : '-'}</span>
             <span class="w-10 text-xs text-center">${content.url ? `<a href="${content.url}" target="_blank" class="text-blue-500 underline" onclick="event.stopPropagation()">링크</a>` : '<span class="text-botanical-sage">-</span>'}</span>
             <span class="w-14 text-xs text-center ${isCompleted ? 'font-semibold' : 'text-botanical-sage'}">${content.performance.views ? (content.performance.views / 1000).toFixed(1) + 'K' : '-'}</span>
@@ -1603,11 +1603,19 @@ function renderContentForm(content) {
             <span class="w-6 h-6 rounded-full bg-botanical-sage/20 text-botanical-sage text-xs flex items-center justify-center">2</span>
             촬영 및 대본 (20초 미만~최대 30초)
           </h3>
-          <div class="flex gap-2">
-            ${scriptVersions.map((_, i) => `
-              <button onclick="switchScriptVersion(${content.id}, ${i})" class="px-3 py-1 rounded-full text-xs ${i === currentVer ? 'bg-botanical-sage text-white' : 'border border-botanical-stone hover:bg-botanical-cream transition-all'}">V${i+1}</button>
-            `).join('')}
+          <div class="flex gap-2 items-center flex-wrap">
+            ${scriptVersions.map((_, i) => {
+              const isFinal = (content.script.finalVersion ?? 0) === i;
+              const isActive = i === currentVer;
+              return `
+                <span class="inline-flex items-center rounded-full overflow-hidden border ${isActive ? 'border-botanical-sage' : 'border-botanical-stone'}">
+                  <button onclick="switchScriptVersion(${content.id}, ${i})" class="px-3 py-1 text-xs ${isActive ? 'bg-botanical-sage text-white' : 'hover:bg-botanical-cream transition-all'}">V${i+1}</button>
+                  <button onclick="setFinalVersion(${content.id}, ${i})" title="${isFinal ? '최종 버전 (목록·캘린더에 표시)' : '최종으로 지정'}" class="px-1.5 py-1 text-xs border-l ${isActive ? 'border-botanical-sage/50' : 'border-botanical-stone'} ${isFinal ? (isActive ? 'bg-amber-400 text-white' : 'bg-amber-50 text-amber-500') : (isActive ? 'bg-botanical-sage text-white/60 hover:text-white' : 'text-botanical-sage/40 hover:text-amber-500 hover:bg-amber-50')}">★</button>
+                </span>
+              `;
+            }).join('')}
             <button onclick="addScriptVersion(${content.id})" class="px-3 py-1 rounded-full text-xs border border-botanical-stone hover:bg-botanical-cream transition-all">+</button>
+            <span class="text-xs text-botanical-sage ml-1">★ = 목록·캘린더 표시 버전</span>
           </div>
         </div>
 
@@ -1809,6 +1817,17 @@ function ensureScript(content) {
   if (content.script.currentVersion >= content.script.versions.length) {
     content.script.currentVersion = content.script.versions.length - 1;
   }
+  // 최종 버전 지정 (기본 0번)
+  if (content.script.finalVersion == null) content.script.finalVersion = 0;
+  if (content.script.finalVersion >= content.script.versions.length) {
+    content.script.finalVersion = 0;
+  }
+  // 각 버전에 title 필드 보장 — 레거시는 finalVersion에만 기존 title, 나머지는 ''
+  content.script.versions.forEach((v, i) => {
+    if (v.title == null) {
+      v.title = (i === content.script.finalVersion) ? (content.title ?? '') : '';
+    }
+  });
 }
 
 function reopenForm(contentId) {
@@ -1866,12 +1885,7 @@ function addScriptVersion(contentId) {
   ensureScript(content);
   content.script.versions.push({ rows: DEFAULT_SCRIPT_ROWS(), title: '' });
   content.script.currentVersion = content.script.versions.length - 1;
-  // 새 버전 제목은 빈 값 → 목록·캘린더 표시용 content.title도 비움
-  content.title = '';
-  calendarData.items.forEach(item => { if (item.contentId === contentId) item.title = ''; });
-  ['ad', 'sales', 'sponsor'].forEach(t => {
-    (revenueData.items?.[t] || []).forEach(item => { if (item.contentId === contentId) item.brand = '무제'; });
-  });
+  // 최종 버전은 기존대로 유지 (새 버전은 draft)
   saveAllData();
   renderContentList();
   reopenForm(contentId);
@@ -1881,15 +1895,7 @@ function switchScriptVersion(contentId, versionIdx) {
   const content = contentsData.contents.find(c => c.id === contentId);
   if (!content?.script?.versions?.[versionIdx]) return;
   content.script.currentVersion = versionIdx;
-  // 해당 버전에 저장된 제목이 있으면 목록·캘린더용 title 동기화
-  const verTitle = content.script.versions[versionIdx].title;
-  if (typeof verTitle === 'string') {
-    content.title = verTitle;
-    calendarData.items.forEach(item => { if (item.contentId === contentId) item.title = verTitle; });
-    ['ad', 'sales', 'sponsor'].forEach(t => {
-      (revenueData.items?.[t] || []).forEach(item => { if (item.contentId === contentId) item.brand = verTitle || '무제'; });
-    });
-  }
+  // 활성 버전 전환만. 최종 버전은 별도로 ★ 버튼으로 지정
   saveAllData();
   renderContentList();
   reopenForm(contentId);
@@ -1936,33 +1942,52 @@ function updateContentField(contentId, field, value) {
   saveAllData();
 }
 
-// 제목 변경 — 캘린더에 연동된 항목들의 title도 함께 업데이트
+// 제목 변경 — 편집 중인 버전에 저장, 최종버전일 때만 목록/캘린더/수익 연동
 function updateContentTitle(contentId, value) {
   const content = contentsData.contents.find(c => c.id === contentId);
   if (!content) return;
-  content.title = value;
-  // 현재 스크립트 버전에도 저장 (버전별 제목)
   ensureScript(content);
   const ver = content.script.currentVersion ?? 0;
+  const finalVer = content.script.finalVersion ?? 0;
   if (content.script.versions[ver]) content.script.versions[ver].title = value;
+  // 편집 중인 버전이 '최종'이면 표시 타이틀 연동
+  if (ver === finalVer) {
+    content.title = value;
+    calendarData.items.forEach(item => {
+      if (item.contentId === contentId) item.title = value;
+    });
+    ['ad', 'sales', 'sponsor'].forEach(t => {
+      (revenueData.items?.[t] || []).forEach(item => {
+        if (item.contentId === contentId) item.brand = value || '무제';
+      });
+    });
+    // 목록 헤더의 제목 스팬만 국소 업데이트 (re-render 없이 포커스 유지)
+    const titleEl = document.querySelector(`[data-content-title="${contentId}"]`);
+    if (titleEl) titleEl.textContent = value || '무제';
+  }
+  saveAllData();
+}
+
+// 최종 버전 지정
+function setFinalVersion(contentId, versionIdx) {
+  const content = contentsData.contents.find(c => c.id === contentId);
+  if (!content) return;
+  ensureScript(content);
+  if (!content.script.versions[versionIdx]) return;
+  content.script.finalVersion = versionIdx;
+  const verTitle = content.script.versions[versionIdx].title ?? '';
+  content.title = verTitle;
   calendarData.items.forEach(item => {
-    if (item.contentId === contentId) item.title = value;
+    if (item.contentId === contentId) item.title = verTitle;
   });
-  // 수익 리포트의 brand도 동기화
   ['ad', 'sales', 'sponsor'].forEach(t => {
     (revenueData.items?.[t] || []).forEach(item => {
-      if (item.contentId === contentId) item.brand = value || '무제';
+      if (item.contentId === contentId) item.brand = verTitle || '무제';
     });
   });
   saveAllData();
   renderContentList();
-  renderCalendar();
-  renderRevenue();
-  // 폼 다시 펼치기
-  const form = document.getElementById('form-' + contentId);
-  if (form) form.classList.add('active');
-  const arrow = document.getElementById('arrow-' + contentId);
-  if (arrow) arrow.style.transform = 'rotate(180deg)';
+  reopenForm(contentId);
 }
 
 // ========== 광고 상세 ==========
