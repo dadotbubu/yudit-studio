@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>yudit studio</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600;700&family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400;1,600&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            botanical: {
+              bg: '#F9F8F4',
+              fg: '#2D3A31',
+              sage: '#8C9A84',
+              clay: '#DCCFC2',
+              stone: '#E6E2DA',
+              terracotta: '#C27B66',
+              cream: '#F2F0EB',
+            }
+          },
+          fontFamily: {
+            serif: ['Playfair Display', 'serif'],
+            sans: ['Noto Sans KR', 'sans-serif'],
+          },
+        }
+      }
+    }
+  </script>
+  <style>
+    body { font-family: 'Noto Sans KR', sans-serif; background-color: #F9F8F4; color: #2D3A31; }
+    .font-serif { font-family: 'Playfair Display', serif !important; }
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+    .production-form { display: none; }
+    .production-form.active { display: block; }
+    .perf-section.hidden { display: none; }
+    .detail-graph.hidden { display: none; }
+    input[type="checkbox"]:checked + span { text-decoration: line-through; color: #8C9A84; }
+    #calendar-popup { transition: opacity 0.2s; }
+    #calendar-popup.hidden { opacity: 0; pointer-events: none; }
+    /* 날짜 input 값 없을 때 placeholder(2026.04.22) 숨기기 */
+    input[type="date"].date-empty::-webkit-datetime-edit { color: transparent; }
+    input[type="date"].date-empty:focus::-webkit-datetime-edit { color: #2D3A31; }
+    /* 콘텐츠 상세 폼 상단 필드 높이 통일 */
+    .production-form input[type="text"],
+    .production-form input[type="date"],
+    .production-form input[type="number"],
+    .production-form select { height: 38px; box-sizing: border-box; }
+    .production-form textarea { box-sizing: border-box; }
+    /* 스크립트 테이블 컬럼 리사이즈 핸들 */
+    .script-table { border-collapse: collapse; }
+    .script-table th.col-resizable { position: relative; }
+    .script-table .col-resize-handle {
+      display: block;
+      position: absolute; top: 0; right: -4px; bottom: 0; width: 10px;
+      cursor: col-resize; user-select: none; z-index: 20;
+      background: transparent;
+    }
+    .script-table .col-resize-handle::before {
+      content: ''; position: absolute; top: 6px; bottom: 6px;
+      left: 50%; width: 2px; transform: translateX(-50%);
+      background: rgba(140,154,132,0.25); border-radius: 2px;
+    }
+    .script-table .col-resize-handle:hover::before { background: rgba(140,154,132,0.8); width: 3px; }
+    .script-table .col-resize-handle:active::before { background: #8C9A84; }
+    .script-table td { vertical-align: top; }
+    .script-table textarea.script-cell {
+      min-height: 24px; line-height: 1.5;
+      word-break: break-word; white-space: pre-wrap;
+    }
+  </style>
+</head>
+<body class="min-h-screen font-sans">
+  <!-- Paper Grain -->
+  <div class="pointer-events-none fixed inset-0 z-50 opacity-[0.02]" style="background-image: url('data:image/svg+xml,%3Csvg viewBox=%270 0 400 400%27 xmlns=%27http://www.w3.org/2000/svg%27%3E%3Cfilter id=%27n%27%3E%3CfeTurbulence type=%27fractalNoise%27 baseFrequency=%270.9%27 numOctaves=%274%27 stitchTiles=%27stitch%27/%3E%3C/filter%3E%3Crect width=%27100%25%27 height=%27100%25%27 filter=%27url(%23n)%27/%3E%3C/svg%3E');"></div>
+
+  <div class="max-w-7xl mx-auto px-6 py-8">
+
+    <!-- Header -->
+    <header class="flex items-center justify-between mb-8">
+      <div>
+        <h1 class="font-serif text-3xl font-semibold tracking-tight">
+          <span class="italic">yudit</span> <span class="italic">studio</span>
+        </h1>
+        <p class="text-botanical-sage text-sm">Content Calendar & Management</p>
+      </div>
+      <div class="flex items-center gap-3">
+        <span id="save-status" class="text-xs"></span>
+        <span id="today-date" class="text-sm text-botanical-sage"></span>
+      </div>
+    </header>
+
+    <!-- Tabs -->
+    <div class="flex gap-2 mb-8 border-b border-botanical-stone pb-4">
+      <button onclick="switchTab('calendar')" id="tab-calendar" class="tab-btn px-4 py-2 text-sm font-medium transition-all duration-300 text-botanical-fg border-b-2 border-botanical-fg">캘린더</button>
+      <button onclick="switchTab('dashboard')" id="tab-dashboard" class="tab-btn px-4 py-2 text-sm font-medium transition-all duration-300 text-botanical-sage border-b-2 border-transparent hover:text-botanical-fg">대시보드</button>
+      <button onclick="switchTab('content')" id="tab-content" class="tab-btn px-4 py-2 text-sm font-medium transition-all duration-300 text-botanical-sage border-b-2 border-transparent hover:text-botanical-fg">콘텐츠</button>
+      <button onclick="switchTab('performance')" id="tab-performance" class="tab-btn px-4 py-2 text-sm font-medium transition-all duration-300 text-botanical-sage border-b-2 border-transparent hover:text-botanical-fg">성과분석</button>
+      <button onclick="switchTab('revenue')" id="tab-revenue" class="tab-btn px-4 py-2 text-sm font-medium transition-all duration-300 text-botanical-sage border-b-2 border-transparent hover:text-botanical-fg">수익리포트</button>
+    </div>
+
+    <!-- Calendar Tab -->
+    <div id="calendar-tab" class="tab-content active">
+      <div id="today-summary"></div>
+      <div class="flex items-center justify-between mb-4">
+        <div class="flex items-center gap-3">
+          <button onclick="prevMonth()" class="w-8 h-8 rounded-full border border-botanical-stone flex items-center justify-center text-botanical-sage hover:border-botanical-sage transition-all">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="m15 18-6-6 6-6"/></svg>
+          </button>
+          <h2 id="calendar-title" class="font-serif text-2xl font-semibold"></h2>
+          <button onclick="nextMonth()" class="w-8 h-8 rounded-full border border-botanical-stone flex items-center justify-center text-botanical-sage hover:border-botanical-sage transition-all">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="m9 18 6-6-6-6"/></svg>
+          </button>
+        </div>
+        <div class="flex gap-1 bg-botanical-stone p-1 rounded-full">
+          <button onclick="switchCalendarView('monthly')" id="view-monthly" class="calendar-view-btn px-4 py-1.5 rounded-full text-xs font-medium bg-white text-botanical-fg shadow-sm">월간</button>
+          <button onclick="switchCalendarView('weekly')" id="view-weekly" class="calendar-view-btn px-4 py-1.5 rounded-full text-xs font-medium text-botanical-sage">주간</button>
+          <button onclick="switchCalendarView('milestone')" id="view-milestone" class="calendar-view-btn px-4 py-1.5 rounded-full text-xs font-medium text-botanical-sage">마일스톤</button>
+        </div>
+      </div>
+      <div id="monthly-view" class="bg-white rounded-2xl p-5 shadow-sm"></div>
+      <div id="weekly-view" class="bg-white rounded-2xl p-5 shadow-sm hidden"></div>
+      <div id="milestone-view" class="bg-white rounded-2xl p-5 shadow-sm hidden"></div>
+    </div>
+
+    <!-- Dashboard Tab -->
+    <div id="dashboard-tab" class="tab-content">
+      <div id="dashboard-content"></div>
+    </div>
+
+    <!-- Content Tab -->
+    <div id="content-tab" class="tab-content">
+      <div id="content-list"></div>
+    </div>
+
+    <!-- Performance Tab -->
+    <div id="performance-tab" class="tab-content">
+      <div id="performance-content"></div>
+    </div>
+
+    <!-- Revenue Tab -->
+    <div id="revenue-tab" class="tab-content">
+      <div id="revenue-content"></div>
+    </div>
+
+  </div>
+
+  <!-- Calendar Popup Modal -->
+  <div id="calendar-popup" class="fixed inset-0 z-50 hidden">
+    <div class="absolute inset-0 bg-black/30" onclick="closeCalendarPopup()"></div>
+    <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white rounded-2xl shadow-xl w-full max-w-md p-6">
+      <div id="popup-content"></div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
