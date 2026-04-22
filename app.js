@@ -33,6 +33,7 @@ const SUPABASE_URL = 'https://vihrydqudawrlwddffwa.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZpaHJ5ZHF1ZGF3cmx3ZGRmZndhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYyNTcxNjIsImV4cCI6MjA5MTgzMzE2Mn0.5QkOjtl25PgbCDenWNgyqelbgPeerg6sqROQa624G9A';
 const SUPABASE_TABLE = 'studio_data';
 const DEFAULT_CLIENT_NOTION = 'https://www.notion.so/34a066f53222807e9fc9e625d5edee26';
+const DEFAULT_TRANSCRIPT_LINK = 'https://getthescript.app/instagram-transcript';
 const fmt = (n) => (Number(n) || 0).toLocaleString();
 
 function updateSaveStatus(status) {
@@ -1528,6 +1529,14 @@ function renderContentForm(content) {
           </div>
         </div>
 
+        <div class="mb-5 p-4 bg-botanical-cream/50 rounded-lg">
+          <p class="text-sm font-medium text-botanical-terracotta mb-3">대본 확인하기</p>
+          <div class="flex gap-2">
+            <input type="text" value="${content.reference?.transcriptLink ?? DEFAULT_TRANSCRIPT_LINK}" onchange="updateReference(${content.id}, 'transcriptLink', this.value)" placeholder="https://..." class="flex-1 px-3 rounded-lg border border-botanical-stone text-sm focus:outline-none bg-white" style="height:38px;">
+            <a href="${content.reference?.transcriptLink ?? DEFAULT_TRANSCRIPT_LINK}" target="_blank" class="px-2 text-xs text-blue-500 border border-blue-200 rounded-lg hover:bg-blue-50 flex items-center shrink-0">열기</a>
+          </div>
+        </div>
+
         <div class="border border-botanical-stone rounded-lg overflow-hidden">
           <table class="w-full text-sm">
             <tbody>
@@ -1563,6 +1572,9 @@ function renderContentForm(content) {
             ${(content.notionLinks && content.notionLinks.length > 0 ? content.notionLinks : ['']).map((link, idx) => `
               <div class="flex gap-2">
                 <input type="text" value="${link}" onchange="updateNotionLink(${content.id}, ${idx}, this.value)" placeholder="노션 링크 (분석 자료)" class="flex-1 px-4 py-2 rounded-lg border border-botanical-stone text-sm focus:outline-none focus:border-botanical-sage">
+                ${link
+                  ? `<a href="${link}" target="_blank" class="px-2 text-xs text-blue-500 border border-blue-200 rounded-lg hover:bg-blue-50 flex items-center shrink-0">열기</a>`
+                  : `<span class="px-2 text-xs text-botanical-sage/50 border border-botanical-stone rounded-lg flex items-center shrink-0 cursor-default">열기</span>`}
                 ${idx > 0 ? `<button onclick="removeNotionLink(${content.id}, ${idx})" class="px-2 py-1 text-xs text-red-400 border border-red-200 rounded-lg hover:bg-red-50 transition-all">삭제</button>` : ''}
               </div>
             `).join('')}
