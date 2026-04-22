@@ -14,7 +14,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600;700&family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400;1,600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="tailwind.css?v=4">
+  <link rel="stylesheet" href="tailwind.css?v=5">
   <style>
     body { font-family: 'Noto Sans KR', sans-serif; background-color: #F9F8F4; color: #2D3A31; }
     .font-serif { font-family: 'Playfair Display', serif !important; }
@@ -57,6 +57,13 @@
       min-height: 24px; line-height: 1.5;
       word-break: break-word; white-space: pre-wrap;
     }
+    /* 메모 드래그 드롭 인디케이터 */
+    .memo-item.drop-before::before, .memo-item.drop-after::after {
+      content: ''; position: absolute; left: 8px; right: 8px; height: 2px;
+      background: #8C9A84; border-radius: 2px; z-index: 10; pointer-events: none;
+    }
+    .memo-item.drop-before::before { top: -1px; }
+    .memo-item.drop-after::after { bottom: -1px; }
   </style>
 </head>
 <body class="min-h-screen font-sans">
@@ -148,6 +155,6 @@
     </div>
   </div>
 
-  <script src="app.js?v=4"></script>
+  <script src="app.js?v=5"></script>
 </body>
 </html>

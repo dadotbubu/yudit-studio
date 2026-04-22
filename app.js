@@ -1134,7 +1134,10 @@ function renderContentList() {
         </div>
         <span class="text-sm text-botanical-sage">${contentCount}건</span>
       </div>
-      <button onclick="showNewContentModal()" class="px-4 py-2 bg-botanical-fg text-white rounded-xl text-sm font-medium hover:bg-botanical-fg/90 transition-all">+ 새 콘텐츠 등록</button>
+      <div class="flex gap-2">
+        <button onclick="collapseAllContentForms()" class="px-4 py-2 border border-botanical-stone rounded-xl text-sm font-medium text-botanical-sage hover:bg-botanical-cream/40 transition-all">목록</button>
+        <button onclick="showNewContentModal()" class="px-4 py-2 bg-botanical-fg text-white rounded-xl text-sm font-medium hover:bg-botanical-fg/90 transition-all">+ 새 콘텐츠 등록</button>
+      </div>
     </div>
 
     <div class="bg-botanical-cream/50 rounded-xl px-5 py-3 mb-4">
@@ -1416,16 +1419,18 @@ function renderContentForm(content) {
               <tr class="border-b border-botanical-stone">
                 <td class="px-4 py-3 bg-botanical-cream/40 font-medium align-middle">제작 가이드</td>
                 <td class="px-4 py-2">
-                  <input type="text" value="${content.adInfo?.guideLink || ''}" onchange="updateAdInfo(${content.id}, 'guideLink', this.value)" placeholder="https://..." class="w-full px-3 rounded-lg border border-botanical-stone text-sm focus:outline-none" style="height:38px;">
+                  <div class="flex gap-2">
+                    <input type="text" value="${content.adInfo?.guideLink || ''}" onchange="updateAdInfo(${content.id}, 'guideLink', this.value)" placeholder="https://..." class="flex-1 px-3 rounded-lg border border-botanical-stone text-sm focus:outline-none" style="height:38px;">
+                    ${content.adInfo?.guideLink
+                      ? `<a href="${content.adInfo.guideLink}" target="_blank" class="px-2 text-xs text-blue-500 border border-blue-200 rounded-lg hover:bg-blue-50 flex items-center shrink-0">열기</a>`
+                      : `<span class="px-2 text-xs text-botanical-sage/50 border border-botanical-stone rounded-lg flex items-center shrink-0 cursor-default">열기</span>`}
+                  </div>
                 </td>
               </tr>
               <tr class="border-b border-botanical-stone">
                 <td class="px-4 py-3 bg-botanical-cream/40 font-medium align-middle">계약서</td>
                 <td class="px-4 py-2">
-                  <div class="flex gap-2">
-                    <input type="text" value="${content.adInfo?.contractLink || ''}" onchange="updateAdInfo(${content.id}, 'contractLink', this.value)" placeholder="https://... 또는 이미지 URL" class="flex-1 px-3 rounded-lg border border-botanical-stone text-sm focus:outline-none" style="height:38px;">
-                    ${content.adInfo?.contractLink ? `<a href="${content.adInfo.contractLink}" target="_blank" class="px-2 text-xs text-blue-500 border border-blue-200 rounded-lg hover:bg-blue-50 flex items-center">열기</a>` : ''}
-                  </div>
+                  <input type="text" value="${content.adInfo?.contractLink || ''}" onchange="updateAdInfo(${content.id}, 'contractLink', this.value)" placeholder="https://... 또는 이미지 URL" class="w-full px-3 rounded-lg border border-botanical-stone text-sm focus:outline-none" style="height:38px;">
                 </td>
               </tr>
               ` : content.category === '판매' ? `
@@ -1440,7 +1445,9 @@ function renderContentForm(content) {
                 <td class="px-4 py-2">
                   <div class="flex gap-2">
                     <input type="text" value="${content.adInfo?.saleLink || ''}" onchange="updateAdInfo(${content.id}, 'saleLink', this.value)" placeholder="https://..." class="flex-1 px-3 rounded-lg border border-botanical-stone text-sm focus:outline-none" style="height:38px;">
-                    ${content.adInfo?.saleLink ? `<a href="${content.adInfo.saleLink}" target="_blank" class="px-2 text-xs text-blue-500 border border-blue-200 rounded-lg hover:bg-blue-50 flex items-center">열기</a>` : ''}
+                    ${content.adInfo?.saleLink
+                      ? `<a href="${content.adInfo.saleLink}" target="_blank" class="px-2 text-xs text-blue-500 border border-blue-200 rounded-lg hover:bg-blue-50 flex items-center shrink-0">열기</a>`
+                      : `<span class="px-2 text-xs text-botanical-sage/50 border border-botanical-stone rounded-lg flex items-center shrink-0 cursor-default">열기</span>`}
                   </div>
                 </td>
               </tr>
@@ -1469,7 +1476,9 @@ function renderContentForm(content) {
                       return `
                       <div class="flex gap-2">
                         <input type="text" value="${link}" onchange="updateAdRefLink(${content.id}, ${idx}, this.value)" placeholder="https://..." class="flex-1 min-w-0 px-3 rounded-lg border border-botanical-stone text-sm focus:outline-none" style="height:38px;">
-                        ${link ? `<a href="${link}" target="_blank" class="px-2 text-xs text-blue-500 border border-blue-200 rounded-lg hover:bg-blue-50 flex items-center shrink-0">열기</a>` : ''}
+                        ${link
+                          ? `<a href="${link}" target="_blank" class="px-2 text-xs text-blue-500 border border-blue-200 rounded-lg hover:bg-blue-50 flex items-center shrink-0">열기</a>`
+                          : `<span class="px-2 text-xs text-botanical-sage/50 border border-botanical-stone rounded-lg flex items-center shrink-0 cursor-default">열기</span>`}
                       </div>`;
                     }).join('')}
                   </div>
@@ -1746,6 +1755,15 @@ function toggleContentForm(id) {
   form.classList.toggle('active');
   arrow.style.transform = form.classList.contains('active') ? 'rotate(180deg)' : 'rotate(0deg)';
   if (form.classList.contains('active')) requestAnimationFrame(autoResizeAllScriptCells);
+}
+
+function collapseAllContentForms() {
+  document.querySelectorAll('.production-form.active').forEach(form => {
+    form.classList.remove('active');
+    const id = form.id.replace('form-', '');
+    const arrow = document.getElementById('arrow-' + id);
+    if (arrow) arrow.style.transform = 'rotate(0deg)';
+  });
 }
 
 // ========== Script Row/Version 관련 ==========
@@ -2917,82 +2935,74 @@ function renderRevenueList(title, items, color) {
   }).observe(document.body, { childList: true, subtree: true });
 })();
 
-// ========== Memos (macOS Notes 스타일) ==========
+// ========== Memos ==========
+let draggedMemoId = null;
+const expandedMemoIds = new Set();
+
 function renderMemos() {
   if (!memosData) memosData = { memos: [] };
   const memos = memosData.memos || [];
 
-  // 선택 상태 초기화/보정
   if (memos.length === 0) {
     selectedMemoId = null;
-  } else if (!memos.find(m => m.id === selectedMemoId)) {
-    const sorted = [...memos].sort((a, b) => {
-      if ((b.pinned ? 1 : 0) !== (a.pinned ? 1 : 0)) return (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0);
-      return (b.updatedAt || 0) - (a.updatedAt || 0);
-    });
-    selectedMemoId = sorted[0].id;
+  } else if (selectedMemoId != null && !memos.find(m => m.id === selectedMemoId)) {
+    selectedMemoId = null;
   }
 
-  // 날짜 그룹핑
-  const today = new Date(); today.setHours(0, 0, 0, 0);
-  const day7 = today.getTime() - 7 * 86400000;
-  const day30 = today.getTime() - 30 * 86400000;
-  const groups = { pinned: [], recent7: [], recent30: [], byYear: {} };
-  memos.forEach(m => {
-    if (m.pinned) { groups.pinned.push(m); return; }
-    const ts = m.updatedAt || 0;
-    if (ts >= day7) groups.recent7.push(m);
-    else if (ts >= day30) groups.recent30.push(m);
-    else {
-      const y = new Date(ts).getFullYear() || new Date().getFullYear();
-      (groups.byYear[y] = groups.byYear[y] || []).push(m);
-    }
-  });
-  const sortDesc = arr => arr.sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
-  sortDesc(groups.pinned); sortDesc(groups.recent7); sortDesc(groups.recent30);
-  Object.values(groups.byYear).forEach(sortDesc);
-  const years = Object.keys(groups.byYear).map(Number).sort((a, b) => b - a);
+  // 배열 순서 = 사용자 지정 순서. 핀만 상단 그룹으로 분리
+  const pinned = memos.filter(m => m.pinned);
+  const unpinned = memos.filter(m => !m.pinned);
 
   const pinIconSolid = `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M16 9V4l1-1V2H7v1l1 1v5l-2 2v2h5v7l1 1 1-1v-7h5v-2z"/></svg>`;
   const pinIconOutline = `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M16 9V4l1-1V2H7v1l1 1v5l-2 2v2h5v7l1 1 1-1v-7h5v-2z"/></svg>`;
+  const gripIcon = `<svg width="10" height="14" viewBox="0 0 10 14" fill="currentColor"><circle cx="3" cy="3" r="1.1"/><circle cx="7" cy="3" r="1.1"/><circle cx="3" cy="7" r="1.1"/><circle cx="7" cy="7" r="1.1"/><circle cx="3" cy="11" r="1.1"/><circle cx="7" cy="11" r="1.1"/></svg>`;
+  const pencilIcon = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 1 1 3 3L7 19l-4 1 1-4z"/></svg>`;
 
   const listItem = (memo) => {
+    const isExpanded = expandedMemoIds.has(memo.id);
     const isSel = memo.id === selectedMemoId;
-    const date = memo.updatedAt ? new Date(memo.updatedAt) : null;
-    const dateStr = date ? `${date.getFullYear()}. ${date.getMonth()+1}. ${date.getDate()}.` : '';
-    const preview = (memo.content || '').split('\n').find(l => l.trim()) || '';
     const title = memo.title?.trim() || '제목 없음';
+    const content = memo.content || '';
+    const preview = content.split('\n').find(l => l.trim()) || '';
     return `
-      <div onclick="selectMemo(${memo.id})" class="px-3 py-2 rounded-lg cursor-pointer transition-colors ${isSel ? 'bg-amber-100/80' : 'hover:bg-botanical-cream/50'}">
-        <div class="flex items-center gap-1">
-          ${memo.pinned ? `<span class="text-botanical-terracotta shrink-0">${pinIconSolid}</span>` : ''}
-          <p class="font-semibold text-sm truncate ${memo.title?.trim() ? '' : 'text-botanical-sage/60'}">${escapeHtml(title)}</p>
+      <div class="memo-item group relative px-2 py-2 rounded-lg transition-colors ${isSel ? 'bg-amber-100/70' : 'hover:bg-botanical-cream/40'}"
+           data-memo-id="${memo.id}"
+           ondragover="onMemoDragOver(event, ${memo.id})"
+           ondragleave="onMemoDragLeave(event)"
+           ondrop="onMemoDrop(event, ${memo.id})">
+        <div class="flex items-start gap-1.5">
+          <span class="memo-handle text-botanical-sage/40 hover:text-botanical-sage cursor-grab active:cursor-grabbing shrink-0 py-1"
+                draggable="true"
+                ondragstart="onMemoDragStart(event, ${memo.id})"
+                ondragend="onMemoDragEnd(event)"
+                title="드래그로 순서 변경">${gripIcon}</span>
+          <button onclick="toggleMemoPin(${memo.id})" title="${memo.pinned ? '고정 해제' : '상단 고정'}" class="shrink-0 py-0.5 ${memo.pinned ? 'text-botanical-terracotta' : 'text-botanical-sage/40 hover:text-botanical-sage'} transition-colors">
+            ${memo.pinned ? pinIconSolid : pinIconOutline}
+          </button>
+          <div class="flex-1 min-w-0 cursor-pointer" onclick="toggleMemoExpand(${memo.id})">
+            <p class="memo-title font-sans font-semibold text-sm truncate ${memo.title?.trim() ? 'text-botanical-fg' : 'text-botanical-sage/60'}">${escapeHtml(title)}</p>
+            ${!isExpanded ? `<p class="memo-preview text-xs text-botanical-sage truncate mt-0.5">${escapeHtml(preview)}</p>` : ''}
+          </div>
+          <button onclick="editMemo(${memo.id})" title="오른쪽에서 편집" class="shrink-0 py-0.5 opacity-0 group-hover:opacity-100 text-botanical-sage/60 hover:text-botanical-fg transition-all">${pencilIcon}</button>
+          <svg onclick="toggleMemoExpand(${memo.id})" class="shrink-0 mt-1 text-botanical-sage/50 cursor-pointer transition-transform ${isExpanded ? 'rotate-90' : ''}" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m9 18 6-6-6-6"/></svg>
         </div>
-        <div class="flex gap-2 text-xs mt-0.5">
-          <span class="text-botanical-fg/70 shrink-0">${dateStr}</span>
-          <span class="text-botanical-sage truncate">${escapeHtml(preview)}</span>
-        </div>
+        ${isExpanded ? `
+          <div class="memo-fullcontent mt-2 ml-6 pr-2 text-[13px] text-botanical-fg/85 whitespace-pre-wrap leading-relaxed" style="user-select: text; -webkit-user-select: text;">${content ? escapeHtml(content) : '<span class="text-botanical-sage/60">(내용 없음)</span>'}</div>
+        ` : ''}
       </div>
     `;
   };
 
-  const groupBlock = (label, items) => items.length === 0 ? '' : `
-    <div class="mb-3">
-      <p class="text-xs font-semibold text-botanical-fg px-3 py-1">${label}</p>
-      <div class="space-y-0.5">${items.map(listItem).join('')}</div>
-    </div>
-  `;
-
   const selected = memos.find(m => m.id === selectedMemoId);
-  const selDate = selected?.updatedAt ? new Date(selected.updatedAt) : null;
-  const selDateStr = selDate ? `${selDate.getFullYear()}년 ${selDate.getMonth()+1}월 ${selDate.getDate()}일 ${selDate.toLocaleTimeString('ko-KR', {hour: 'numeric', minute: '2-digit'})}` : '';
 
   document.getElementById('memos-content').innerHTML = `
     <div class="flex gap-0 bg-white rounded-2xl shadow-sm border border-botanical-stone overflow-hidden" style="height: calc(100vh - 220px); min-height: 500px;">
-      <!-- 좌측 리스트 -->
-      <aside class="w-72 shrink-0 border-r border-botanical-stone flex flex-col">
+      <aside class="shrink-0 border-r border-botanical-stone flex flex-col" style="width: 440px;">
         <div class="flex items-center justify-between px-3 py-3 border-b border-botanical-stone">
-          <span class="text-sm font-semibold text-botanical-fg">${memos.length}개</span>
+          <div class="flex items-center gap-2">
+            <span class="text-sm font-semibold text-botanical-fg">${memos.length}개</span>
+            ${memos.length > 0 ? `<button onclick="collapseAllMemos()" title="모두 접기" class="text-xs text-botanical-sage hover:text-botanical-fg transition-colors">모두 접기</button>` : ''}
+          </div>
           <button onclick="addMemo()" title="새 메모" class="w-7 h-7 rounded-full bg-botanical-fg text-white flex items-center justify-center hover:opacity-90 transition-all">
             <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
           </button>
@@ -3001,21 +3011,25 @@ function renderMemos() {
           ${memos.length === 0 ? `
             <p class="text-sm text-botanical-sage px-3 py-6 text-center">아직 메모가 없어요.<br>우상단 + 버튼으로 시작.</p>
           ` : `
-            ${groupBlock('고정', groups.pinned)}
-            ${groupBlock('최근 7일', groups.recent7)}
-            ${groupBlock('이전 30일', groups.recent30)}
-            ${years.map(y => groupBlock(`${y}년`, groups.byYear[y])).join('')}
+            ${pinned.length > 0 ? `
+              <div class="mb-3">
+                <p class="text-xs font-semibold text-botanical-fg px-2 py-1">고정</p>
+                <div class="space-y-0.5">${pinned.map(listItem).join('')}</div>
+              </div>
+            ` : ''}
+            ${unpinned.length > 0 ? `
+              <div class="space-y-0.5">${unpinned.map(listItem).join('')}</div>
+            ` : ''}
           `}
         </div>
       </aside>
 
-      <!-- 우측 상세 -->
       <main class="flex-1 min-w-0 flex flex-col">
         ${!selected ? `
-          <div class="flex-1 flex items-center justify-center text-botanical-sage text-sm">메모를 선택하거나 새로 만들어 보세요</div>
+          <div class="flex-1 flex items-center justify-center text-botanical-sage text-sm px-8 text-center">왼쪽에서 읽기·복사, 편집은 메모의 ✏️ 아이콘을 눌러 여기서</div>
         ` : `
           <div class="flex items-center justify-between px-6 py-3 border-b border-botanical-stone">
-            <span class="text-xs text-botanical-sage">${selDateStr}</span>
+            <span class="text-xs text-botanical-sage">편집 중</span>
             <div class="flex gap-1">
               <button onclick="toggleMemoPin(${selected.id})" title="${selected.pinned ? '고정 해제' : '상단 고정'}" class="p-1.5 rounded ${selected.pinned ? 'text-botanical-terracotta' : 'text-botanical-sage hover:text-botanical-fg'} transition-all">
                 ${selected.pinned ? pinIconSolid : pinIconOutline}
@@ -3026,13 +3040,33 @@ function renderMemos() {
             </div>
           </div>
           <div class="flex-1 overflow-y-auto px-6 py-5">
-            <input type="text" value="${escapeHtml(selected.title || '')}" placeholder="제목" oninput="updateMemo(${selected.id}, 'title', this.value); updateMemoListItem(${selected.id})" class="w-full font-serif text-2xl font-semibold bg-transparent focus:outline-none mb-3">
+            <input type="text" value="${escapeHtml(selected.title || '')}" placeholder="제목" oninput="updateMemo(${selected.id}, 'title', this.value); updateMemoListItem(${selected.id})" class="w-full font-sans text-2xl font-semibold bg-transparent focus:outline-none mb-3">
             <textarea oninput="updateMemo(${selected.id}, 'content', this.value); updateMemoListItem(${selected.id})" placeholder="내용" class="w-full text-sm bg-transparent focus:outline-none resize-none leading-relaxed" style="min-height: 400px;">${escapeHtml(selected.content || '')}</textarea>
           </div>
         `}
       </main>
     </div>
   `;
+}
+
+function toggleMemoExpand(id) {
+  if (expandedMemoIds.has(id)) expandedMemoIds.delete(id);
+  else expandedMemoIds.add(id);
+  renderMemos();
+}
+
+function editMemo(id) {
+  selectedMemoId = id;
+  expandedMemoIds.delete(id); // 편집으로 가면 좌측은 접어서 공간 절약
+  renderMemos();
+  requestAnimationFrame(() => {
+    document.querySelector('#memos-content main input[type="text"]')?.focus();
+  });
+}
+
+function collapseAllMemos() {
+  expandedMemoIds.clear();
+  renderMemos();
 }
 
 function escapeHtml(s) {
@@ -3049,7 +3083,7 @@ function addMemo() {
   if (!memosData.memos) memosData.memos = [];
   const now = Date.now();
   const newMemo = { id: now, title: '', content: '', pinned: false, createdAt: now, updatedAt: now };
-  memosData.memos.push(newMemo);
+  memosData.memos.unshift(newMemo); // 새 메모는 맨 위로
   selectedMemoId = now;
   saveAllData();
   renderMemos();
@@ -3070,8 +3104,73 @@ function updateMemo(id, field, value) {
 
 // 좌측 리스트 아이템만 갱신 (타이핑 중 전체 리렌더링 방지)
 function updateMemoListItem(id) {
-  // 제목/미리보기만 바뀌므로 디바운스 없이 가볍게 재렌더링할 수도 있지만
-  // 타이핑 포커스 유지를 위해 지금은 no-op. 탭 이탈/저장 완료 시 자연 갱신됨.
+  const memo = memosData?.memos?.find(m => m.id === id);
+  if (!memo) return;
+  const item = document.querySelector(`[data-memo-id="${id}"]`);
+  if (!item) return;
+  const titleEl = item.querySelector('.memo-title');
+  if (titleEl) {
+    const hasTitle = !!memo.title?.trim();
+    titleEl.textContent = hasTitle ? memo.title : '제목 없음';
+    titleEl.classList.toggle('text-botanical-fg', hasTitle);
+    titleEl.classList.toggle('text-botanical-sage/60', !hasTitle);
+  }
+  const previewEl = item.querySelector('.memo-preview');
+  if (previewEl) {
+    previewEl.textContent = (memo.content || '').split('\n').find(l => l.trim()) || '';
+  }
+  const fullEl = item.querySelector('.memo-fullcontent');
+  if (fullEl) {
+    fullEl.textContent = memo.content || '';
+  }
+}
+
+// ========== Memo Drag & Drop ==========
+function onMemoDragStart(e, id) {
+  draggedMemoId = id;
+  e.dataTransfer.effectAllowed = 'move';
+  try { e.dataTransfer.setData('text/plain', String(id)); } catch(_) {}
+  const item = e.currentTarget.closest('.memo-item');
+  if (item) {
+    try { e.dataTransfer.setDragImage(item, 10, 10); } catch(_) {}
+    setTimeout(() => item.classList.add('opacity-40'), 0);
+  }
+  e.stopPropagation();
+}
+function onMemoDragOver(e, id) {
+  if (draggedMemoId == null || draggedMemoId === id) return;
+  e.preventDefault();
+  e.dataTransfer.dropEffect = 'move';
+  const rect = e.currentTarget.getBoundingClientRect();
+  const isAfter = (e.clientY - rect.top) > rect.height / 2;
+  e.currentTarget.classList.remove('drop-before', 'drop-after');
+  e.currentTarget.classList.add(isAfter ? 'drop-after' : 'drop-before');
+}
+function onMemoDragLeave(e) {
+  e.currentTarget.classList.remove('drop-before', 'drop-after');
+}
+function onMemoDrop(e, targetId) {
+  e.preventDefault();
+  const wasAfter = e.currentTarget.classList.contains('drop-after');
+  e.currentTarget.classList.remove('drop-before', 'drop-after');
+  if (draggedMemoId == null || draggedMemoId === targetId) return;
+  const arr = memosData.memos;
+  const fromIdx = arr.findIndex(m => m.id === draggedMemoId);
+  if (fromIdx === -1) return;
+  const [moved] = arr.splice(fromIdx, 1);
+  let toIdx = arr.findIndex(m => m.id === targetId);
+  if (toIdx === -1) { arr.splice(fromIdx, 0, moved); return; }
+  if (wasAfter) toIdx += 1;
+  arr.splice(toIdx, 0, moved);
+  draggedMemoId = null;
+  saveAllData();
+  renderMemos();
+}
+function onMemoDragEnd(e) {
+  draggedMemoId = null;
+  document.querySelectorAll('.memo-item').forEach(el => {
+    el.classList.remove('drop-before', 'drop-after', 'opacity-40');
+  });
 }
 
 function toggleMemoPin(id) {
