@@ -1948,7 +1948,11 @@ async function pruneOldSnapshots() {
 // 체크포인트 저장 — 각 섹션 [저장] 버튼 누르면 해당 시점 전체 데이터 Supabase 스냅샷
 // 자동 저장은 이미 돌고 있음. 이 버튼은 "이 시점으로 되돌릴 수 있게 점 찍어두기".
 async function saveCheckpoint(contentId, section, btn) {
-  // 먼저 현재 상태 즉시 Supabase로 강제 push (디바운스 기다리지 않음)
+  // 저장 직전에 현재 폼의 모든 data-field 값을 강제 캡처 (혹시 input 이벤트 놓친 필드 있을까 봐)
+  const topInfo = document.getElementById('top-info-' + contentId);
+  if (topInfo) {
+    topInfo.querySelectorAll('[data-field]').forEach(el => autoSaveTopField(el, contentId));
+  }
   clearTimeout(saveTimer);
   updateSaveStatus('saving');
   try {
@@ -2289,9 +2293,9 @@ function toggleChecklist(contentId, kind, idx, checked) {
   saveAllData();
 }
 
-// 기본 정보 필드 자동 저장 (DOM input 이벤트 위임)
-// saveTopInfo 버튼 없이도 데이터 유실 없도록
-document.addEventListener('input', (e) => {
+// 기본 정보 필드 자동 저장 (DOM input/change 이벤트 위임)
+// input+change 둘 다 감지해서 type=date/number 에서도 안전하게 저장
+function _topFieldAutoSave(e) {
   const el = e.target;
   if (!el?.dataset?.field) return;
   const container = el.closest('[id^="top-info-"]');
@@ -2299,7 +2303,9 @@ document.addEventListener('input', (e) => {
   const contentId = parseInt(container.id.replace('top-info-', ''));
   if (!contentId) return;
   autoSaveTopField(el, contentId);
-});
+}
+document.addEventListener('input', _topFieldAutoSave);
+document.addEventListener('change', _topFieldAutoSave);
 
 function autoSaveTopField(el, contentId) {
   const content = contentsData.contents.find(c => c.id === contentId);
