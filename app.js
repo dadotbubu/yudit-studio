@@ -358,26 +358,21 @@ function renderMonthlyView() {
     }
 
     let itemsHtml = '';
-    if (items.length > 0 && !isToday) {
-      itemsHtml = items.slice(0, 2).map(item => `
-        <div class="mt-1 text-xs">
+    if (items.length > 0) {
+      const visible = items.slice(0, 2);
+      const extra = items.length - visible.length;
+      itemsHtml = visible.map(item => `
+        <div class="mt-1 text-xs ${isToday ? 'font-normal' : ''}">
           <p class="flex items-center gap-1">
-            <span class="w-1.5 h-1.5 rounded-full" style="background-color: ${categoryColors[item.category] || '#8C9A84'};"></span>
-            ${item.title}
+            <span class="w-1.5 h-1.5 rounded-full" style="background-color: ${isToday ? 'white' : (categoryColors[item.category] || '#8C9A84')};"></span>
+            <span class="truncate">${item.title}</span>
           </p>
-          <p class="ml-2.5 ${item.type === '광고' ? 'text-botanical-terracotta' : 'text-botanical-sage'}">${statusText(item.status)}</p>
+          <p class="ml-2.5 ${isToday ? 'opacity-70' : (item.type === '광고' ? 'text-botanical-terracotta' : 'text-botanical-sage')}">${statusText(item.status)}</p>
         </div>
       `).join('');
-    } else if (items.length > 0 && isToday) {
-      itemsHtml = items.slice(0, 2).map(item => `
-        <div class="mt-1 text-xs font-normal">
-          <p class="flex items-center gap-1">
-            <span class="w-1.5 h-1.5 rounded-full bg-white"></span>
-            ${item.title}
-          </p>
-          <p class="ml-2.5 opacity-70">${statusText(item.status)}</p>
-        </div>
-      `).join('');
+      if (extra > 0) {
+        itemsHtml += `<p class="mt-1 text-[10px] ${isToday ? 'opacity-70' : 'text-botanical-sage'} font-medium">+${extra} 더보기</p>`;
+      }
     }
 
     html += `
@@ -694,16 +689,65 @@ function openDateDetail(dateStr) {
   if (items.length === 0) {
     // Empty date - show new content registration form
     popupContent.innerHTML = getRegistrationFormHTML(dateStr);
+  } else if (items.length > 1) {
+    // Multiple items - show list to pick
+    popupContent.innerHTML = renderDateItemList(items, dateStr);
   } else {
-    // Has items - show item info with option to add new
-    const item = items[0];
-    const linkedContent = item.contentId ? contentsData.contents.find(c => c.id === item.contentId) : null;
+    // Single item - show detail
+    openDateItemDetail(items[0].id, dateStr);
+    popup.classList.remove('hidden');
+    return;
+  }
+
+  popup.classList.remove('hidden');
+}
+
+function renderDateItemList(items, dateStr) {
+  const [y, m, d] = dateStr.split('-');
+  return `
+    <div class="flex items-center justify-between mb-4">
+      <h3 class="font-semibold text-lg">${parseInt(m)}월 ${parseInt(d)}일 일정 (${items.length}건)</h3>
+      <button onclick="closeCalendarPopup()" class="text-botanical-sage hover:text-botanical-fg">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18M6 6l12 12"/></svg>
+      </button>
+    </div>
+    <div class="space-y-2 mb-4 max-h-80 overflow-y-auto">
+      ${items.map(item => {
+        const linked = item.contentId ? contentsData.contents.find(c => c.id === item.contentId) : null;
+        const title = linked?.title || item.title || '무제';
+        return `
+          <button onclick="openDateItemDetail(${item.id}, '${dateStr}')" class="w-full text-left p-3 rounded-xl border border-botanical-stone hover:bg-botanical-cream/40 transition-all flex items-center gap-2">
+            <span class="w-2.5 h-2.5 rounded-full shrink-0" style="background-color: ${categoryColors[item.category] || '#8C9A84'};"></span>
+            <div class="flex-1 min-w-0">
+              <p class="text-sm font-medium truncate">${title}</p>
+              <p class="text-xs ${item.type === '광고' ? 'text-botanical-terracotta' : 'text-botanical-sage'}">${statusText(item.status)}${item.type ? ' · ' + item.type : ''}</p>
+            </div>
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-botanical-sage shrink-0"><path d="m9 18 6-6-6-6"/></svg>
+          </button>
+        `;
+      }).join('')}
+    </div>
+    <button onclick="showNewItemForm('${dateStr}')" class="w-full py-2 border border-dashed border-botanical-stone rounded-xl text-botanical-sage hover:bg-botanical-cream/40 transition-all text-sm">+ 이 날짜에 새 일정 추가</button>
+  `;
+}
+
+function openDateItemDetail(itemId, dateStr) {
+  const item = calendarData.items.find(i => i.id === itemId);
+  if (!item) return;
+  const popup = document.getElementById('calendar-popup');
+  const popupContent = document.getElementById('popup-content');
+  const linkedContent = item.contentId ? contentsData.contents.find(c => c.id === item.contentId) : null;
+  const dateItems = calendarData.items.filter(i => i.date === dateStr);
+  const backBtn = dateItems.length > 1
+    ? `<button onclick="document.getElementById('popup-content').innerHTML = renderDateItemList(calendarData.items.filter(i => i.date === '${dateStr}'), '${dateStr}')" class="text-xs text-botanical-sage hover:text-botanical-fg mb-2 flex items-center gap-1"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m15 18-6-6 6-6"/></svg>목록</button>`
+    : '';
 
     if (linkedContent) {
       // Linked to content - show content info
       popupContent.innerHTML = `
+        ${backBtn}
         <div class="flex items-center justify-between mb-4">
-          <h3 class="font-semibold text-lg">${linkedContent.title}</h3>
+          <h3 class="font-semibold text-lg">${linkedContent.title || '무제'}</h3>
           <button onclick="closeCalendarPopup()" class="text-botanical-sage hover:text-botanical-fg">
             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18M6 6l12 12"/></svg>
           </button>
@@ -739,8 +783,9 @@ function openDateDetail(dateStr) {
     } else {
       // Not linked - show calendar item info + link button
       popupContent.innerHTML = `
+        ${backBtn}
         <div class="flex items-center justify-between mb-4">
-          <h3 class="font-semibold text-lg">${item.title}</h3>
+          <h3 class="font-semibold text-lg">${item.title || '무제'}</h3>
           <button onclick="closeCalendarPopup()" class="text-botanical-sage hover:text-botanical-fg">
             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18M6 6l12 12"/></svg>
           </button>
@@ -783,8 +828,6 @@ function openDateDetail(dateStr) {
         </div>
       `;
     }
-  }
-
   popup.classList.remove('hidden');
 }
 
@@ -1220,7 +1263,7 @@ function renderContentList() {
             <span class="w-16"><span class="px-2 py-1 rounded-full text-xs whitespace-nowrap" style="background-color: ${statusStyle.bg}; color: ${statusStyle.text};">${statusText(content.status)}</span></span>
             <span class="w-14"><span class="px-2 py-1 rounded-full text-xs font-medium whitespace-nowrap bg-botanical-sage/20 text-botanical-sage">${content.type}</span></span>
             <span class="font-medium flex-1 flex items-center gap-2"><span data-content-title="${content.id}">${content.title || '무제'}</span>${needsPerformance ? '<span class="text-sm" title="성과 입력 필요">🔔</span>' : ''}</span>
-            <span class="w-12 text-botanical-sage text-xs text-center">${content.uploadDate ? content.uploadDate.slice(5).replace('-', '/') : '-'}</span>
+            <span class="w-12 text-botanical-sage text-xs text-center">${content.status === '업로드완료' && content.uploadDate ? content.uploadDate.slice(5).replace('-', '/') : '-'}</span>
             <span class="w-10 text-xs text-center">${content.url ? `<a href="${content.url}" target="_blank" class="text-blue-500 underline" onclick="event.stopPropagation()">링크</a>` : '<span class="text-botanical-sage">-</span>'}</span>
             <span class="w-14 text-xs text-center ${isCompleted ? 'font-semibold' : 'text-botanical-sage'}">${content.performance.views ? (content.performance.views / 1000).toFixed(1) + 'K' : '-'}</span>
             <span class="w-12 text-xs text-center ${isCompleted ? '' : 'text-botanical-sage'}">${content.performance.likes ? (content.performance.likes / 1000).toFixed(1) + 'K' : '-'}</span>
