@@ -1284,7 +1284,7 @@ function renderContentList() {
             <span class="w-24 shrink-0"><span class="px-2 py-1 rounded-full text-xs whitespace-nowrap" style="background-color: ${statusStyle.bg}; color: ${statusStyle.text};">${statusText(content.status)}</span></span>
             <span class="w-14 shrink-0"><span class="px-2 py-1 rounded-full text-xs font-medium whitespace-nowrap bg-botanical-sage/20 text-botanical-sage">${content.type}</span></span>
             <span class="font-medium flex-1 min-w-0 flex items-center gap-2"><span data-content-title="${content.id}" class="truncate">${content.title || '무제'}</span>${needsPerformance ? '<span class="text-sm shrink-0" title="성과 입력 필요">🔔</span>' : ''}</span>
-            <span class="w-12 shrink-0 text-botanical-sage text-xs text-center">${content.status === '업로드완료' && content.uploadDate ? content.uploadDate.slice(5).replace('-', '/') : '-'}</span>
+            <span class="w-12 shrink-0 text-botanical-sage text-xs text-center">${content.uploadDate ? content.uploadDate.slice(5).replace('-', '/') : '-'}</span>
             <span class="w-10 shrink-0 text-xs text-center">${content.url ? `<a href="${content.url}" target="_blank" class="text-blue-500 underline" onclick="event.stopPropagation()">링크</a>` : '<span class="text-botanical-sage">-</span>'}</span>
             <span class="w-14 shrink-0 text-xs text-center ${isCompleted ? 'font-semibold' : 'text-botanical-sage'}">${content.performance.views ? (content.performance.views / 1000).toFixed(1) + 'K' : '-'}</span>
             <span class="w-12 shrink-0 text-xs text-center ${isCompleted ? '' : 'text-botanical-sage'}">${content.performance.likes ? (content.performance.likes / 1000).toFixed(1) + 'K' : '-'}</span>
@@ -1950,6 +1950,7 @@ async function pruneOldSnapshots() {
 async function saveCheckpoint(contentId, section, btn) {
   // 먼저 현재 상태 즉시 Supabase로 강제 push (디바운스 기다리지 않음)
   clearTimeout(saveTimer);
+  updateSaveStatus('saving');
   try {
     await Promise.all([
       upsertToSupabase('calendar', calendarData),
@@ -1958,7 +1959,6 @@ async function saveCheckpoint(contentId, section, btn) {
       upsertToSupabase('revenue', revenueData),
       upsertToSupabase('memos', memosData)
     ]);
-    // 체크포인트 (개별 row로 보존)
     const ts = new Date().toISOString().replace(/[:.]/g, '-');
     const content = contentsData.contents.find(c => c.id === contentId);
     const title = content?.keywords || content?.title || '콘텐츠';
@@ -1974,15 +1974,9 @@ async function saveCheckpoint(contentId, section, btn) {
       memos: memosData
     });
     updateSaveStatus('saved');
-    if (btn) {
-      const orig = btn.textContent;
-      btn.textContent = '✓ 저장됨';
-      btn.classList.add('bg-botanical-sage', 'text-white');
-      setTimeout(() => {
-        btn.textContent = orig;
-        btn.classList.remove('bg-botanical-sage', 'text-white');
-      }, 1500);
-    }
+    // 목록 행 데이터 갱신 (상태/카테고리/조회수 등 새로 반영)
+    renderContentList();
+    reopenForm(contentId);
   } catch (e) {
     alert('체크포인트 저장 실패: ' + e.message);
     updateSaveStatus('error');
