@@ -1671,19 +1671,16 @@ function renderContentForm(content) {
           </h3>
           <div class="flex gap-2 items-center flex-wrap">
             ${scriptVersions.map((_, i) => {
-              const isFinal = (content.script?.finalVersion ?? 0) === i;
               const isActive = i === currentVer;
               const canDelete = scriptVersions.length > 1;
               return `
                 <span class="inline-flex items-center rounded-full overflow-hidden border ${isActive ? 'border-botanical-sage' : 'border-botanical-stone'}">
                   <button onclick="switchScriptVersion(${content.id}, ${i})" class="px-3 py-1 text-xs ${isActive ? 'bg-botanical-sage text-white' : 'hover:bg-botanical-cream transition-all'}">V${i+1}</button>
-                  <button onclick="setFinalVersion(${content.id}, ${i})" title="${isFinal ? '최종 버전 (목록·캘린더에 표시)' : '최종으로 지정'}" class="px-1.5 py-1 text-sm border-l ${isActive ? 'border-white/30' : 'border-botanical-stone'} ${isFinal ? (isActive ? 'bg-amber-400 text-white' : 'bg-amber-50 text-amber-500') : (isActive ? 'bg-botanical-sage text-white/60 hover:text-white' : 'text-botanical-sage/50 hover:text-amber-500 hover:bg-amber-50')}">★</button>
                   ${canDelete ? `<button onclick="deleteScriptVersion(${content.id}, ${i})" title="V${i+1} 삭제" class="px-1.5 py-1 text-xs border-l ${isActive ? 'border-white/30 bg-botanical-sage text-white/70 hover:text-red-200' : 'border-botanical-stone text-botanical-sage/50 hover:text-red-500 hover:bg-red-50'}">×</button>` : ''}
                 </span>
               `;
             }).join('')}
             <button onclick="addScriptVersion(${content.id})" class="px-3 py-1 rounded-full text-xs border border-botanical-stone hover:bg-botanical-cream transition-all">+ 버전</button>
-            <span class="text-xs text-botanical-sage ml-1">★ 채워진 버전의 제목이 목록·캘린더에 표시</span>
           </div>
         </div>
 
@@ -1714,7 +1711,13 @@ function renderContentForm(content) {
 
         <div class="mb-4">
           <div class="flex items-center justify-between mb-3">
-            <p class="text-sm font-medium text-botanical-terracotta">대본 작성</p>
+            <div class="flex items-center gap-2">
+              <p class="text-sm font-medium text-botanical-terracotta">대본 작성</p>
+              ${(() => {
+                const isFinal = (content.script?.finalVersion ?? 0) === currentVer;
+                return `<button onclick="setFinalVersion(${content.id}, ${currentVer})" title="현재 V${currentVer+1}을 최종으로 지정 (목록·캘린더에 이 버전 제목 표시)" class="px-3 py-1 rounded-full text-xs transition-all ${isFinal ? 'bg-amber-400 text-white' : 'border border-botanical-stone text-botanical-sage hover:bg-amber-50 hover:text-amber-600'}">${isFinal ? '✓ 최종' : '최종'}</button>`;
+              })()}
+            </div>
             <div class="flex gap-2">
               <button onclick="copyScript(${content.id}, 'dialogue')" class="px-3 py-1 rounded-full text-xs border border-botanical-stone hover:bg-botanical-cream transition-all">대사 복사</button>
               <button onclick="copyScript(${content.id}, 'subtitle')" class="px-3 py-1 rounded-full text-xs border border-botanical-stone hover:bg-botanical-cream transition-all">자막 복사</button>
