@@ -45,6 +45,26 @@ const STATUS_LABEL = {
 };
 const statusText = (s) => STATUS_LABEL[s] || s || '';
 
+// 링크 열기 버튼 — URL 있으면 활성 <a>, 없으면 회색 disabled <span>
+function openLinkBtn(url, label = '열기') {
+  const base = 'px-2 text-xs border rounded-lg shrink-0 flex items-center';
+  return url
+    ? `<a href="${url}" target="_blank" class="${base} text-blue-500 border-blue-200 hover:bg-blue-50">${label}</a>`
+    : `<span class="${base} text-botanical-sage/50 border-botanical-stone cursor-default">${label}</span>`;
+}
+
+// 캘린더 항목 표시명 — 연동 콘텐츠의 keywords > title > item.title 순
+function getCalendarItemName(item) {
+  if (!item) return '무제';
+  const c = item.contentId
+    ? (_contentByIdCache?.get(item.contentId) ?? contentsData.contents.find(c => c.id === item.contentId))
+    : null;
+  return c?.keywords || c?.title || item.title || '무제';
+}
+
+// 캘린더 한 번 렌더하는 동안 N+1 lookup 줄이려는 임시 캐시
+let _contentByIdCache = null;
+
 let _saveStatusFadeTimer;
 function updateSaveStatus(status) {
   const el = document.getElementById('save-status');
@@ -230,6 +250,7 @@ function switchTab(tabName) {
 
 // ========== Calendar ==========
 function renderCalendar() {
+  _contentByIdCache = new Map(contentsData.contents.map(c => [c.id, c]));
   renderCalendarTitle();
   renderTodaySummary();
   if (currentView === 'monthly') {
@@ -239,6 +260,7 @@ function renderCalendar() {
   } else {
     renderMilestoneView();
   }
+  _contentByIdCache = null;
 }
 
 function renderCalendarTitle() {
@@ -266,17 +288,13 @@ function renderTodaySummary() {
 
   let todayItemsHtml = '';
   if (todayItems.length > 0) {
-    todayItemsHtml = todayItems.map(item => {
-      const linked = item.contentId ? contentsData.contents.find(c => c.id === item.contentId) : null;
-      const name = linked?.keywords || linked?.title || item.title || '무제';
-      return `
+    todayItemsHtml = todayItems.map(item => `
       <div class="flex items-center gap-2 text-sm">
         <span class="w-2 h-2 rounded-full" style="background-color: ${categoryColors[item.category] || '#8C9A84'};"></span>
-        <span class="${item.type === '광고' ? 'text-botanical-terracotta font-medium' : ''}">${name}</span>
+        <span class="${item.type === '광고' ? 'text-botanical-terracotta font-medium' : ''}">${getCalendarItemName(item)}</span>
         <span class="text-botanical-sage text-xs">${statusText(item.status)}</span>
       </div>
-      `;
-    }).join('');
+    `).join('');
   } else {
     todayItemsHtml = '<p class="text-sm text-botanical-sage">오늘 일정 없음</p>';
   }
@@ -365,19 +383,15 @@ function renderMonthlyView() {
     if (items.length > 0) {
       const visible = items.slice(0, 2);
       const extra = items.length - visible.length;
-      itemsHtml = visible.map(item => {
-        const linked = item.contentId ? contentsData.contents.find(c => c.id === item.contentId) : null;
-        const displayName = linked?.keywords || linked?.title || item.title || '무제';
-        return `
+      itemsHtml = visible.map(item => `
         <div class="mt-1 text-xs ${isToday ? 'font-normal' : ''}">
           <p class="flex items-start gap-1">
             <span class="w-1.5 h-1.5 rounded-full mt-1 shrink-0" style="background-color: ${isToday ? 'white' : (categoryColors[item.category] || '#8C9A84')};"></span>
-            <span class="leading-snug" style="display:-webkit-box; -webkit-line-clamp:4; -webkit-box-orient:vertical; overflow:hidden;">${displayName}</span>
+            <span class="leading-snug" style="display:-webkit-box; -webkit-line-clamp:4; -webkit-box-orient:vertical; overflow:hidden;">${getCalendarItemName(item)}</span>
           </p>
           <p class="ml-2.5 ${isToday ? 'opacity-70' : (item.type === '광고' ? 'text-botanical-terracotta' : 'text-botanical-sage')}">${statusText(item.status)}</p>
         </div>
-        `;
-      }).join('');
+      `).join('');
       if (extra > 0) {
         itemsHtml += `<p class="mt-1 text-[10px] ${isToday ? 'opacity-70' : 'text-botanical-sage'} font-medium">+${extra} 더보기</p>`;
       }
@@ -494,19 +508,15 @@ function renderWeeklyCell(date, today) {
     cellClass += ' hover:bg-botanical-cream';
   }
 
-  let itemsHtml = items.slice(0, 3).map(item => {
-    const linked = item.contentId ? contentsData.contents.find(c => c.id === item.contentId) : null;
-    const name = linked?.keywords || linked?.title || item.title || '무제';
-    return `
+  let itemsHtml = items.slice(0, 3).map(item => `
     <div class="mt-2 text-xs ${isToday ? 'font-normal' : ''}">
       <p class="flex items-start gap-1">
         <span class="w-1.5 h-1.5 rounded-full mt-1 shrink-0" style="background-color: ${isToday ? 'white' : categoryColors[item.category] || '#8C9A84'};"></span>
-        <span class="leading-snug" style="display:-webkit-box; -webkit-line-clamp:4; -webkit-box-orient:vertical; overflow:hidden;">${name}</span>
+        <span class="leading-snug" style="display:-webkit-box; -webkit-line-clamp:4; -webkit-box-orient:vertical; overflow:hidden;">${getCalendarItemName(item)}</span>
       </p>
       <p class="ml-2.5 ${isToday ? 'opacity-70' : (item.type === '광고' ? 'text-botanical-terracotta' : 'text-botanical-sage')}">${statusText(item.status)}</p>
     </div>
-    `;
-  }).join('');
+  `).join('');
 
   return `
     <div class="${cellClass}">
@@ -724,20 +734,16 @@ function renderDateItemList(items, dateStr) {
       </button>
     </div>
     <div class="space-y-2 mb-4 max-h-80 overflow-y-auto">
-      ${items.map(item => {
-        const linked = item.contentId ? contentsData.contents.find(c => c.id === item.contentId) : null;
-        const title = linked?.title || item.title || '무제';
-        return `
+      ${items.map(item => `
           <button onclick="openDateItemDetail(${item.id}, '${dateStr}')" class="w-full text-left p-3 rounded-xl border border-botanical-stone hover:bg-botanical-cream/40 transition-all flex items-center gap-2">
             <span class="w-2.5 h-2.5 rounded-full shrink-0" style="background-color: ${categoryColors[item.category] || '#8C9A84'};"></span>
             <div class="flex-1 min-w-0">
-              <p class="text-sm font-medium truncate">${title}</p>
+              <p class="text-sm font-medium truncate">${getCalendarItemName(item)}</p>
               <p class="text-xs ${item.type === '광고' ? 'text-botanical-terracotta' : 'text-botanical-sage'}">${statusText(item.status)}${item.type ? ' · ' + item.type : ''}</p>
             </div>
             <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-botanical-sage shrink-0"><path d="m9 18 6-6-6-6"/></svg>
           </button>
-        `;
-      }).join('')}
+        `).join('')}
     </div>
     <button onclick="showNewItemForm('${dateStr}')" class="w-full py-2 border border-dashed border-botanical-stone rounded-xl text-botanical-sage hover:bg-botanical-cream/40 transition-all text-sm">+ 이 날짜에 새 일정 추가</button>
   `;
@@ -1503,9 +1509,7 @@ function renderContentForm(content) {
                 <td class="px-4 py-2">
                   <div class="flex gap-2">
                     <input type="text" value="${content.adInfo?.guideLink || ''}" oninput="updateAdInfo(${content.id}, 'guideLink', this.value)" placeholder="https://..." class="flex-1 px-3 rounded-lg border border-botanical-stone text-sm focus:outline-none" style="height:38px;">
-                    ${content.adInfo?.guideLink
-                      ? `<a href="${content.adInfo.guideLink}" target="_blank" class="px-2 text-xs text-blue-500 border border-blue-200 rounded-lg hover:bg-blue-50 flex items-center shrink-0">열기</a>`
-                      : `<span class="px-2 text-xs text-botanical-sage/50 border border-botanical-stone rounded-lg flex items-center shrink-0 cursor-default">열기</span>`}
+                    ${openLinkBtn(content.adInfo?.guideLink)}
                   </div>
                 </td>
               </tr>
@@ -1527,9 +1531,7 @@ function renderContentForm(content) {
                 <td class="px-4 py-2">
                   <div class="flex gap-2">
                     <input type="text" value="${content.adInfo?.saleLink || ''}" oninput="updateAdInfo(${content.id}, 'saleLink', this.value)" placeholder="https://..." class="flex-1 px-3 rounded-lg border border-botanical-stone text-sm focus:outline-none" style="height:38px;">
-                    ${content.adInfo?.saleLink
-                      ? `<a href="${content.adInfo.saleLink}" target="_blank" class="px-2 text-xs text-blue-500 border border-blue-200 rounded-lg hover:bg-blue-50 flex items-center shrink-0">열기</a>`
-                      : `<span class="px-2 text-xs text-botanical-sage/50 border border-botanical-stone rounded-lg flex items-center shrink-0 cursor-default">열기</span>`}
+                    ${openLinkBtn(content.adInfo?.saleLink)}
                   </div>
                 </td>
               </tr>
@@ -1558,9 +1560,7 @@ function renderContentForm(content) {
                       return `
                       <div class="flex gap-2">
                         <input type="text" value="${link}" oninput="updateAdRefLink(${content.id}, ${idx}, this.value)" placeholder="https://..." class="flex-1 min-w-0 px-3 rounded-lg border border-botanical-stone text-sm focus:outline-none" style="height:38px;">
-                        ${link
-                          ? `<a href="${link}" target="_blank" class="px-2 text-xs text-blue-500 border border-blue-200 rounded-lg hover:bg-blue-50 flex items-center shrink-0">열기</a>`
-                          : `<span class="px-2 text-xs text-botanical-sage/50 border border-botanical-stone rounded-lg flex items-center shrink-0 cursor-default">열기</span>`}
+                        ${openLinkBtn(link)}
                       </div>`;
                     }).join('')}
                   </div>
@@ -1573,7 +1573,7 @@ function renderContentForm(content) {
                 <td class="px-4 py-2">
                   <div class="flex gap-2">
                     <input type="text" value="${content.adInfo?.clientNotion ?? DEFAULT_CLIENT_NOTION}" oninput="updateClientNotion(${content.id}, this.value)" placeholder="노션 링크" class="flex-1 px-3 rounded-lg border border-botanical-stone text-sm focus:outline-none" style="height:38px;">
-                    <a href="${content.adInfo?.clientNotion ?? DEFAULT_CLIENT_NOTION}" target="_blank" class="px-2 text-xs text-blue-500 border border-blue-200 rounded-lg hover:bg-blue-50 flex items-center">열기</a>
+                    ${openLinkBtn(content.adInfo?.clientNotion ?? DEFAULT_CLIENT_NOTION)}
                   </div>
                 </td>
               </tr>
@@ -1632,10 +1632,8 @@ function renderContentForm(content) {
                       : type === 'url'
                       ? `<div class="flex items-center gap-2">
                           <input type="text" value="${content.reference?.[field] ?? ''}" placeholder="${ph}" oninput="updateReference(${content.id}, '${field}', this.value)" class="flex-1 bg-transparent focus:outline-none">
-                          ${content.reference?.[field]
-                            ? `<a href="${content.reference[field]}" target="_blank" class="px-2 py-0.5 text-xs text-blue-500 border border-blue-200 rounded-lg hover:bg-blue-50 shrink-0">열기</a>`
-                            : `<span class="px-2 py-0.5 text-xs text-botanical-sage/50 border border-botanical-stone rounded-lg shrink-0 cursor-default">열기</span>`}
-                          <a href="${DEFAULT_TRANSCRIPT_LINK}" target="_blank" class="px-2 py-0.5 text-xs text-botanical-terracotta border border-botanical-terracotta/40 rounded-lg hover:bg-botanical-terracotta/10 shrink-0">대본</a>
+                          ${openLinkBtn(content.reference?.[field])}
+                          <a href="${DEFAULT_TRANSCRIPT_LINK}" target="_blank" class="px-2 text-xs text-botanical-terracotta border border-botanical-terracotta/40 rounded-lg hover:bg-botanical-terracotta/10 flex items-center shrink-0">대본</a>
                         </div>`
                       : `<input type="${type}" value="${content.reference?.[field] ?? ''}" placeholder="${ph}" oninput="updateReference(${content.id}, '${field}', this.value)" class="w-full bg-transparent focus:outline-none">`
                   }</td>
@@ -1655,9 +1653,7 @@ function renderContentForm(content) {
             ${(content.notionLinks && content.notionLinks.length > 0 ? content.notionLinks : ['']).map((link, idx) => `
               <div class="flex gap-2">
                 <input type="text" value="${link}" oninput="updateNotionLink(${content.id}, ${idx}, this.value)" placeholder="노션 링크 (분석 자료)" class="flex-1 px-4 py-2 rounded-lg border border-botanical-stone text-sm focus:outline-none focus:border-botanical-sage">
-                ${link
-                  ? `<a href="${link}" target="_blank" class="px-2 text-xs text-blue-500 border border-blue-200 rounded-lg hover:bg-blue-50 flex items-center shrink-0">열기</a>`
-                  : `<span class="px-2 text-xs text-botanical-sage/50 border border-botanical-stone rounded-lg flex items-center shrink-0 cursor-default">열기</span>`}
+                ${openLinkBtn(link)}
                 ${idx > 0 ? `<button onclick="removeNotionLink(${content.id}, ${idx})" class="px-2 py-1 text-xs text-red-400 border border-red-200 rounded-lg hover:bg-red-50 transition-all">삭제</button>` : ''}
               </div>
             `).join('')}
@@ -2230,10 +2226,7 @@ function updateAdRefLink(contentId, idx, value) {
   content.adInfo.refLinks[idx] = value;
   saveAllData();
   renderContentList();
-  const form = document.getElementById('form-' + contentId);
-  if (form) form.classList.add('active');
-  const arrow = document.getElementById('arrow-' + contentId);
-  if (arrow) arrow.style.transform = 'rotate(180deg)';
+  reopenForm(contentId);
 }
 
 function updateReference(contentId, field, value) {
@@ -2251,10 +2244,7 @@ function updateClientNotion(contentId, value) {
   content.adInfo.clientNotion = value;
   saveAllData();
   renderContentList();
-  const form = document.getElementById('form-' + contentId);
-  if (form) form.classList.add('active');
-  const arrow = document.getElementById('arrow-' + contentId);
-  if (arrow) arrow.style.transform = 'rotate(180deg)';
+  reopenForm(contentId);
 }
 
 // ========== 노션 링크 (일반 레퍼런스) ==========
@@ -2265,10 +2255,7 @@ function addNotionLink(contentId) {
   content.notionLinks.push('');
   saveAllData();
   renderContentList();
-  const form = document.getElementById('form-' + contentId);
-  if (form) form.classList.add('active');
-  const arrow = document.getElementById('arrow-' + contentId);
-  if (arrow) arrow.style.transform = 'rotate(180deg)';
+  reopenForm(contentId);
 }
 
 function updateNotionLink(contentId, idx, value) {
@@ -2285,10 +2272,7 @@ function removeNotionLink(contentId, idx) {
   content.notionLinks.splice(idx, 1);
   saveAllData();
   renderContentList();
-  const form = document.getElementById('form-' + contentId);
-  if (form) form.classList.add('active');
-  const arrow = document.getElementById('arrow-' + contentId);
-  if (arrow) arrow.style.transform = 'rotate(180deg)';
+  reopenForm(contentId);
 }
 
 // ========== 수익 리포트 자동 연동 ==========
