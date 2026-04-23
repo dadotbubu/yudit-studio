@@ -131,6 +131,9 @@ async function loadData() {
       revenueData = remote.revenue || { summary: { thisMonth: 0, thisYear: 0 }, byType: { ad: {}, sales: {}, sponsor: {} }, tax: {}, monthly: [], items: { ad: [], sales: [], sponsor: [] } };
       memosData = remote.memos || { memos: [] };
       console.log('Supabase에서 데이터 로드됨');
+
+      // 로드 후 오늘 날짜 자동 스냅샷 (하루 1회)
+      maybeCreateDailySnapshot(remote);
     } else {
       // Supabase에 아직 데이터 없음 → localStorage에 있으면 마이그레이션
       const savedContents = localStorage.getItem('yudit_contents');
@@ -1883,6 +1886,113 @@ function toggleContentForm(id) {
   if (form.classList.contains('active')) requestAnimationFrame(() => { autoResizeAllScriptCells(); attachScriptCellObservers(); });
 }
 
+// ========== 자동 스냅샷 백업 ==========
+// 매일 1회, 로드 시점의 전체 데이터를 backup_YYYYMMDD 키로 저장.
+// 최근 30개 유지, 자동 복구용.
+async function maybeCreateDailySnapshot(remote) {
+  try {
+    const today = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+    const key = `backup_${today}`;
+    // 이미 오늘 스냅샷 있으면 스킵
+    const existing = await fetch(`${SUPABASE_URL}/rest/v1/${SUPABASE_TABLE}?select=key&key=eq.${key}`, {
+      headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
+    });
+    const rows = await existing.json();
+    if (rows.length > 0) return;
+    // remote에 들어있는 내용 그대로 스냅샷
+    await upsertToSupabase(key, {
+      snapshotAt: new Date().toISOString(),
+      calendar: remote.calendar,
+      contents: remote.contents,
+      performance: remote.performance,
+      revenue: remote.revenue,
+      memos: remote.memos
+    });
+    console.log(`📸 일간 스냅샷 저장: ${key}`);
+    // 30일 이전 스냅샷 삭제
+    pruneOldSnapshots();
+  } catch (e) {
+    console.warn('스냅샷 저장 실패 (무시):', e);
+  }
+}
+
+async function pruneOldSnapshots() {
+  try {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/${SUPABASE_TABLE}?select=key&key=like.backup_*`, {
+      headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
+    });
+    const rows = await res.json();
+    const cutoff = new Date();
+    cutoff.setDate(cutoff.getDate() - 30);
+    const cutoffKey = 'backup_' + cutoff.toISOString().slice(0, 10).replace(/-/g, '');
+    const toDelete = rows.map(r => r.key).filter(k => k < cutoffKey);
+    for (const k of toDelete) {
+      await fetch(`${SUPABASE_URL}/rest/v1/${SUPABASE_TABLE}?key=eq.${k}`, {
+        method: 'DELETE',
+        headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
+      });
+    }
+  } catch (e) { console.warn('스냅샷 정리 실패:', e); }
+}
+
+// JSON 다운로드 (수동 백업)
+function exportBackup() {
+  const payload = {
+    exportedAt: new Date().toISOString(),
+    calendar: calendarData,
+    contents: contentsData,
+    performance: performanceData,
+    revenue: revenueData,
+    memos: memosData
+  };
+  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `yudit-studio-backup-${new Date().toISOString().slice(0,10)}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+// 과거 스냅샷 목록/복원 UI
+async function showBackups() {
+  try {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/${SUPABASE_TABLE}?select=key,data&key=like.backup_*&order=key.desc`, {
+      headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
+    });
+    const rows = await res.json();
+    if (rows.length === 0) { alert('저장된 백업이 없습니다'); return; }
+    const lines = rows.map(r => {
+      const date = r.key.replace('backup_', '');
+      const dateStr = `${date.slice(0,4)}-${date.slice(4,6)}-${date.slice(6,8)}`;
+      const contentsCount = r.data?.contents?.contents?.length || 0;
+      const memosCount = r.data?.memos?.memos?.length || 0;
+      return `${dateStr} — 콘텐츠 ${contentsCount}개 / 메모 ${memosCount}개`;
+    }).join('\n');
+    const choice = prompt(`📸 과거 백업 목록 (최근 30일)\n\n${lines}\n\n복원할 날짜를 YYYYMMDD 형식으로 입력 (예: 20260423). 취소하려면 빈 값.`);
+    if (!choice) return;
+    const targetKey = `backup_${choice}`;
+    const target = rows.find(r => r.key === targetKey);
+    if (!target) { alert('해당 날짜 백업을 찾을 수 없습니다'); return; }
+    if (!confirm(`⚠️ ${choice.slice(0,4)}-${choice.slice(4,6)}-${choice.slice(6,8)} 백업으로 되돌립니다. 현재 데이터는 덮어써집니다. 계속?`)) return;
+    // 현재 상태 한번 더 백업 (직전 상태로 되돌릴 수 있게)
+    await upsertToSupabase(`backup_before_restore_${Date.now()}`, {
+      snapshotAt: new Date().toISOString(),
+      calendar: calendarData, contents: contentsData, performance: performanceData, revenue: revenueData, memos: memosData
+    });
+    calendarData = target.data.calendar || calendarData;
+    contentsData = target.data.contents || contentsData;
+    performanceData = target.data.performance || performanceData;
+    revenueData = target.data.revenue || revenueData;
+    memosData = target.data.memos || memosData;
+    saveAllData();
+    alert('✓ 복원 완료. 새로고침 됩니다.');
+    setTimeout(() => location.reload(), 500);
+  } catch (e) {
+    alert('백업 조회 실패: ' + e.message);
+  }
+}
+
 // 모바일에서 강제 새로고침 (캐시 우회 + Supabase 다시 fetch)
 function forceRefresh() {
   // URL에 timestamp 쿼리 붙여서 브라우저 캐시 무효화 후 리로드
@@ -2023,9 +2133,14 @@ function switchScriptVersion(contentId, versionIdx) {
 function deleteScriptVersion(contentId, versionIdx) {
   const content = contentsData.contents.find(c => c.id === contentId);
   if (!content?.script?.versions) return;
-  if (content.script.versions.length <= 1) return; // 마지막 하나는 삭제 불가
-  const versionTitle = content.script.versions[versionIdx].title || '(제목 없음)';
-  if (!confirm(`V${versionIdx + 1} "${versionTitle}" 삭제할까요? 복구 불가.`)) return;
+  if (content.script.versions.length <= 1) return;
+  const v = content.script.versions[versionIdx];
+  const versionTitle = v.title || '(제목 없음)';
+  const rowCount = (v.rows || []).filter(r => r.dialogue || r.subtitle || r.scene).length;
+  const msg = rowCount > 0
+    ? `⚠️ V${versionIdx + 1} "${versionTitle}"\n내용이 작성된 행 ${rowCount}개가 영구 삭제됩니다.\n\n정말 삭제할까요? (복구 불가 — 자동 백업은 로드 시점 기준)`
+    : `V${versionIdx + 1} "${versionTitle}" 삭제할까요? (비어있음)`;
+  if (!confirm(msg)) return;
   content.script.versions.splice(versionIdx, 1);
   // currentVersion 재조정
   if (content.script.currentVersion === versionIdx) {
