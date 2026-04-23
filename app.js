@@ -788,7 +788,7 @@ function openDateItemDetail(itemId, dateStr) {
           </div>
           <div class="flex items-center gap-2">
             <span class="text-sm text-botanical-sage w-16">업로드</span>
-            <span class="text-sm">${linkedContent.uploadDate}</span>
+            <span class="text-sm">${linkedContent.uploadDate || '-'}</span>
           </div>
         </div>
         <div class="flex gap-2">
@@ -1284,7 +1284,7 @@ function renderContentList() {
             <span class="w-24 shrink-0"><span class="px-2 py-1 rounded-full text-xs whitespace-nowrap" style="background-color: ${statusStyle.bg}; color: ${statusStyle.text};">${statusText(content.status)}</span></span>
             <span class="w-14 shrink-0"><span class="px-2 py-1 rounded-full text-xs font-medium whitespace-nowrap bg-botanical-sage/20 text-botanical-sage">${content.type}</span></span>
             <span class="font-medium flex-1 min-w-0 flex items-center gap-2"><span data-content-title="${content.id}" class="truncate">${content.title || '무제'}</span>${needsPerformance ? '<span class="text-sm shrink-0" title="성과 입력 필요">🔔</span>' : ''}</span>
-            <span class="w-12 shrink-0 text-botanical-sage text-xs text-center">${content.uploadDate ? content.uploadDate.slice(5).replace('-', '/') : '-'}</span>
+            <span class="w-12 shrink-0 text-botanical-sage text-xs text-center" data-upload-cell="${content.id}">${content.uploadDate ? content.uploadDate.slice(5).replace('-', '/') : '-'}</span>
             <span class="w-10 shrink-0 text-xs text-center">${content.url ? `<a href="${content.url}" target="_blank" class="text-blue-500 underline" onclick="event.stopPropagation()">링크</a>` : '<span class="text-botanical-sage">-</span>'}</span>
             <span class="w-14 shrink-0 text-xs text-center ${isCompleted ? 'font-semibold' : 'text-botanical-sage'}">${content.performance.views ? (content.performance.views / 1000).toFixed(1) + 'K' : '-'}</span>
             <span class="w-12 shrink-0 text-xs text-center ${isCompleted ? '' : 'text-botanical-sage'}">${content.performance.likes ? (content.performance.likes / 1000).toFixed(1) + 'K' : '-'}</span>
@@ -1340,10 +1340,10 @@ function renderContentForm(content) {
       <div class="p-4 bg-botanical-cream/30 rounded-xl space-y-4" id="top-info-${content.id}">
         <div class="flex items-center justify-between">
           <div class="flex items-center gap-2">
-            <p class="text-sm font-medium text-botanical-sage">기본 정보 + 일정</p>
-            <span class="text-xs text-botanical-sage/70">(자동 저장 중)</span>
+            <p class="text-sm font-semibold text-botanical-fg">기본 정보</p>
+            <span class="text-xs text-botanical-sage/70">(일정 포함 · 자동 저장 중)</span>
           </div>
-          <button onclick="saveCheckpoint(${content.id}, '기본정보+일정', this)" title="체크포인트 저장 (되돌리기 지점 생성)" class="px-3 py-1 bg-botanical-fg text-white rounded-lg text-xs font-medium hover:bg-botanical-fg/90 transition-all">저장</button>
+          <button onclick="saveCheckpoint(${content.id}, '기본정보', this)" title="체크포인트 저장 (되돌리기 지점 생성)" class="px-3 py-1 bg-botanical-fg text-white rounded-lg text-xs font-medium hover:bg-botanical-fg/90 transition-all">저장</button>
         </div>
         <div class="grid grid-cols-4 gap-4">
           <div>
@@ -1840,6 +1840,21 @@ function updateMilestone(contentId, status, date) {
     }
   }
 
+  // '업로드완료' 마일스톤은 상단 예정일(uploadDate)과 양방향 동기화
+  if (status === '업로드완료') {
+    content.uploadDate = date || '';
+    // 폼이 열려있으면 예정일 input에도 반영
+    const el = document.querySelector(`#top-info-${contentId} [data-field="uploadDate"]`);
+    if (el) el.value = content.uploadDate;
+  }
+  // 목록 '업로드' 열 국소 갱신 (전체 재렌더 안 함 — 포커스 유지)
+  const uploadCell = document.querySelector(`[data-upload-cell="${contentId}"]`);
+  if (uploadCell) {
+    uploadCell.textContent = content.uploadDate ? content.uploadDate.slice(5).replace('-', '/') : '-';
+  }
+  // 성과분석 탭에도 반영 (업로드완료 상태 + 해당월 콘텐츠 목록이 바뀜)
+  if (typeof renderPerformance === 'function') renderPerformance();
+
   // 캘린더에도 업데이트
   const existingCalendarItem = calendarData.items.find(
     item => item.contentId === contentId && item.status === status && item.isMilestone
@@ -2331,8 +2346,29 @@ function autoSaveTopField(el, contentId) {
         item.type = content.isRevenue ? '광고' : '일반';
       }
     });
+  } else if (field === 'uploadDate') {
+    content.uploadDate = val;
+    // 일정 섹션의 '업로드완료' 마일스톤도 동기화
+    if (!content.milestones) content.milestones = [];
+    const idx = content.milestones.findIndex(m => m.status === '업로드완료');
+    if (val) {
+      if (idx >= 0) content.milestones[idx].date = val;
+      else content.milestones.push({ status: '업로드완료', date: val });
+    } else if (idx >= 0) {
+      content.milestones.splice(idx, 1);
+    }
+    // 일정 섹션 업로드완료 input도 동기화
+    const msEl = document.getElementById('milestone-' + contentId + '-upload');
+    if (msEl) msEl.value = val;
+    // 목록 '업로드' 열 국소 갱신
+    const uploadCell = document.querySelector(`[data-upload-cell="${contentId}"]`);
+    if (uploadCell) uploadCell.textContent = val ? val.slice(5).replace('-', '/') : '-';
   } else {
     content[field] = val;
+  }
+  // 성과분석 탭은 업로드날짜/상태/성과/카테고리 에 따라 내용 바뀌므로 갱신
+  if (['uploadDate', 'status', 'category'].includes(field) || field.startsWith('performance.')) {
+    if (typeof renderPerformance === 'function') renderPerformance();
   }
   saveAllData();
 }
@@ -2865,8 +2901,10 @@ function renderPerformance() {
   const monthPerf = performanceData.monthly[perfSelectedMonth] || {};
   const monthNum = parseInt(perfSelectedMonth.slice(5));
 
-  // Get contents for selected month
-  const monthContents = contentsData.contents.filter(c => c.uploadDate.startsWith(perfSelectedMonth));
+  // Get contents for selected month — 업로드완료 상태이면서 uploadDate 가 해당 월인 콘텐츠만
+  const monthContents = contentsData.contents.filter(c =>
+    (c.uploadDate || '').startsWith(perfSelectedMonth) && c.status === '업로드완료'
+  );
 
   // Daily follower data
   const dailyData = performanceData.follower?.history?.daily || [];
