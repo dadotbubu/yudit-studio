@@ -266,13 +266,17 @@ function renderTodaySummary() {
 
   let todayItemsHtml = '';
   if (todayItems.length > 0) {
-    todayItemsHtml = todayItems.map(item => `
+    todayItemsHtml = todayItems.map(item => {
+      const linked = item.contentId ? contentsData.contents.find(c => c.id === item.contentId) : null;
+      const name = linked?.keywords || linked?.title || item.title || '무제';
+      return `
       <div class="flex items-center gap-2 text-sm">
         <span class="w-2 h-2 rounded-full" style="background-color: ${categoryColors[item.category] || '#8C9A84'};"></span>
-        <span class="${item.type === '광고' ? 'text-botanical-terracotta font-medium' : ''}">${item.title}</span>
+        <span class="${item.type === '광고' ? 'text-botanical-terracotta font-medium' : ''}">${name}</span>
         <span class="text-botanical-sage text-xs">${statusText(item.status)}</span>
       </div>
-    `).join('');
+      `;
+    }).join('');
   } else {
     todayItemsHtml = '<p class="text-sm text-botanical-sage">오늘 일정 없음</p>';
   }
@@ -325,7 +329,7 @@ function renderMonthlyView() {
   // Previous month
   for (let i = startDayOfWeek - 1; i >= 0; i--) {
     const day = prevLastDay - i;
-    html += `<div class="h-24 p-2 rounded-xl text-sm text-botanical-clay">${day}</div>`;
+    html += `<div class="min-h-[6rem] p-2 rounded-xl text-sm text-botanical-clay">${day}</div>`;
   }
 
   // Current month
@@ -337,7 +341,7 @@ function renderMonthlyView() {
     const isSunday = dayOfWeek === 6;
     const isToday = today.getFullYear() === currentYear && today.getMonth() + 1 === currentMonth && today.getDate() === day;
 
-    let cellClass = 'h-24 p-2 rounded-xl text-sm cursor-pointer transition-all';
+    let cellClass = 'min-h-[6rem] p-2 rounded-xl text-sm cursor-pointer transition-all';
     let dayClass = 'font-medium';
 
     if (isToday) {
@@ -361,15 +365,19 @@ function renderMonthlyView() {
     if (items.length > 0) {
       const visible = items.slice(0, 2);
       const extra = items.length - visible.length;
-      itemsHtml = visible.map(item => `
+      itemsHtml = visible.map(item => {
+        const linked = item.contentId ? contentsData.contents.find(c => c.id === item.contentId) : null;
+        const displayName = linked?.keywords || linked?.title || item.title || '무제';
+        return `
         <div class="mt-1 text-xs ${isToday ? 'font-normal' : ''}">
-          <p class="flex items-center gap-1">
-            <span class="w-1.5 h-1.5 rounded-full" style="background-color: ${isToday ? 'white' : (categoryColors[item.category] || '#8C9A84')};"></span>
-            <span class="truncate">${item.title}</span>
+          <p class="flex items-start gap-1">
+            <span class="w-1.5 h-1.5 rounded-full mt-1 shrink-0" style="background-color: ${isToday ? 'white' : (categoryColors[item.category] || '#8C9A84')};"></span>
+            <span class="leading-snug" style="display:-webkit-box; -webkit-line-clamp:4; -webkit-box-orient:vertical; overflow:hidden;">${displayName}</span>
           </p>
           <p class="ml-2.5 ${isToday ? 'opacity-70' : (item.type === '광고' ? 'text-botanical-terracotta' : 'text-botanical-sage')}">${statusText(item.status)}</p>
         </div>
-      `).join('');
+        `;
+      }).join('');
       if (extra > 0) {
         itemsHtml += `<p class="mt-1 text-[10px] ${isToday ? 'opacity-70' : 'text-botanical-sage'} font-medium">+${extra} 더보기</p>`;
       }
@@ -386,7 +394,7 @@ function renderMonthlyView() {
   // Next month
   const remainingCells = (7 - ((startDayOfWeek + daysInMonth) % 7)) % 7;
   for (let i = 1; i <= remainingCells; i++) {
-    html += `<div class="h-24 p-2 rounded-xl text-sm text-botanical-clay">${i}</div>`;
+    html += `<div class="min-h-[6rem] p-2 rounded-xl text-sm text-botanical-clay">${i}</div>`;
   }
 
   html += '</div>';
@@ -486,15 +494,19 @@ function renderWeeklyCell(date, today) {
     cellClass += ' hover:bg-botanical-cream';
   }
 
-  let itemsHtml = items.slice(0, 3).map(item => `
+  let itemsHtml = items.slice(0, 3).map(item => {
+    const linked = item.contentId ? contentsData.contents.find(c => c.id === item.contentId) : null;
+    const name = linked?.keywords || linked?.title || item.title || '무제';
+    return `
     <div class="mt-2 text-xs ${isToday ? 'font-normal' : ''}">
-      <p class="flex items-center gap-1">
-        <span class="w-1.5 h-1.5 rounded-full" style="background-color: ${isToday ? 'white' : categoryColors[item.category] || '#8C9A84'};"></span>
-        ${item.title}
+      <p class="flex items-start gap-1">
+        <span class="w-1.5 h-1.5 rounded-full mt-1 shrink-0" style="background-color: ${isToday ? 'white' : categoryColors[item.category] || '#8C9A84'};"></span>
+        <span class="leading-snug" style="display:-webkit-box; -webkit-line-clamp:4; -webkit-box-orient:vertical; overflow:hidden;">${name}</span>
       </p>
       <p class="ml-2.5 ${isToday ? 'opacity-70' : (item.type === '광고' ? 'text-botanical-terracotta' : 'text-botanical-sage')}">${statusText(item.status)}</p>
     </div>
-  `).join('');
+    `;
+  }).join('');
 
   return `
     <div class="${cellClass}">
