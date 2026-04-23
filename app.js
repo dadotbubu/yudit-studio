@@ -1336,8 +1336,11 @@ function renderContentForm(content) {
       <!-- 상단 정보 수정 영역 -->
       <div class="p-4 bg-botanical-cream/30 rounded-xl space-y-4" id="top-info-${content.id}">
         <div class="flex items-center justify-between">
-          <p class="text-sm font-medium text-botanical-sage">기본 정보</p>
-          <button onclick="saveTopInfo(${content.id})" class="px-4 py-1.5 bg-botanical-fg text-white rounded-lg text-xs font-medium hover:bg-botanical-fg/90 transition-all">저장</button>
+          <div class="flex items-center gap-2">
+            <p class="text-sm font-medium text-botanical-sage">기본 정보</p>
+            <span class="text-xs text-botanical-sage/70">(자동 저장)</span>
+          </div>
+          <button onclick="saveTopInfo(${content.id})" title="목록/캘린더 갱신 (자동 저장은 이미 됨)" class="px-3 py-1 border border-botanical-stone text-botanical-sage rounded-lg text-xs hover:bg-botanical-cream transition-all">목록 갱신</button>
         </div>
         <div class="grid grid-cols-4 gap-4">
           <div>
@@ -1718,7 +1721,7 @@ function renderContentForm(content) {
                 return `<button onclick="setFinalVersion(${content.id}, ${currentVer})" title="현재 V${currentVer+1}을 최종으로 지정 (목록·캘린더에 이 버전 제목 표시)" class="px-3 py-1 rounded-full text-xs transition-all ${isFinal ? 'bg-amber-400 text-white' : 'border border-botanical-stone text-botanical-sage hover:bg-amber-50 hover:text-amber-600'}">${isFinal ? '✓ 최종' : '최종'}</button>`;
               })()}
             </div>
-            <div class="flex gap-2">
+            <div class="flex gap-2 flex-wrap justify-end">
               <button onclick="copyScript(${content.id}, 'dialogue')" class="px-3 py-1 rounded-full text-xs border border-botanical-stone hover:bg-botanical-cream transition-all">대사 복사</button>
               <button onclick="copyScript(${content.id}, 'subtitle')" class="px-3 py-1 rounded-full text-xs border border-botanical-stone hover:bg-botanical-cream transition-all">자막 복사</button>
               <button onclick="copyScriptAll(${content.id})" class="px-3 py-1 rounded-full text-xs border border-botanical-sage bg-botanical-sage/10 text-botanical-sage hover:bg-botanical-sage hover:text-white transition-all">전체 복사</button>
@@ -1878,6 +1881,14 @@ function toggleContentForm(id) {
   form.classList.toggle('active');
   arrow.style.transform = form.classList.contains('active') ? 'rotate(180deg)' : 'rotate(0deg)';
   if (form.classList.contains('active')) requestAnimationFrame(() => { autoResizeAllScriptCells(); attachScriptCellObservers(); });
+}
+
+// 모바일에서 강제 새로고침 (캐시 우회 + Supabase 다시 fetch)
+function forceRefresh() {
+  // URL에 timestamp 쿼리 붙여서 브라우저 캐시 무효화 후 리로드
+  const url = new URL(location.href);
+  url.searchParams.set('_r', Date.now());
+  location.replace(url.toString());
 }
 
 function collapseAllContentForms() {
@@ -2115,7 +2126,49 @@ function toggleChecklist(contentId, kind, idx, checked) {
   saveAllData();
 }
 
-// 상단 기본 정보 섹션의 모든 필드를 DOM에서 읽어 일괄 저장
+// 기본 정보 필드 자동 저장 (DOM input 이벤트 위임)
+// saveTopInfo 버튼 없이도 데이터 유실 없도록
+document.addEventListener('input', (e) => {
+  const el = e.target;
+  if (!el?.dataset?.field) return;
+  const container = el.closest('[id^="top-info-"]');
+  if (!container) return;
+  const contentId = parseInt(container.id.replace('top-info-', ''));
+  if (!contentId) return;
+  autoSaveTopField(el, contentId);
+});
+
+function autoSaveTopField(el, contentId) {
+  const content = contentsData.contents.find(c => c.id === contentId);
+  if (!content) return;
+  const field = el.dataset.field;
+  const val = el.value;
+  if (field.startsWith('performance.')) {
+    if (!content.performance) content.performance = {};
+    const key = field.split('.')[1];
+    const num = parseFloat(val);
+    content.performance[key] = isNaN(num) ? 0 : num;
+  } else if (field === 'status') {
+    content.status = val;
+    calendarData.items.forEach(item => {
+      if (item.contentId === contentId) item.status = val;
+    });
+  } else if (field === 'category') {
+    content.category = val;
+    content.isRevenue = ['광고', '판매', '협찬'].includes(val);
+    calendarData.items.forEach(item => {
+      if (item.contentId === contentId) {
+        item.category = val;
+        item.type = content.isRevenue ? '광고' : '일반';
+      }
+    });
+  } else {
+    content[field] = val;
+  }
+  saveAllData();
+}
+
+// 상단 기본 정보 섹션의 모든 필드를 DOM에서 읽어 일괄 저장 (버튼 수동 저장 + 재렌더)
 function saveTopInfo(contentId) {
   const content = contentsData.contents.find(c => c.id === contentId);
   if (!content) return;
