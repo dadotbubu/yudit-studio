@@ -1385,7 +1385,10 @@ function renderContentForm(content) {
           </div>
           <div>
             <label class="text-xs text-botanical-sage mb-1 block">예정일</label>
-            <input type="date" data-field="uploadDate" value="${content.uploadDate || ''}" class="w-full px-3 py-2 rounded-lg border border-botanical-stone text-sm focus:outline-none">
+            <div class="relative">
+              <input type="date" data-field="uploadDate" value="${content.uploadDate || ''}" class="w-full px-3 py-2 pr-8 rounded-lg border border-botanical-stone text-sm focus:outline-none">
+              ${content.uploadDate ? `<button type="button" onclick="clearUploadDate(${content.id})" title="예정일 지우기" class="absolute right-2 top-1/2 -translate-y-1/2 w-5 h-5 rounded-full text-botanical-sage hover:text-red-500 hover:bg-red-50 flex items-center justify-center text-xs">×</button>` : ''}
+            </div>
           </div>
           <div>
             <label class="text-xs text-botanical-sage mb-1 block">${content.isRevenue ? '브랜드 / 상품' : '핵심 키워드'}</label>
@@ -2308,6 +2311,34 @@ function toggleChecklist(contentId, kind, idx, checked) {
   saveAllData();
 }
 
+// 예정일 × 버튼 전용 지우기
+function clearUploadDate(contentId) {
+  const content = contentsData.contents.find(c => c.id === contentId);
+  if (!content) return;
+  content.uploadDate = '';
+  // 마일스톤도 제거
+  if (content.milestones) {
+    const idx = content.milestones.findIndex(m => m.status === '업로드완료');
+    if (idx >= 0) content.milestones.splice(idx, 1);
+  }
+  // 캘린더 마일스톤 항목도 제거
+  calendarData.items = calendarData.items.filter(i =>
+    !(i.contentId === contentId && i.status === '업로드완료' && i.isMilestone)
+  );
+  // DOM 동기화
+  const dateEl = document.querySelector(`#top-info-${contentId} [data-field="uploadDate"]`);
+  if (dateEl) dateEl.value = '';
+  const msEl = document.getElementById('milestone-' + contentId + '-upload');
+  if (msEl) msEl.value = '';
+  const uploadCell = document.querySelector(`[data-upload-cell="${contentId}"]`);
+  if (uploadCell) uploadCell.textContent = '-';
+  saveAllData();
+  renderContentList();
+  reopenForm(contentId);
+  renderCalendar();
+  if (typeof renderPerformance === 'function') renderPerformance();
+}
+
 // 기본 정보 필드 자동 저장 (DOM input/change 이벤트 위임)
 // input+change 둘 다 감지해서 type=date/number 에서도 안전하게 저장
 function _topFieldAutoSave(e) {
@@ -2901,7 +2932,7 @@ function renderPerformance() {
   const monthPerf = performanceData.monthly[perfSelectedMonth] || {};
   const monthNum = parseInt(perfSelectedMonth.slice(5));
 
-  // Get contents for selected month — 업로드완료 상태이면서 uploadDate 가 해당 월인 콘텐츠만
+  // Get contents for selected month — 업로드완료 상태 + uploadDate 가 해당 월인 콘텐츠만
   const monthContents = contentsData.contents.filter(c =>
     (c.uploadDate || '').startsWith(perfSelectedMonth) && c.status === '업로드완료'
   );
