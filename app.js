@@ -1340,10 +1340,10 @@ function renderContentForm(content) {
       <div class="p-4 bg-botanical-cream/30 rounded-xl space-y-4" id="top-info-${content.id}">
         <div class="flex items-center justify-between">
           <div class="flex items-center gap-2">
-            <p class="text-sm font-medium text-botanical-sage">기본 정보</p>
-            <span class="text-xs text-botanical-sage/70">(자동 저장)</span>
+            <p class="text-sm font-medium text-botanical-sage">기본 정보 + 일정</p>
+            <span class="text-xs text-botanical-sage/70">(자동 저장 중)</span>
           </div>
-          <button onclick="saveTopInfo(${content.id})" title="목록/캘린더 갱신 (자동 저장은 이미 됨)" class="px-3 py-1 border border-botanical-stone text-botanical-sage rounded-lg text-xs hover:bg-botanical-cream transition-all">목록 갱신</button>
+          <button onclick="saveCheckpoint(${content.id}, '기본정보+일정', this)" title="체크포인트 저장 (되돌리기 지점 생성)" class="px-3 py-1 bg-botanical-fg text-white rounded-lg text-xs font-medium hover:bg-botanical-fg/90 transition-all">저장</button>
         </div>
         <div class="grid grid-cols-4 gap-4">
           <div>
@@ -1595,7 +1595,10 @@ function renderContentForm(content) {
             <span class="w-6 h-6 rounded-full bg-botanical-sage/20 text-botanical-sage text-xs flex items-center justify-center">1</span>
             레퍼런스 분석
           </h3>
-          <span class="text-xs text-botanical-sage">선택사항</span>
+          <div class="flex items-center gap-2">
+            <span class="text-xs text-botanical-sage">선택사항</span>
+            <button onclick="saveCheckpoint(${content.id}, '레퍼런스분석', this)" title="체크포인트 저장" class="px-3 py-1 bg-botanical-fg text-white rounded-lg text-xs font-medium hover:bg-botanical-fg/90 transition-all">저장</button>
+          </div>
         </div>
 
         <div class="mb-5 p-4 bg-botanical-cream/50 rounded-lg">
@@ -1933,6 +1936,50 @@ async function pruneOldSnapshots() {
       });
     }
   } catch (e) { console.warn('스냅샷 정리 실패:', e); }
+}
+
+// 체크포인트 저장 — 각 섹션 [저장] 버튼 누르면 해당 시점 전체 데이터 Supabase 스냅샷
+// 자동 저장은 이미 돌고 있음. 이 버튼은 "이 시점으로 되돌릴 수 있게 점 찍어두기".
+async function saveCheckpoint(contentId, section, btn) {
+  // 먼저 현재 상태 즉시 Supabase로 강제 push (디바운스 기다리지 않음)
+  clearTimeout(saveTimer);
+  try {
+    await Promise.all([
+      upsertToSupabase('calendar', calendarData),
+      upsertToSupabase('contents', contentsData),
+      upsertToSupabase('performance', performanceData),
+      upsertToSupabase('revenue', revenueData),
+      upsertToSupabase('memos', memosData)
+    ]);
+    // 체크포인트 (개별 row로 보존)
+    const ts = new Date().toISOString().replace(/[:.]/g, '-');
+    const content = contentsData.contents.find(c => c.id === contentId);
+    const title = content?.keywords || content?.title || '콘텐츠';
+    await upsertToSupabase(`checkpoint_${ts}`, {
+      savedAt: new Date().toISOString(),
+      section,
+      contentId,
+      contentTitle: title,
+      calendar: calendarData,
+      contents: contentsData,
+      performance: performanceData,
+      revenue: revenueData,
+      memos: memosData
+    });
+    updateSaveStatus('saved');
+    if (btn) {
+      const orig = btn.textContent;
+      btn.textContent = '✓ 저장됨';
+      btn.classList.add('bg-botanical-sage', 'text-white');
+      setTimeout(() => {
+        btn.textContent = orig;
+        btn.classList.remove('bg-botanical-sage', 'text-white');
+      }, 1500);
+    }
+  } catch (e) {
+    alert('체크포인트 저장 실패: ' + e.message);
+    updateSaveStatus('error');
+  }
 }
 
 // JSON 다운로드 (수동 백업)
