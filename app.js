@@ -1677,6 +1677,7 @@ function renderContentForm(content) {
           <h3 class="font-medium flex items-center gap-2">
             <span class="w-6 h-6 rounded-full bg-botanical-sage/20 text-botanical-sage text-xs flex items-center justify-center">2</span>
             촬영 및 대본 (20초 미만~최대 30초)
+            <button onclick="saveCheckpoint(${content.id}, '촬영및대본', this)" title="체크포인트 저장" class="ml-2 px-3 py-1 bg-botanical-fg text-white rounded-lg text-xs font-medium hover:bg-botanical-fg/90 transition-all">저장</button>
           </h3>
           <div class="flex gap-2 items-center flex-wrap">
             ${scriptVersions.map((_, i) => {
@@ -1775,7 +1776,10 @@ function renderContentForm(content) {
             <span class="w-6 h-6 rounded-full bg-botanical-sage/20 text-botanical-sage text-xs flex items-center justify-center">3</span>
             캡션 작성
           </h3>
-          <button onclick="copyCaption(${content.id})" class="px-3 py-1 rounded-full text-xs border border-botanical-stone hover:bg-botanical-cream transition-all">캡션 복사</button>
+          <div class="flex gap-2">
+            <button onclick="copyCaption(${content.id})" class="px-3 py-1 rounded-full text-xs border border-botanical-stone hover:bg-botanical-cream transition-all">캡션 복사</button>
+            <button onclick="saveCheckpoint(${content.id}, '캡션', this)" title="체크포인트 저장" class="px-3 py-1 bg-botanical-fg text-white rounded-lg text-xs font-medium hover:bg-botanical-fg/90 transition-all">저장</button>
+          </div>
         </div>
         <textarea id="caption-${content.id}" rows="3" oninput="autoResize(this);updateContentField(${content.id}, 'caption', this.value)" placeholder="인스타그램 캡션 입력..." class="auto-grow w-full px-3 py-2 rounded-lg border border-botanical-stone text-sm focus:outline-none focus:border-botanical-sage resize-none overflow-hidden">${content.caption || ''}</textarea>
       </div>
@@ -1787,7 +1791,10 @@ function renderContentForm(content) {
             <span class="w-6 h-6 rounded-full bg-botanical-sage/20 text-botanical-sage text-xs flex items-center justify-center">4</span>
             공유 링크 & DM 답변
           </h3>
-          <button onclick="copyDM(${content.id})" class="px-3 py-1 rounded-full text-xs border border-botanical-stone hover:bg-botanical-cream transition-all">DM 복사</button>
+          <div class="flex gap-2">
+            <button onclick="copyDM(${content.id})" class="px-3 py-1 rounded-full text-xs border border-botanical-stone hover:bg-botanical-cream transition-all">DM 복사</button>
+            <button onclick="saveCheckpoint(${content.id}, '공유&DM', this)" title="체크포인트 저장" class="px-3 py-1 bg-botanical-fg text-white rounded-lg text-xs font-medium hover:bg-botanical-fg/90 transition-all">저장</button>
+          </div>
         </div>
         <div class="mb-4">
           <input type="text" value="${content.shareLink || ''}" oninput="updateContentField(${content.id}, 'shareLink', this.value)" placeholder="팔로워 공유용 링크" class="w-full px-4 py-2 rounded-lg border border-botanical-stone text-sm focus:outline-none focus:border-botanical-sage">

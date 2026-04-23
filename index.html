@@ -80,11 +80,9 @@
         </h1>
         <p class="text-botanical-sage text-sm">Content Calendar & Management</p>
       </div>
-      <div class="flex items-center gap-2">
+      <div class="flex items-center gap-3">
         <span id="save-status" class="text-xs"></span>
         <span id="today-date" class="text-sm text-botanical-sage"></span>
-        <button onclick="showBackups()" title="일간 자동 백업 복원 (최대 30일)" class="px-2 py-1 text-xs border border-botanical-stone text-botanical-sage rounded-lg hover:bg-botanical-cream transition-all">복원</button>
-        <button onclick="exportBackup()" title="현재 데이터 JSON 파일로 다운로드" class="px-2 py-1 text-xs border border-botanical-stone text-botanical-sage rounded-lg hover:bg-botanical-cream transition-all">백업</button>
         <button onclick="forceRefresh()" title="최신 데이터 다시 불러오기 (캐시 무시)" class="w-8 h-8 rounded-full border border-botanical-stone flex items-center justify-center text-botanical-sage hover:border-botanical-sage hover:text-botanical-fg transition-all">
           <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M3 22v-6h6"/><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 2v6h-6"/></svg>
         </button>
@@ -160,6 +158,6 @@
     </div>
   </div>
 
-  <script src="app.js?v=35"></script>
+  <script src="app.js?v=36"></script>
 </body>
 </html>
