@@ -1753,10 +1753,6 @@ function renderContentForm(content) {
           </div>
           <button onclick="addScriptRow(${content.id})" class="mt-2 px-3 py-1.5 text-xs text-botanical-sage border border-botanical-stone rounded-lg hover:bg-botanical-cream transition-all">+ 행 추가</button>
         </div>
-
-        <div>
-          <input type="text" placeholder="노션 링크 (대본 자료)" class="w-full px-4 py-2 rounded-lg border border-botanical-stone text-sm focus:outline-none focus:border-botanical-sage">
-        </div>
       </div>
 
       <!-- 3. 캡션 -->
