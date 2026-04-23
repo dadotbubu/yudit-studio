@@ -1721,6 +1721,7 @@ function renderContentForm(content) {
             <div class="flex gap-2">
               <button onclick="copyScript(${content.id}, 'dialogue')" class="px-3 py-1 rounded-full text-xs border border-botanical-stone hover:bg-botanical-cream transition-all">대사 복사</button>
               <button onclick="copyScript(${content.id}, 'subtitle')" class="px-3 py-1 rounded-full text-xs border border-botanical-stone hover:bg-botanical-cream transition-all">자막 복사</button>
+              <button onclick="copyScriptAll(${content.id})" class="px-3 py-1 rounded-full text-xs border border-botanical-sage bg-botanical-sage/10 text-botanical-sage hover:bg-botanical-sage hover:text-white transition-all">전체 복사</button>
             </div>
           </div>
           <div class="border border-botanical-stone rounded-lg overflow-x-auto">
@@ -2046,6 +2047,23 @@ function copyScript(contentId, field) {
   if (!text) { alert('복사할 내용이 없습니다'); return; }
   navigator.clipboard.writeText(text).then(() => {
     alert((field === 'dialogue' ? '대사' : '자막') + ' 복사됨');
+  }).catch(() => alert('복사 실패'));
+}
+
+function copyScriptAll(contentId) {
+  const content = contentsData.contents.find(c => c.id === contentId);
+  const ver = content?.script?.currentVersion ?? 0;
+  const rows = content?.script?.versions?.[ver]?.rows;
+  if (!rows || rows.length === 0) { alert('복사할 내용이 없습니다'); return; }
+  // 탭 구분 표 (스프레드시트/노션 표로 바로 붙여넣기 가능) + 가독용 제목
+  const header = ['구간', '대사', '자막', '장면'];
+  const lines = [header.join('\t')];
+  rows.forEach(r => {
+    lines.push([r.section || '', r.dialogue || '', r.subtitle || '', r.scene || ''].join('\t'));
+  });
+  const text = lines.join('\n');
+  navigator.clipboard.writeText(text).then(() => {
+    alert('표 전체 복사됨 (탭 구분 — 표에 바로 붙여넣기 OK)');
   }).catch(() => alert('복사 실패'));
 }
 
