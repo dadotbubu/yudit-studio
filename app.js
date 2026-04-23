@@ -1227,7 +1227,7 @@ function renderContentList() {
     <div class="bg-botanical-cream/50 rounded-xl px-5 py-3 mb-4">
       <div class="flex items-center gap-3 text-sm font-medium text-botanical-sage">
         <span class="w-20">카테고리</span>
-        <span class="w-16">상태</span>
+        <span class="w-24">상태</span>
         <span class="w-14">타입</span>
         <span class="flex-1">콘텐츠 제목</span>
         <span class="w-12 text-center">업로드</span>
@@ -1278,7 +1278,7 @@ function renderContentList() {
         <div onclick="toggleContentForm(${content.id})" class="px-5 py-4 cursor-pointer hover:bg-botanical-cream/30 transition-all">
           <div class="flex items-center gap-3 text-sm">
             <span class="w-20"><span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full flex-shrink-0" style="background-color: ${categoryColor};"></span><span class="text-xs text-botanical-sage truncate">${content.category}</span></span></span>
-            <span class="w-16"><span class="px-2 py-1 rounded-full text-xs whitespace-nowrap" style="background-color: ${statusStyle.bg}; color: ${statusStyle.text};">${statusText(content.status)}</span></span>
+            <span class="w-24"><span class="px-2 py-1 rounded-full text-xs whitespace-nowrap" style="background-color: ${statusStyle.bg}; color: ${statusStyle.text};">${statusText(content.status)}</span></span>
             <span class="w-14"><span class="px-2 py-1 rounded-full text-xs font-medium whitespace-nowrap bg-botanical-sage/20 text-botanical-sage">${content.type}</span></span>
             <span class="font-medium flex-1 flex items-center gap-2"><span data-content-title="${content.id}">${content.title || '무제'}</span>${needsPerformance ? '<span class="text-sm" title="성과 입력 필요">🔔</span>' : ''}</span>
             <span class="w-12 text-botanical-sage text-xs text-center">${content.status === '업로드완료' && content.uploadDate ? content.uploadDate.slice(5).replace('-', '/') : '-'}</span>
