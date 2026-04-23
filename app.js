@@ -36,6 +36,15 @@ const DEFAULT_CLIENT_NOTION = 'https://www.notion.so/34a066f53222807e9fc9e625d5e
 const DEFAULT_TRANSCRIPT_LINK = 'https://getthescript.app/instagram-transcript';
 const fmt = (n) => (Number(n) || 0).toLocaleString();
 
+// 상태 표시 전용 짧은 레이블 (데이터 값은 기존 그대로 유지)
+const STATUS_LABEL = {
+  '기획안1차공유': '기획안 공유',
+  '기획안최종컨펌': '기획안 컨펌',
+  '영상1차공유': '영상 공유',
+  '영상최종컨펌': '영상 컨펌'
+};
+const statusText = (s) => STATUS_LABEL[s] || s || '';
+
 let _saveStatusFadeTimer;
 function updateSaveStatus(status) {
   const el = document.getElementById('save-status');
@@ -261,7 +270,7 @@ function renderTodaySummary() {
       <div class="flex items-center gap-2 text-sm">
         <span class="w-2 h-2 rounded-full" style="background-color: ${categoryColors[item.category] || '#8C9A84'};"></span>
         <span class="${item.type === '광고' ? 'text-botanical-terracotta font-medium' : ''}">${item.title}</span>
-        <span class="text-botanical-sage text-xs">${item.status}</span>
+        <span class="text-botanical-sage text-xs">${statusText(item.status)}</span>
       </div>
     `).join('');
   } else {
@@ -356,7 +365,7 @@ function renderMonthlyView() {
             <span class="w-1.5 h-1.5 rounded-full" style="background-color: ${categoryColors[item.category] || '#8C9A84'};"></span>
             ${item.title}
           </p>
-          <p class="ml-2.5 ${item.type === '광고' ? 'text-botanical-terracotta' : 'text-botanical-sage'}">${item.status}</p>
+          <p class="ml-2.5 ${item.type === '광고' ? 'text-botanical-terracotta' : 'text-botanical-sage'}">${statusText(item.status)}</p>
         </div>
       `).join('');
     } else if (items.length > 0 && isToday) {
@@ -366,7 +375,7 @@ function renderMonthlyView() {
             <span class="w-1.5 h-1.5 rounded-full bg-white"></span>
             ${item.title}
           </p>
-          <p class="ml-2.5 opacity-70">${item.status}</p>
+          <p class="ml-2.5 opacity-70">${statusText(item.status)}</p>
         </div>
       `).join('');
     }
@@ -488,7 +497,7 @@ function renderWeeklyCell(date, today) {
         <span class="w-1.5 h-1.5 rounded-full" style="background-color: ${isToday ? 'white' : categoryColors[item.category] || '#8C9A84'};"></span>
         ${item.title}
       </p>
-      <p class="ml-2.5 ${isToday ? 'opacity-70' : (item.type === '광고' ? 'text-botanical-terracotta' : 'text-botanical-sage')}">${item.status}</p>
+      <p class="ml-2.5 ${isToday ? 'opacity-70' : (item.type === '광고' ? 'text-botanical-terracotta' : 'text-botanical-sage')}">${statusText(item.status)}</p>
     </div>
   `).join('');
 
@@ -710,7 +719,7 @@ function openDateDetail(dateStr) {
           </div>
           <div class="flex items-center gap-2">
             <span class="text-sm text-botanical-sage w-16">상태</span>
-            <span class="text-sm">${linkedContent.status}</span>
+            <span class="text-sm">${statusText(linkedContent.status)}</span>
           </div>
           <div class="flex items-center gap-2">
             <span class="text-sm text-botanical-sage w-16">업로드</span>
@@ -751,7 +760,7 @@ function openDateDetail(dateStr) {
           </div>
           <div class="flex items-center gap-2">
             <span class="text-sm text-botanical-sage w-16">상태</span>
-            <span class="text-sm">${item.status}</span>
+            <span class="text-sm">${statusText(item.status)}</span>
           </div>
         </div>
         <div class="space-y-3">
@@ -874,10 +883,10 @@ function getRegistrationFormHTML(dateStr) {
         <label class="text-sm font-medium block mb-1">상태</label>
         <select id="new-revenue-status" class="w-full px-3 py-2 rounded-xl border border-botanical-stone focus:outline-none">
           <option value="계약완료">계약완료</option>
-          <option value="기획안1차공유">기획안 1차 공유</option>
-          <option value="기획안최종컨펌">기획안 최종 컨펌</option>
-          <option value="영상1차공유">영상 1차 공유</option>
-          <option value="영상최종컨펌">영상 최종 컨펌</option>
+          <option value="기획안1차공유">기획안 공유</option>
+          <option value="기획안최종컨펌">기획안 컨펌</option>
+          <option value="영상1차공유">영상 공유</option>
+          <option value="영상최종컨펌">영상 컨펌</option>
           <option value="업로드완료">업로드 완료</option>
         </select>
       </div>
@@ -1208,7 +1217,7 @@ function renderContentList() {
         <div onclick="toggleContentForm(${content.id})" class="px-5 py-4 cursor-pointer hover:bg-botanical-cream/30 transition-all">
           <div class="flex items-center gap-3 text-sm">
             <span class="w-20"><span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full flex-shrink-0" style="background-color: ${categoryColor};"></span><span class="text-xs text-botanical-sage truncate">${content.category}</span></span></span>
-            <span class="w-16"><span class="px-2 py-1 rounded-full text-xs whitespace-nowrap" style="background-color: ${statusStyle.bg}; color: ${statusStyle.text};">${content.status}</span></span>
+            <span class="w-16"><span class="px-2 py-1 rounded-full text-xs whitespace-nowrap" style="background-color: ${statusStyle.bg}; color: ${statusStyle.text};">${statusText(content.status)}</span></span>
             <span class="w-14"><span class="px-2 py-1 rounded-full text-xs font-medium whitespace-nowrap bg-botanical-sage/20 text-botanical-sage">${content.type}</span></span>
             <span class="font-medium flex-1 flex items-center gap-2"><span data-content-title="${content.id}">${content.title || '무제'}</span>${needsPerformance ? '<span class="text-sm" title="성과 입력 필요">🔔</span>' : ''}</span>
             <span class="w-12 text-botanical-sage text-xs text-center">${content.uploadDate ? content.uploadDate.slice(5).replace('-', '/') : '-'}</span>
@@ -1275,10 +1284,10 @@ function renderContentForm(content) {
             ${content.isRevenue ? `
             <select data-field="status" class="w-full px-3 py-2 rounded-lg border border-botanical-stone bg-white text-sm focus:outline-none">
               <option value="계약완료" ${content.status === '계약완료' ? 'selected' : ''}>계약완료</option>
-              <option value="기획안1차공유" ${content.status === '기획안1차공유' ? 'selected' : ''}>기획안 1차 공유</option>
-              <option value="기획안최종컨펌" ${content.status === '기획안최종컨펌' ? 'selected' : ''}>기획안 최종 컨펌</option>
-              <option value="영상1차공유" ${content.status === '영상1차공유' ? 'selected' : ''}>영상 1차 공유</option>
-              <option value="영상최종컨펌" ${content.status === '영상최종컨펌' ? 'selected' : ''}>영상 최종 컨펌</option>
+              <option value="기획안1차공유" ${content.status === '기획안1차공유' ? 'selected' : ''}>기획안 공유</option>
+              <option value="기획안최종컨펌" ${content.status === '기획안최종컨펌' ? 'selected' : ''}>기획안 컨펌</option>
+              <option value="영상1차공유" ${content.status === '영상1차공유' ? 'selected' : ''}>영상 공유</option>
+              <option value="영상최종컨펌" ${content.status === '영상최종컨펌' ? 'selected' : ''}>영상 컨펌</option>
               <option value="업로드완료" ${content.status === '업로드완료' ? 'selected' : ''}>업로드 완료</option>
             </select>
             ` : `
@@ -1353,19 +1362,19 @@ function renderContentForm(content) {
               <input type="date" id="milestone-${content.id}-contract" value="${getMilestoneDate(content, '계약완료')}" oninput="updateMilestone(${content.id}, '계약완료', this.value)" class="w-full px-3 py-2 rounded-lg border border-botanical-stone text-sm focus:outline-none">
             </div>
             <div>
-              <label class="text-xs text-botanical-sage block mb-1">기획안 1차 공유</label>
+              <label class="text-xs text-botanical-sage block mb-1">기획안 공유</label>
               <input type="date" id="milestone-${content.id}-plan1" value="${getMilestoneDate(content, '기획안1차공유')}" oninput="updateMilestone(${content.id}, '기획안1차공유', this.value)" class="w-full px-3 py-2 rounded-lg border border-botanical-stone text-sm focus:outline-none">
             </div>
             <div>
-              <label class="text-xs text-botanical-sage block mb-1">기획안 최종 컨펌</label>
+              <label class="text-xs text-botanical-sage block mb-1">기획안 컨펌</label>
               <input type="date" id="milestone-${content.id}-planfinal" value="${getMilestoneDate(content, '기획안최종컨펌')}" oninput="updateMilestone(${content.id}, '기획안최종컨펌', this.value)" class="w-full px-3 py-2 rounded-lg border border-botanical-stone text-sm focus:outline-none">
             </div>
             <div>
-              <label class="text-xs text-botanical-sage block mb-1">영상 1차 공유</label>
+              <label class="text-xs text-botanical-sage block mb-1">영상 공유</label>
               <input type="date" id="milestone-${content.id}-video1" value="${getMilestoneDate(content, '영상1차공유')}" oninput="updateMilestone(${content.id}, '영상1차공유', this.value)" class="w-full px-3 py-2 rounded-lg border border-botanical-stone text-sm focus:outline-none">
             </div>
             <div>
-              <label class="text-xs text-botanical-sage block mb-1">영상 최종 컨펌</label>
+              <label class="text-xs text-botanical-sage block mb-1">영상 컨펌</label>
               <input type="date" id="milestone-${content.id}-videofinal" value="${getMilestoneDate(content, '영상최종컨펌')}" oninput="updateMilestone(${content.id}, '영상최종컨펌', this.value)" class="w-full px-3 py-2 rounded-lg border border-botanical-stone text-sm focus:outline-none">
             </div>
             <div>
@@ -2418,10 +2427,10 @@ function showNewContentModal() {
           <select id="new-content-rev-status" class="w-full px-3 rounded-xl border border-botanical-stone focus:outline-none text-sm" style="height: 42px; box-sizing: border-box;">
             <option value="">선택 안 함</option>
             <option value="계약완료">계약완료</option>
-            <option value="기획안1차공유">기획안 1차 공유</option>
-            <option value="기획안최종컨펌">기획안 최종 컨펌</option>
-            <option value="영상1차공유">영상 1차 공유</option>
-            <option value="영상최종컨펌">영상 최종 컨펌</option>
+            <option value="기획안1차공유">기획안 공유</option>
+            <option value="기획안최종컨펌">기획안 컨펌</option>
+            <option value="영상1차공유">영상 공유</option>
+            <option value="영상최종컨펌">영상 컨펌</option>
             <option value="업로드완료">업로드 완료</option>
           </select>
         </div>
