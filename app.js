@@ -1860,6 +1860,21 @@ function updateMilestone(contentId, status, date) {
 function toggleContentForm(id) {
   const form = document.getElementById('form-' + id);
   const arrow = document.getElementById('arrow-' + id);
+  const isOpening = !form.classList.contains('active');
+
+  // 펼칠 때는 최종(★) 버전이 먼저 보이도록 활성 버전 전환
+  if (isOpening) {
+    const content = contentsData.contents.find(c => c.id === id);
+    const finalVer = content?.script?.finalVersion ?? 0;
+    if (content?.script && content.script.currentVersion !== finalVer) {
+      content.script.currentVersion = finalVer;
+      saveAllData();
+      renderContentList();
+      reopenForm(id);
+      return;
+    }
+  }
+
   form.classList.toggle('active');
   arrow.style.transform = form.classList.contains('active') ? 'rotate(180deg)' : 'rotate(0deg)';
   if (form.classList.contains('active')) requestAnimationFrame(() => { autoResizeAllScriptCells(); attachScriptCellObservers(); });
