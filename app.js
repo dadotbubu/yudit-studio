@@ -59,6 +59,19 @@ function openLinkBtn(url, label = '열기') {
     : `<span class="${base} text-botanical-sage/50 border-botanical-stone cursor-default">${label}</span>`;
 }
 
+// 조회·좋아요 등 큰 숫자를 "1.5K" 형식으로
+function toK(v, empty = '-') {
+  return v ? (v / 1000).toFixed(1) + 'K' : empty;
+}
+
+// "1.5K" / "245" 양쪽 모두 받아 정수로 파싱
+function parseK(raw) {
+  const s = (raw || '').trim();
+  if (s === '' || s === '-') return 0;
+  const num = /^[\d.]+\s*[Kk]$/.test(s) ? parseFloat(s) * 1000 : parseFloat(s);
+  return isNaN(num) ? 0 : Math.round(num);
+}
+
 // 캘린더 항목 표시명 — 연동 콘텐츠의 keywords > title > item.title 순
 function getCalendarItemName(item) {
   if (!item) return '무제';
@@ -1365,18 +1378,7 @@ function renderContentList() {
     const statusStyle = statusColors[content.status] || statusColors['기획중'];
     const isCompleted = content.status === '완료' || content.status === '업로드완료';
     const categoryColor = categoryColors[content.category] || '#8C9A84';
-
-    // 성과 입력 필요 체크 (실제 업로드 마일스톤 기준 + 2주 지남 + 성과 데이터 없음)
-    let needsPerformance = false;
     const uploadedAt = getUploadDate(content);
-    if (uploadedAt && isCompleted) {
-      const uploadDate = new Date(uploadedAt);
-      const twoWeeksLater = new Date(uploadDate);
-      twoWeeksLater.setDate(twoWeeksLater.getDate() + 14);
-      const today = new Date();
-      const hasPerformance = content.performance && (content.performance.views || content.performance.likes || content.performance.saves);
-      needsPerformance = today >= twoWeeksLater && !hasPerformance;
-    }
 
     html += `
       <div class="bg-white rounded-2xl shadow-sm overflow-hidden ${isCompleted ? 'border-l-4 border-botanical-sage' : ''}">
@@ -1516,11 +1518,11 @@ function renderContentForm(content) {
             <div class="grid grid-cols-5 gap-1 text-center">
               <div class="px-2 py-2 rounded-lg bg-botanical-cream/40 border border-botanical-stone/50">
                 <p class="text-[10px] text-botanical-sage">조회</p>
-                <p class="text-xs font-medium">${content.performance.views ? (content.performance.views / 1000).toFixed(1) + 'K' : '-'}</p>
+                <p class="text-xs font-medium">${toK(content.performance.views)}</p>
               </div>
               <div class="px-2 py-2 rounded-lg bg-botanical-cream/40 border border-botanical-stone/50">
                 <p class="text-[10px] text-botanical-sage">좋아요</p>
-                <p class="text-xs font-medium">${content.performance.likes ? (content.performance.likes / 1000).toFixed(1) + 'K' : '-'}</p>
+                <p class="text-xs font-medium">${toK(content.performance.likes)}</p>
               </div>
               <div class="px-2 py-2 rounded-lg bg-botanical-cream/40 border border-botanical-stone/50">
                 <p class="text-[10px] text-botanical-sage">공유</p>
@@ -2470,19 +2472,14 @@ function autoSaveTopField(el, contentId) {
   saveAllData();
 }
 
-// 성과분석 탭에서 성과 셀 입력 저장 ("1.5K" / "245" 모두 허용)
+// 성과분석 탭에서 성과 셀 입력 저장
 function savePerfCell(el, contentId, field) {
   const content = contentsData.contents.find(c => c.id === contentId);
   if (!content) return;
   if (!content.performance) content.performance = {};
-  const raw = (el.value || '').trim();
-  let num;
-  if (raw === '' || raw === '-') num = 0;
-  else if (/^[\d.]+\s*[Kk]$/.test(raw)) num = parseFloat(raw) * 1000;
-  else num = parseFloat(raw);
-  content.performance[field] = isNaN(num) ? 0 : Math.round(num);
+  content.performance[field] = parseK(el.value);
   saveAllData();
-  // 콘텐츠 목록이 열려있으면 상세 폼의 readonly 성과 블록도 갱신
+  // 콘텐츠 상세 폼의 readonly 성과 블록 동기화
   renderContentList();
 }
 
@@ -3082,7 +3079,7 @@ function renderPerformance() {
             <p class="text-xs text-botanical-sage">총 콘텐츠</p>
           </div>
           <div class="text-center">
-            <p class="text-xl font-semibold">${monthPerf.totalViews ? (monthPerf.totalViews / 1000).toFixed(1) + 'K' : 0}</p>
+            <p class="text-xl font-semibold">${toK(monthPerf.totalViews, 0)}</p>
             <p class="text-xs text-botanical-sage">총 조회수</p>
           </div>
           <div class="text-center">
@@ -3149,8 +3146,8 @@ function renderPerformance() {
                     </span>
                   </td>
                   <td class="px-3 py-2 text-center text-botanical-sage">${getUploadDate(c) ? getUploadDate(c).slice(5).replace('-', '/') : '-'}</td>
-                  <td class="px-3 py-2"><input type="text" onchange="savePerfCell(this, ${c.id}, 'views')" value="${c.performance.views ? (c.performance.views / 1000).toFixed(1) + 'K' : ''}" placeholder="-" class="w-full text-center bg-transparent border-b border-transparent hover:border-botanical-stone focus:border-botanical-sage focus:outline-none"></td>
-                  <td class="px-3 py-2"><input type="text" onchange="savePerfCell(this, ${c.id}, 'likes')" value="${c.performance.likes ? (c.performance.likes / 1000).toFixed(1) + 'K' : ''}" placeholder="-" class="w-full text-center bg-transparent border-b border-transparent hover:border-botanical-stone focus:border-botanical-sage focus:outline-none"></td>
+                  <td class="px-3 py-2"><input type="text" onchange="savePerfCell(this, ${c.id}, 'views')" value="${toK(c.performance.views, '')}" placeholder="-" class="w-full text-center bg-transparent border-b border-transparent hover:border-botanical-stone focus:border-botanical-sage focus:outline-none"></td>
+                  <td class="px-3 py-2"><input type="text" onchange="savePerfCell(this, ${c.id}, 'likes')" value="${toK(c.performance.likes, '')}" placeholder="-" class="w-full text-center bg-transparent border-b border-transparent hover:border-botanical-stone focus:border-botanical-sage focus:outline-none"></td>
                   <td class="px-3 py-2"><input type="text" onchange="savePerfCell(this, ${c.id}, 'shares')" value="${c.performance.shares || ''}" placeholder="-" class="w-full text-center bg-transparent border-b border-transparent hover:border-botanical-stone focus:border-botanical-sage focus:outline-none"></td>
                   <td class="px-3 py-2"><input type="text" onchange="savePerfCell(this, ${c.id}, 'comments')" value="${c.performance.comments || ''}" placeholder="-" class="w-full text-center bg-transparent border-b border-transparent hover:border-botanical-stone focus:border-botanical-sage focus:outline-none"></td>
                   <td class="px-3 py-2"><input type="text" onchange="savePerfCell(this, ${c.id}, 'saves')" value="${c.performance.saves || ''}" placeholder="-" class="w-full text-center bg-transparent border-b border-transparent hover:border-botanical-stone focus:border-botanical-sage focus:outline-none"></td>
@@ -3173,8 +3170,8 @@ function renderPerformance() {
                 <span class="text-botanical-sage text-[10px]">${getUploadDate(c) ? getUploadDate(c).slice(5).replace('-', '/') : '-'}</span>
               </div>
               <div class="grid grid-cols-5 gap-1 text-center text-xs">
-                <div><p class="text-[10px] text-botanical-sage mb-0.5">조회</p><input type="text" onchange="savePerfCell(this, ${c.id}, 'views')" value="${c.performance.views ? (c.performance.views / 1000).toFixed(1) + 'K' : ''}" placeholder="-" class="w-full text-center px-1 py-1 rounded border border-botanical-stone focus:border-botanical-sage focus:outline-none"></div>
-                <div><p class="text-[10px] text-botanical-sage mb-0.5">좋아요</p><input type="text" onchange="savePerfCell(this, ${c.id}, 'likes')" value="${c.performance.likes ? (c.performance.likes / 1000).toFixed(1) + 'K' : ''}" placeholder="-" class="w-full text-center px-1 py-1 rounded border border-botanical-stone focus:border-botanical-sage focus:outline-none"></div>
+                <div><p class="text-[10px] text-botanical-sage mb-0.5">조회</p><input type="text" onchange="savePerfCell(this, ${c.id}, 'views')" value="${toK(c.performance.views, '')}" placeholder="-" class="w-full text-center px-1 py-1 rounded border border-botanical-stone focus:border-botanical-sage focus:outline-none"></div>
+                <div><p class="text-[10px] text-botanical-sage mb-0.5">좋아요</p><input type="text" onchange="savePerfCell(this, ${c.id}, 'likes')" value="${toK(c.performance.likes, '')}" placeholder="-" class="w-full text-center px-1 py-1 rounded border border-botanical-stone focus:border-botanical-sage focus:outline-none"></div>
                 <div><p class="text-[10px] text-botanical-sage mb-0.5">공유</p><input type="text" onchange="savePerfCell(this, ${c.id}, 'shares')" value="${c.performance.shares || ''}" placeholder="-" class="w-full text-center px-1 py-1 rounded border border-botanical-stone focus:border-botanical-sage focus:outline-none"></div>
                 <div><p class="text-[10px] text-botanical-sage mb-0.5">댓글</p><input type="text" onchange="savePerfCell(this, ${c.id}, 'comments')" value="${c.performance.comments || ''}" placeholder="-" class="w-full text-center px-1 py-1 rounded border border-botanical-stone focus:border-botanical-sage focus:outline-none"></div>
                 <div><p class="text-[10px] text-botanical-sage mb-0.5">저장</p><input type="text" onchange="savePerfCell(this, ${c.id}, 'saves')" value="${c.performance.saves || ''}" placeholder="-" class="w-full text-center px-1 py-1 rounded border border-botanical-stone focus:border-botanical-sage focus:outline-none"></div>
@@ -3382,7 +3379,7 @@ function renderPerformance() {
                   <tr class="border-t border-botanical-stone ${idx === 0 ? 'bg-botanical-terracotta/5' : ''}">
                     <td class="px-3 py-3 font-medium">${month.slice(5)}월</td>
                     <td class="px-3 py-3 text-center">${data.totalContents || 0}</td>
-                    <td class="px-3 py-3 text-center">${data.totalViews ? (data.totalViews / 1000).toFixed(1) + 'K' : '-'}</td>
+                    <td class="px-3 py-3 text-center">${toK(data.totalViews)}</td>
                     <td class="px-3 py-3 text-center">${data.totalSaves?.toLocaleString() || '-'}</td>
                     <td class="px-3 py-3 text-center">${data.avgSaveRate || 0}%</td>
                     <td class="px-3 py-3 text-center text-green-600">+${(data.followerGain || 0).toLocaleString()}</td>
