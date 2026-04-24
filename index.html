@@ -57,6 +57,10 @@
       min-height: 24px; line-height: 1.5;
       word-break: break-word; white-space: pre-wrap;
     }
+    /* 모바일에서 한글 단어 단위 wrap (글자 중간에 세로로 쪼개지지 않도록) */
+    @media (max-width: 767px) {
+      body { word-break: keep-all; }
+    }
     /* 메모 드래그 드롭 인디케이터 */
     .memo-item.drop-before::before, .memo-item.drop-after::after {
       content: ''; position: absolute; left: 8px; right: 8px; height: 2px;

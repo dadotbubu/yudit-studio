@@ -460,19 +460,19 @@ function renderWeeklyView() {
   startOfWeek.setDate(today.getDate() - ((today.getDay() + 6) % 7));
 
   let html = `
-    <div class="grid grid-cols-7 gap-2 mb-3">
-      <div class="text-center text-sm font-medium text-botanical-sage py-2">월</div>
-      <div class="text-center text-sm font-medium text-botanical-sage py-2">화</div>
-      <div class="text-center text-sm font-medium text-botanical-sage py-2">수</div>
-      <div class="text-center text-sm font-medium text-botanical-sage py-2">목</div>
-      <div class="text-center text-sm font-medium text-botanical-sage py-2">금</div>
-      <div class="text-center text-sm font-medium text-botanical-sage py-2">토</div>
-      <div class="text-center text-sm font-medium text-botanical-terracotta py-2">일</div>
+    <div class="grid grid-cols-7 gap-1 md:gap-2 mb-3">
+      <div class="text-center text-xs md:text-sm font-medium text-botanical-sage py-1 md:py-2">월</div>
+      <div class="text-center text-xs md:text-sm font-medium text-botanical-sage py-1 md:py-2">화</div>
+      <div class="text-center text-xs md:text-sm font-medium text-botanical-sage py-1 md:py-2">수</div>
+      <div class="text-center text-xs md:text-sm font-medium text-botanical-sage py-1 md:py-2">목</div>
+      <div class="text-center text-xs md:text-sm font-medium text-botanical-sage py-1 md:py-2">금</div>
+      <div class="text-center text-xs md:text-sm font-medium text-botanical-sage py-1 md:py-2">토</div>
+      <div class="text-center text-xs md:text-sm font-medium text-botanical-terracotta py-1 md:py-2">일</div>
     </div>
   `;
 
   // This week
-  html += '<div class="grid grid-cols-7 gap-2 mb-3">';
+  html += '<div class="grid grid-cols-7 gap-1 md:gap-2 mb-3">';
   for (let i = 0; i < 7; i++) {
     const d = new Date(startOfWeek);
     d.setDate(startOfWeek.getDate() + i);
@@ -481,7 +481,7 @@ function renderWeeklyView() {
   html += '</div>';
 
   // Next week
-  html += '<div class="grid grid-cols-7 gap-2">';
+  html += '<div class="grid grid-cols-7 gap-1 md:gap-2">';
   for (let i = 7; i < 14; i++) {
     const d = new Date(startOfWeek);
     d.setDate(startOfWeek.getDate() + i);
@@ -514,7 +514,7 @@ function renderWeeklyCell(date, today) {
     ? `${date.getMonth() + 1}/${date.getDate()}`
     : date.getDate();
 
-  let cellClass = 'h-44 p-3 rounded-xl cursor-pointer transition-all';
+  let cellClass = 'min-h-[3rem] md:h-44 p-1 md:p-3 rounded-lg md:rounded-xl text-xs md:text-sm cursor-pointer transition-all';
 
   if (isToday) {
     cellClass += ' bg-botanical-fg text-white';
@@ -529,7 +529,16 @@ function renderWeeklyCell(date, today) {
     cellClass += ' hover:bg-botanical-cream';
   }
 
-  let itemsHtml = items.slice(0, 3).map(item => `
+  // Mobile: dots only (max 3 + +N)
+  const dotVisible = items.slice(0, 3);
+  const dotExtra = items.length - dotVisible.length;
+  const dotsHtml = dotVisible.map(item =>
+    `<span class="inline-block w-1.5 h-1.5 rounded-full shrink-0" style="background-color: ${isToday ? 'white' : (categoryColors[item.category] || '#8C9A84')};"></span>`
+  ).join('');
+  const dotExtraHtml = dotExtra > 0 ? `<span class="text-[9px] leading-none ${isToday ? 'opacity-70' : 'text-botanical-sage'}">+${dotExtra}</span>` : '';
+
+  // PC: full text (기존)
+  const pcItemsHtml = items.slice(0, 3).map(item => `
     <div class="mt-2 text-xs ${isToday ? 'font-normal' : ''}">
       <p class="flex items-start gap-1">
         <span class="w-1.5 h-1.5 rounded-full mt-1 shrink-0" style="background-color: ${isToday ? 'white' : categoryColors[item.category] || '#8C9A84'};"></span>
@@ -538,6 +547,11 @@ function renderWeeklyCell(date, today) {
       <p class="ml-2.5 ${isToday ? 'opacity-70' : (item.type === '광고' ? 'text-botanical-terracotta' : 'text-botanical-sage')}">${statusText(item.status)}</p>
     </div>
   `).join('');
+
+  const itemsHtml = items.length > 0 ? `
+    <div class="md:hidden flex items-center gap-1 mt-1 flex-wrap">${dotsHtml}${dotExtraHtml}</div>
+    <div class="hidden md:block">${pcItemsHtml}</div>
+  ` : '';
 
   return `
     <div class="${cellClass}">
@@ -1227,8 +1241,8 @@ function renderContentList() {
   const contentCount = filteredContents.length;
 
   let html = `
-    <div class="flex items-center justify-between mb-6">
-      <div class="flex items-center gap-4">
+    <div class="flex flex-wrap items-center justify-between gap-3 mb-6">
+      <div class="flex flex-wrap items-center gap-2 md:gap-4">
         <select id="content-month-select" onchange="filterContentByMonth()" class="px-4 py-2 pr-8 rounded-full border border-botanical-stone bg-white text-sm focus:outline-none appearance-none bg-no-repeat" style="background-image: url('data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%2712%27 height=%2712%27 viewBox=%270 0 24 24%27 fill=%27none%27 stroke=%27%238C9A84%27 stroke-width=%272%27%3E%3Cpath d=%27m6 9 6 6 6-6%27/%3E%3C/svg%3E'); background-position: right 12px center;">
           <option value="2026-04">2026년 4월</option>
           <option value="2026-03">2026년 3월</option>
@@ -1247,7 +1261,7 @@ function renderContentList() {
       </div>
     </div>
 
-    <div class="bg-botanical-cream/50 rounded-xl px-5 py-3 mb-4">
+    <div class="hidden md:block bg-botanical-cream/50 rounded-xl px-5 py-3 mb-4">
       <div class="flex items-center gap-3 text-sm font-medium text-botanical-sage">
         <span class="w-20 shrink-0">카테고리</span>
         <span class="w-24 shrink-0">상태</span>
@@ -1529,7 +1543,7 @@ function renderContentForm(content) {
             <tbody>
               ${content.category === '광고' ? `
               <tr class="border-b border-botanical-stone">
-                <td class="px-4 py-3 bg-botanical-cream/40 font-medium w-40 align-middle">소득 구분</td>
+                <td class="px-2 md:px-4 py-2 md:py-3 bg-botanical-cream/40 font-medium w-24 md:w-40 text-xs md:text-sm break-keep align-middle">소득 구분</td>
                 <td class="px-4 py-2">
                   <select oninput="updateAdInfo(${content.id}, 'incomeType', this.value); syncRevenueFromContent(contentsData.contents.find(c => c.id === ${content.id}));" class="w-60 px-3 rounded-lg border border-botanical-stone text-sm focus:outline-none bg-white" style="height:38px;">
                     <option value="etc" ${(content.adInfo?.incomeType ?? 'etc') === 'etc' ? 'selected' : ''}>기타소득</option>
@@ -1568,7 +1582,7 @@ function renderContentForm(content) {
               </tr>
               ` : content.category === '판매' ? `
               <tr class="border-b border-botanical-stone">
-                <td class="px-4 py-3 bg-botanical-cream/40 font-medium w-40 align-middle">판매 상품명</td>
+                <td class="px-2 md:px-4 py-2 md:py-3 bg-botanical-cream/40 font-medium w-24 md:w-40 text-xs md:text-sm break-keep align-middle">판매 상품명</td>
                 <td class="px-4 py-2">
                   <input type="text" value="${content.adInfo?.productName || ''}" oninput="updateAdInfo(${content.id}, 'productName', this.value)" placeholder="상품명 입력" class="w-full px-3 rounded-lg border border-botanical-stone text-sm focus:outline-none" style="height:38px;">
                 </td>
@@ -1584,7 +1598,7 @@ function renderContentForm(content) {
               </tr>
               ` : `
               <tr class="border-b border-botanical-stone">
-                <td class="px-4 py-3 bg-botanical-cream/40 font-medium w-40 align-middle">협찬 상품명</td>
+                <td class="px-2 md:px-4 py-2 md:py-3 bg-botanical-cream/40 font-medium w-24 md:w-40 text-xs md:text-sm break-keep align-middle">협찬 상품명</td>
                 <td class="px-4 py-2">
                   <input type="text" value="${content.adInfo?.productName || ''}" oninput="updateAdInfo(${content.id}, 'productName', this.value)" placeholder="협찬 받은 상품명" class="w-full px-3 rounded-lg border border-botanical-stone text-sm focus:outline-none" style="height:38px;">
                 </td>
@@ -1675,8 +1689,8 @@ function renderContentForm(content) {
                 ['reason', '잘 터진 이유 (정보 / 공감 / 유머 등)', 'textarea', ''],
               ].map(([field, label, type, ph], i, arr) => `
                 <tr${i < arr.length - 1 ? ' class="border-b border-botanical-stone"' : ''}>
-                  <td class="px-4 py-3 bg-botanical-cream/30 font-medium w-1/3 align-top">${label}</td>
-                  <td class="px-4 py-3">${
+                  <td class="px-2 md:px-4 py-2 md:py-3 bg-botanical-cream/30 font-medium w-28 md:w-1/3 text-xs md:text-sm break-keep align-top">${label}</td>
+                  <td class="px-2 md:px-4 py-2 md:py-3 text-xs md:text-sm">${
                     type === 'textarea'
                       ? `<textarea rows="1" oninput="autoResize(this);updateReference(${content.id}, '${field}', this.value)" placeholder="${ph}" class="auto-grow w-full bg-transparent focus:outline-none resize-none overflow-hidden leading-relaxed" style="min-height: 24px;">${content.reference?.[field] ?? ''}</textarea>`
                       : type === 'url'
@@ -3045,13 +3059,13 @@ function renderPerformance() {
 
         <!-- 팔로워 입력 -->
         <div class="p-4 bg-botanical-cream/30 rounded-xl mb-4 border border-botanical-stone">
-          <div class="flex items-center justify-between">
-            <div class="flex items-center gap-4">
-              <span class="text-sm font-medium">팔로워 입력</span>
+          <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+            <div class="flex flex-wrap items-center gap-2 md:gap-4">
+              <span class="text-sm font-medium whitespace-nowrap">팔로워 입력</span>
               <input type="date" id="follower-date" value="${today}" class="px-3 py-1.5 rounded-lg border border-botanical-stone bg-white text-sm focus:outline-none focus:border-botanical-sage">
               <input type="number" id="follower-count" placeholder="팔로워 수" class="w-32 px-3 py-1.5 rounded-lg border border-botanical-stone bg-white text-sm focus:outline-none focus:border-botanical-sage">
             </div>
-            <button onclick="saveFollowerCount()" class="px-4 py-1.5 bg-botanical-sage text-white rounded-lg text-sm font-medium hover:bg-botanical-fg transition-all">저장</button>
+            <button onclick="saveFollowerCount()" class="px-4 py-1.5 bg-botanical-sage text-white rounded-lg text-sm font-medium hover:bg-botanical-fg transition-all self-start md:self-auto whitespace-nowrap">저장</button>
           </div>
         </div>
 
@@ -3059,7 +3073,7 @@ function renderPerformance() {
         <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
           <div class="p-4 bg-botanical-sage/10 rounded-xl text-center">
             <p class="text-2xl font-semibold text-botanical-fg">${currentFollowerCount.toLocaleString()}</p>
-            <p class="text-xs text-botanical-sage">${todayHasEntry ? '오늘 팔로워' : (latestDateStr ? `${latestDateStr} 기준` : '팔로워 수')}</p>
+            <p class="text-xs text-botanical-sage break-keep">${todayHasEntry ? '오늘 팔로워' : (latestDateStr ? `${latestDateStr} 기준` : '팔로워 수')}</p>
           </div>
           <div class="p-4 bg-botanical-cream/30 rounded-xl text-center">
             <p class="text-2xl font-semibold ${todayChange > 0 ? 'text-green-600' : (todayChange < 0 ? 'text-red-500' : 'text-botanical-sage')}">${todayChange > 0 ? '+' : ''}${todayChange.toLocaleString()}</p>
