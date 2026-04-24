@@ -1446,9 +1446,9 @@ function renderContentForm(content) {
   const colScene = colW.scene ?? 180;
 
   return `
-    <div class="p-6 space-y-6">
+    <div class="p-2 md:p-6 space-y-3 md:space-y-6">
       <!-- 상단 정보 수정 영역 -->
-      <div class="p-4 bg-botanical-cream/30 rounded-xl space-y-4" id="top-info-${content.id}">
+      <div class="p-3 md:p-4 bg-botanical-cream/30 rounded-xl space-y-3 md:space-y-4" id="top-info-${content.id}">
         <div class="flex items-center justify-between">
           <div class="flex items-center gap-2">
             <p class="text-sm font-semibold text-botanical-fg">기본 정보</p>
@@ -1539,52 +1539,52 @@ function renderContentForm(content) {
         </div>
 
         <!-- 일정 (캘린더 연동) -->
-        <div class="border-t border-botanical-stone pt-4 mt-4">
-          <p class="text-sm font-medium mb-3">일정 (캘린더 연동)</p>
+        <div class="border-t border-botanical-stone pt-3 md:pt-4 mt-3 md:mt-4">
+          <p class="text-sm font-medium mb-2 md:mb-3">일정 (캘린더 연동)</p>
           ${content.isRevenue ? `
-          <div class="grid grid-cols-2 md:grid-cols-3 gap-3">
+          <div class="grid grid-cols-2 md:grid-cols-3 gap-2 md:gap-3">
             <div>
               <label class="text-xs text-botanical-sage block mb-1">계약완료</label>
-              <input type="date" id="milestone-${content.id}-contract" value="${getMilestoneDate(content, '계약완료')}" oninput="updateMilestone(${content.id}, '계약완료', this.value)" class="w-full px-3 py-2 rounded-lg border border-botanical-stone text-sm focus:outline-none">
+              <input type="date" id="milestone-${content.id}-contract" value="${getMilestoneDate(content, '계약완료')}" oninput="updateMilestone(${content.id}, '계약완료', this.value)" class="w-full px-2 md:px-3 py-1.5 md:py-2 rounded-lg border border-botanical-stone text-xs md:text-sm focus:outline-none">
             </div>
             <div>
               <label class="text-xs text-botanical-sage block mb-1">기획안 공유</label>
-              <input type="date" id="milestone-${content.id}-plan1" value="${getMilestoneDate(content, '기획안1차공유')}" oninput="updateMilestone(${content.id}, '기획안1차공유', this.value)" class="w-full px-3 py-2 rounded-lg border border-botanical-stone text-sm focus:outline-none">
+              <input type="date" id="milestone-${content.id}-plan1" value="${getMilestoneDate(content, '기획안1차공유')}" oninput="updateMilestone(${content.id}, '기획안1차공유', this.value)" class="w-full px-2 md:px-3 py-1.5 md:py-2 rounded-lg border border-botanical-stone text-xs md:text-sm focus:outline-none">
             </div>
             <div>
               <label class="text-xs text-botanical-sage block mb-1">기획안 컨펌</label>
-              <input type="date" id="milestone-${content.id}-planfinal" value="${getMilestoneDate(content, '기획안최종컨펌')}" oninput="updateMilestone(${content.id}, '기획안최종컨펌', this.value)" class="w-full px-3 py-2 rounded-lg border border-botanical-stone text-sm focus:outline-none">
+              <input type="date" id="milestone-${content.id}-planfinal" value="${getMilestoneDate(content, '기획안최종컨펌')}" oninput="updateMilestone(${content.id}, '기획안최종컨펌', this.value)" class="w-full px-2 md:px-3 py-1.5 md:py-2 rounded-lg border border-botanical-stone text-xs md:text-sm focus:outline-none">
             </div>
             <div>
               <label class="text-xs text-botanical-sage block mb-1">영상 공유</label>
-              <input type="date" id="milestone-${content.id}-video1" value="${getMilestoneDate(content, '영상1차공유')}" oninput="updateMilestone(${content.id}, '영상1차공유', this.value)" class="w-full px-3 py-2 rounded-lg border border-botanical-stone text-sm focus:outline-none">
+              <input type="date" id="milestone-${content.id}-video1" value="${getMilestoneDate(content, '영상1차공유')}" oninput="updateMilestone(${content.id}, '영상1차공유', this.value)" class="w-full px-2 md:px-3 py-1.5 md:py-2 rounded-lg border border-botanical-stone text-xs md:text-sm focus:outline-none">
             </div>
             <div>
               <label class="text-xs text-botanical-sage block mb-1">영상 컨펌</label>
-              <input type="date" id="milestone-${content.id}-videofinal" value="${getMilestoneDate(content, '영상최종컨펌')}" oninput="updateMilestone(${content.id}, '영상최종컨펌', this.value)" class="w-full px-3 py-2 rounded-lg border border-botanical-stone text-sm focus:outline-none">
+              <input type="date" id="milestone-${content.id}-videofinal" value="${getMilestoneDate(content, '영상최종컨펌')}" oninput="updateMilestone(${content.id}, '영상최종컨펌', this.value)" class="w-full px-2 md:px-3 py-1.5 md:py-2 rounded-lg border border-botanical-stone text-xs md:text-sm focus:outline-none">
             </div>
             <div>
               <label class="text-xs text-botanical-sage block mb-1">업로드 완료</label>
-              <input type="date" id="milestone-${content.id}-upload" value="${getMilestoneDate(content, '업로드완료')}" oninput="updateMilestone(${content.id}, '업로드완료', this.value)" class="w-full px-3 py-2 rounded-lg border border-botanical-stone text-sm focus:outline-none">
+              <input type="date" id="milestone-${content.id}-upload" value="${getMilestoneDate(content, '업로드완료')}" oninput="updateMilestone(${content.id}, '업로드완료', this.value)" class="w-full px-2 md:px-3 py-1.5 md:py-2 rounded-lg border border-botanical-stone text-xs md:text-sm focus:outline-none">
             </div>
           </div>
           ` : `
-          <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <div class="grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-3">
             <div>
               <label class="text-xs text-botanical-sage block mb-1">아이디어</label>
-              <input type="date" id="milestone-${content.id}-idea" value="${getMilestoneDate(content, '아이디어')}" oninput="updateMilestone(${content.id}, '아이디어', this.value)" class="w-full px-3 py-2 rounded-lg border border-botanical-stone text-sm focus:outline-none">
+              <input type="date" id="milestone-${content.id}-idea" value="${getMilestoneDate(content, '아이디어')}" oninput="updateMilestone(${content.id}, '아이디어', this.value)" class="w-full px-2 md:px-3 py-1.5 md:py-2 rounded-lg border border-botanical-stone text-xs md:text-sm focus:outline-none">
             </div>
             <div>
               <label class="text-xs text-botanical-sage block mb-1">기획중</label>
-              <input type="date" id="milestone-${content.id}-planning" value="${getMilestoneDate(content, '기획중')}" oninput="updateMilestone(${content.id}, '기획중', this.value)" class="w-full px-3 py-2 rounded-lg border border-botanical-stone text-sm focus:outline-none">
+              <input type="date" id="milestone-${content.id}-planning" value="${getMilestoneDate(content, '기획중')}" oninput="updateMilestone(${content.id}, '기획중', this.value)" class="w-full px-2 md:px-3 py-1.5 md:py-2 rounded-lg border border-botanical-stone text-xs md:text-sm focus:outline-none">
             </div>
             <div>
               <label class="text-xs text-botanical-sage block mb-1">제작중</label>
-              <input type="date" id="milestone-${content.id}-production" value="${getMilestoneDate(content, '제작중')}" oninput="updateMilestone(${content.id}, '제작중', this.value)" class="w-full px-3 py-2 rounded-lg border border-botanical-stone text-sm focus:outline-none">
+              <input type="date" id="milestone-${content.id}-production" value="${getMilestoneDate(content, '제작중')}" oninput="updateMilestone(${content.id}, '제작중', this.value)" class="w-full px-2 md:px-3 py-1.5 md:py-2 rounded-lg border border-botanical-stone text-xs md:text-sm focus:outline-none">
             </div>
             <div>
               <label class="text-xs text-botanical-sage block mb-1">업로드 완료</label>
-              <input type="date" id="milestone-${content.id}-upload" value="${getMilestoneDate(content, '업로드완료')}" oninput="updateMilestone(${content.id}, '업로드완료', this.value)" class="w-full px-3 py-2 rounded-lg border border-botanical-stone text-sm focus:outline-none">
+              <input type="date" id="milestone-${content.id}-upload" value="${getMilestoneDate(content, '업로드완료')}" oninput="updateMilestone(${content.id}, '업로드완료', this.value)" class="w-full px-2 md:px-3 py-1.5 md:py-2 rounded-lg border border-botanical-stone text-xs md:text-sm focus:outline-none">
             </div>
           </div>
           `}
@@ -1593,7 +1593,7 @@ function renderContentForm(content) {
 
       <!-- 1. 레퍼런스 분석 (일반) / 광고·판매·협찬 상세 (수익) -->
       ${content.isRevenue ? `
-      <div class="border border-botanical-stone rounded-xl p-5">
+      <div class="md:border md:border-botanical-stone md:rounded-xl p-0 md:p-5">
         <div class="flex items-center justify-between mb-4">
           <h3 class="font-medium flex items-center gap-2">
             <span class="w-6 h-6 rounded-full bg-botanical-sage/20 text-botanical-sage text-xs flex items-center justify-center">1</span>
@@ -1708,8 +1708,8 @@ function renderContentForm(content) {
         </div>
       </div>
       ` : `
-      <div class="border border-botanical-stone rounded-xl p-5">
-        <div class="flex items-center justify-between mb-4">
+      <div class="md:border md:border-botanical-stone md:rounded-xl p-0 md:p-5">
+        <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-2 md:gap-0 mb-4">
           <h3 class="font-medium flex items-center gap-2">
             <span class="w-6 h-6 rounded-full bg-botanical-sage/20 text-botanical-sage text-xs flex items-center justify-center">1</span>
             레퍼런스 분석
@@ -1753,7 +1753,7 @@ function renderContentForm(content) {
                 ['reason', '잘 터진 이유 (정보 / 공감 / 유머 등)', 'textarea', ''],
               ].map(([field, label, type, ph], i, arr) => `
                 <tr${i < arr.length - 1 ? ' class="border-b border-botanical-stone"' : ''}>
-                  <td class="px-2 md:px-4 py-2 md:py-3 bg-botanical-cream/30 font-medium w-32 md:w-1/3 text-[11px] md:text-sm leading-tight md:leading-normal break-keep align-top">${label}</td>
+                  <td class="px-2 md:px-4 py-2 md:py-3 bg-botanical-cream/30 font-medium w-36 md:w-1/3 text-[10px] md:text-sm leading-tight md:leading-normal break-keep align-top">${label}</td>
                   <td class="px-2 md:px-4 py-2 md:py-3 text-xs md:text-sm">${
                     type === 'textarea'
                       ? `<textarea rows="1" oninput="autoResize(this);updateReference(${content.id}, '${field}', this.value)" placeholder="${ph}" class="auto-grow w-full bg-transparent focus:outline-none resize-none overflow-hidden leading-relaxed break-words" style="min-height: 24px; word-break: break-word;">${content.reference?.[field] ?? ''}</textarea>`
@@ -1779,10 +1779,10 @@ function renderContentForm(content) {
           </div>
           <div id="notion-links-${content.id}" class="space-y-2">
             ${(content.notionLinks && content.notionLinks.length > 0 ? content.notionLinks : ['']).map((link, idx) => `
-              <div class="flex gap-2">
-                <input type="text" value="${link}" oninput="updateNotionLink(${content.id}, ${idx}, this.value)" placeholder="노션 링크 (분석 자료)" class="flex-1 px-4 py-2 rounded-lg border border-botanical-stone text-sm focus:outline-none focus:border-botanical-sage">
+              <div class="flex gap-2 items-center">
+                <input type="text" value="${link}" oninput="updateNotionLink(${content.id}, ${idx}, this.value)" placeholder="노션 링크 (분석 자료)" class="flex-1 min-w-0 px-3 md:px-4 py-2 rounded-lg border border-botanical-stone text-sm focus:outline-none focus:border-botanical-sage">
                 ${openLinkBtn(link)}
-                ${idx > 0 ? `<button onclick="removeNotionLink(${content.id}, ${idx})" class="px-2 py-1 text-xs text-red-400 border border-red-200 rounded-lg hover:bg-red-50 transition-all">삭제</button>` : ''}
+                ${idx > 0 ? `<button onclick="removeNotionLink(${content.id}, ${idx})" class="shrink-0 px-2 py-1 text-xs text-red-400 border border-red-200 rounded-lg hover:bg-red-50 transition-all">삭제</button>` : ''}
               </div>
             `).join('')}
           </div>
@@ -1791,14 +1791,14 @@ function renderContentForm(content) {
       `}
 
       <!-- 2. 촬영 및 대본 -->
-      <div class="border border-botanical-stone rounded-xl p-5">
-        <div class="flex items-center justify-between mb-4">
+      <div class="md:border md:border-botanical-stone md:rounded-xl p-0 md:p-5">
+        <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-2 md:gap-0 mb-4">
           <h3 class="font-medium flex items-center gap-2">
             <span class="w-6 h-6 rounded-full bg-botanical-sage/20 text-botanical-sage text-xs flex items-center justify-center">2</span>
             촬영 및 대본 (20초 미만~최대 30초)
-            <button onclick="saveCheckpoint(${content.id}, '촬영및대본', this)" title="체크포인트 저장" class="ml-2 px-3 py-1 bg-botanical-fg text-white rounded-lg text-xs font-medium hover:bg-botanical-fg/90 transition-all">저장</button>
           </h3>
           <div class="flex gap-2 items-center flex-wrap">
+            <button onclick="saveCheckpoint(${content.id}, '촬영및대본', this)" title="체크포인트 저장" class="px-3 py-1 bg-botanical-fg text-white rounded-lg text-xs font-medium hover:bg-botanical-fg/90 transition-all">저장</button>
             ${scriptVersions.map((_, i) => {
               const isActive = i === currentVer;
               const canDelete = scriptVersions.length > 1;
@@ -1834,12 +1834,12 @@ function renderContentForm(content) {
         </div>
 
         <div class="mb-4">
-          <label class="text-sm font-medium mb-2 block">썸네일 제목 <span class="text-xs text-botanical-sage font-normal">(버전별 / 현재 버전 제목이 목록·캘린더에 표시됨)</span></label>
+          <label class="text-sm font-medium mb-2 block">썸네일 제목 <span class="text-xs text-botanical-sage font-normal block md:inline mt-0.5 md:mt-0">(버전별 / 현재 버전 제목이 목록·캘린더에 표시됨)</span></label>
           <input type="text" value="${scriptVersions[currentVer]?.title ?? content.title ?? ''}" oninput="updateContentTitle(${content.id}, this.value)" placeholder="V${currentVer+1} 썸네일 제목 입력" class="w-full px-4 py-2 rounded-lg border border-botanical-stone text-sm focus:outline-none focus:border-botanical-sage">
         </div>
 
         <div class="mb-4">
-          <div class="flex items-center justify-between mb-3">
+          <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-2 md:gap-0 mb-3">
             <div class="flex items-center gap-2">
               <p class="text-sm font-medium text-botanical-terracotta">대본 작성</p>
               ${(() => {
@@ -1847,7 +1847,7 @@ function renderContentForm(content) {
                 return `<button onclick="setFinalVersion(${content.id}, ${currentVer})" title="현재 V${currentVer+1}을 최종으로 지정 (목록·캘린더에 이 버전 제목 표시)" class="px-3 py-1 rounded-full text-xs transition-all ${isFinal ? 'bg-amber-400 text-white' : 'border border-botanical-stone text-botanical-sage hover:bg-amber-50 hover:text-amber-600'}">${isFinal ? '✓ 최종' : '최종'}</button>`;
               })()}
             </div>
-            <div class="flex gap-2 flex-wrap justify-end">
+            <div class="flex gap-2 flex-wrap md:justify-end">
               <button onclick="copyScript(${content.id}, 'dialogue')" class="px-3 py-1 rounded-full text-xs border border-botanical-stone hover:bg-botanical-cream transition-all">대사 복사</button>
               <button onclick="copyScript(${content.id}, 'subtitle')" class="px-3 py-1 rounded-full text-xs border border-botanical-stone hover:bg-botanical-cream transition-all">자막 복사</button>
               <button onclick="copyScriptAll(${content.id})" class="px-3 py-1 rounded-full text-xs border border-botanical-sage bg-botanical-sage/10 text-botanical-sage hover:bg-botanical-sage hover:text-white transition-all">전체 복사</button>
@@ -1889,8 +1889,8 @@ function renderContentForm(content) {
       </div>
 
       <!-- 3. 캡션 -->
-      <div class="border border-botanical-stone rounded-xl p-5">
-        <div class="flex items-center justify-between mb-4">
+      <div class="md:border md:border-botanical-stone md:rounded-xl p-0 md:p-5">
+        <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-2 md:gap-0 mb-4">
           <h3 class="font-medium flex items-center gap-2">
             <span class="w-6 h-6 rounded-full bg-botanical-sage/20 text-botanical-sage text-xs flex items-center justify-center">3</span>
             캡션 작성
@@ -1904,8 +1904,8 @@ function renderContentForm(content) {
       </div>
 
       <!-- 4. 공유 링크 + DM 자동 답변 -->
-      <div class="border border-botanical-stone rounded-xl p-5">
-        <div class="flex items-center justify-between mb-4">
+      <div class="md:border md:border-botanical-stone md:rounded-xl p-0 md:p-5">
+        <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-2 md:gap-0 mb-4">
           <h3 class="font-medium flex items-center gap-2">
             <span class="w-6 h-6 rounded-full bg-botanical-sage/20 text-botanical-sage text-xs flex items-center justify-center">4</span>
             공유 링크 & DM 답변
