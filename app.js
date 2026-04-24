@@ -1148,6 +1148,22 @@ function goToContentExpanded(contentId) {
   }, 100);
 }
 
+function goToPerformance(contentId) {
+  switchTab('performance');
+  setTimeout(() => {
+    if (contentId) {
+      const row = document.querySelector(`[data-perf-row="${contentId}"]`);
+      if (row) {
+        row.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        row.classList.add('ring-2', 'ring-botanical-terracotta', 'bg-botanical-terracotta/10');
+        setTimeout(() => row.classList.remove('ring-2', 'ring-botanical-terracotta', 'bg-botanical-terracotta/10'), 2200);
+      }
+    } else {
+      document.getElementById('performance-tab')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  }, 150);
+}
+
 // ========== Dashboard ==========
 function renderDashboard() {
   // 현재 월 기준 업로드완료 콘텐츠만 카운트 (업로드 날짜는 마일스톤 기준)
@@ -1323,13 +1339,8 @@ function renderContentList() {
         <span class="w-24 shrink-0">상태</span>
         <span class="w-14 shrink-0">타입</span>
         <span class="flex-1 min-w-0">콘텐츠 제목</span>
-        <span class="w-12 shrink-0 text-center">업로드</span>
-        <span class="w-10 shrink-0 text-center">URL</span>
-        <span class="w-14 shrink-0 text-center">조회</span>
-        <span class="w-12 shrink-0 text-center">좋아요</span>
-        <span class="w-10 shrink-0 text-center">공유</span>
-        <span class="w-10 shrink-0 text-center">댓글</span>
-        <span class="w-10 shrink-0 text-center">저장</span>
+        <span class="w-16 shrink-0 text-center">업로드</span>
+        <span class="w-12 shrink-0 text-center">URL</span>
         <span class="w-5 shrink-0"></span>
       </div>
     </div>
@@ -1370,41 +1381,27 @@ function renderContentList() {
     html += `
       <div class="bg-white rounded-2xl shadow-sm overflow-hidden ${isCompleted ? 'border-l-4 border-botanical-sage' : ''}">
         <div onclick="toggleContentForm(${content.id})" class="px-3 md:px-5 py-3 md:py-4 cursor-pointer hover:bg-botanical-cream/30 transition-all">
-          <!-- Mobile: 3-row stack -->
+          <!-- Mobile: 2-row stack (업로드/URL까지만, 성과 제거) -->
           <div class="md:hidden space-y-1.5">
             <div class="flex items-center gap-2 text-xs flex-wrap">
               <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full flex-shrink-0" style="background-color: ${categoryColor};"></span><span class="text-botanical-sage">${content.category}</span></span>
               <span class="px-2 py-0.5 rounded-full text-[10px] whitespace-nowrap" style="background-color: ${statusStyle.bg}; color: ${statusStyle.text};">${statusText(content.status)}</span>
               <span class="px-2 py-0.5 rounded-full text-[10px] font-medium whitespace-nowrap bg-botanical-sage/20 text-botanical-sage">${content.type}</span>
-              <span class="ml-auto text-botanical-sage text-[10px]">${uploadedAt ? uploadedAt.slice(5).replace('-', '/') : '-'}</span>
+              <span class="ml-auto text-botanical-sage text-[10px]">업로드 ${uploadedAt ? uploadedAt.slice(5).replace('-', '/') : '-'}</span>
             </div>
             <div class="flex items-center gap-2">
               <span data-content-title="${content.id}" class="text-base font-medium flex-1 min-w-0 truncate">${content.title || '무제'}</span>
-              ${needsPerformance ? '<span class="text-sm shrink-0" title="성과 입력 필요">🔔</span>' : ''}
-            </div>
-            <div class="flex flex-wrap gap-x-3 gap-y-1 text-[11px] text-botanical-sage">
-              <span>업로드 <span class="${isCompleted ? 'text-botanical-fg' : ''}">${uploadedAt ? uploadedAt.slice(5).replace('-', '/') : '-'}</span></span>
-              <span>URL <span>${content.url ? `<a href="${content.url}" target="_blank" class="text-blue-500 underline" onclick="event.stopPropagation()">링크</a>` : '-'}</span></span>
-              <span>조회 <span class="${isCompleted ? 'font-semibold text-botanical-fg' : ''}">${content.performance.views ? (content.performance.views / 1000).toFixed(1) + 'K' : '-'}</span></span>
-              <span>좋아요 <span class="${isCompleted ? 'text-botanical-fg' : ''}">${content.performance.likes ? (content.performance.likes / 1000).toFixed(1) + 'K' : '-'}</span></span>
-              <span>공유 <span class="${isCompleted ? 'text-botanical-fg' : ''}">${content.performance.shares || '-'}</span></span>
-              <span>댓글 <span class="${isCompleted ? 'text-botanical-fg' : ''}">${content.performance.comments || '-'}</span></span>
-              <span>저장 <span class="${isCompleted ? 'font-semibold text-botanical-terracotta' : ''}">${content.performance.saves || '-'}</span></span>
+              ${content.url ? `<a href="${content.url}" target="_blank" class="text-[11px] text-blue-500 underline shrink-0" onclick="event.stopPropagation()">링크</a>` : ''}
             </div>
           </div>
-          <!-- PC: single-row (기존 유지) -->
+          <!-- PC: single-row (업로드/URL까지만, 성과 제거) -->
           <div class="hidden md:flex items-center gap-3 text-sm">
             <span class="w-20 shrink-0"><span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full flex-shrink-0" style="background-color: ${categoryColor};"></span><span class="text-xs text-botanical-sage truncate">${content.category}</span></span></span>
             <span class="w-24 shrink-0"><span class="px-2 py-1 rounded-full text-xs whitespace-nowrap" style="background-color: ${statusStyle.bg}; color: ${statusStyle.text};">${statusText(content.status)}</span></span>
             <span class="w-14 shrink-0"><span class="px-2 py-1 rounded-full text-xs font-medium whitespace-nowrap bg-botanical-sage/20 text-botanical-sage">${content.type}</span></span>
-            <span class="font-medium flex-1 min-w-0 flex items-center gap-2"><span data-content-title="${content.id}" class="truncate">${content.title || '무제'}</span>${needsPerformance ? '<span class="text-sm shrink-0" title="성과 입력 필요">🔔</span>' : ''}</span>
-            <span class="w-12 shrink-0 text-botanical-sage text-xs text-center" data-upload-cell="${content.id}">${uploadedAt ? uploadedAt.slice(5).replace('-', '/') : '-'}</span>
-            <span class="w-10 shrink-0 text-xs text-center">${content.url ? `<a href="${content.url}" target="_blank" class="text-blue-500 underline" onclick="event.stopPropagation()">링크</a>` : '<span class="text-botanical-sage">-</span>'}</span>
-            <span class="w-14 shrink-0 text-xs text-center ${isCompleted ? 'font-semibold' : 'text-botanical-sage'}">${content.performance.views ? (content.performance.views / 1000).toFixed(1) + 'K' : '-'}</span>
-            <span class="w-12 shrink-0 text-xs text-center ${isCompleted ? '' : 'text-botanical-sage'}">${content.performance.likes ? (content.performance.likes / 1000).toFixed(1) + 'K' : '-'}</span>
-            <span class="w-10 shrink-0 text-xs text-center ${isCompleted ? '' : 'text-botanical-sage'}">${content.performance.shares || '-'}</span>
-            <span class="w-10 shrink-0 text-xs text-center ${isCompleted ? '' : 'text-botanical-sage'}">${content.performance.comments || '-'}</span>
-            <span class="w-10 shrink-0 text-xs text-center ${isCompleted ? 'font-semibold text-botanical-terracotta' : 'text-botanical-sage'}">${content.performance.saves || '-'}</span>
+            <span class="font-medium flex-1 min-w-0"><span data-content-title="${content.id}" class="truncate block">${content.title || '무제'}</span></span>
+            <span class="w-16 shrink-0 text-botanical-sage text-xs text-center" data-upload-cell="${content.id}">${uploadedAt ? uploadedAt.slice(5).replace('-', '/') : '-'}</span>
+            <span class="w-12 shrink-0 text-xs text-center">${content.url ? `<a href="${content.url}" target="_blank" class="text-blue-500 underline" onclick="event.stopPropagation()">링크</a>` : '<span class="text-botanical-sage">-</span>'}</span>
             <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="text-botanical-sage transition-transform w-5 flex-shrink-0" id="arrow-${content.id}"><path d="m6 9 6 6 6-6"/></svg>
           </div>
         </div>
@@ -1506,30 +1503,38 @@ function renderContentForm(content) {
             <input type="text" data-field="keywords" value="${content.keywords ?? content.title ?? ''}" placeholder="${content.isRevenue ? '브랜드 / 상품명' : '핵심 키워드'}" class="w-full px-3 py-2 rounded-lg border border-botanical-stone text-sm focus:outline-none">
           </div>
         </div>
-        <div class="grid grid-cols-3 md:grid-cols-6 gap-4">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label class="text-xs text-botanical-sage mb-1 block">URL</label>
             <input type="text" data-field="url" placeholder="인스타 링크" value="${content.url || ''}" class="w-full px-3 py-2 rounded-lg border border-botanical-stone text-sm focus:outline-none">
           </div>
           <div>
-            <label class="text-xs text-botanical-sage mb-1 block">조회수</label>
-            <input type="number" data-field="performance.views" placeholder="-" value="${content.performance.views || ''}" class="w-full px-3 py-2 rounded-lg border border-botanical-stone text-sm focus:outline-none">
-          </div>
-          <div>
-            <label class="text-xs text-botanical-sage mb-1 block">좋아요</label>
-            <input type="number" data-field="performance.likes" placeholder="-" value="${content.performance.likes || ''}" class="w-full px-3 py-2 rounded-lg border border-botanical-stone text-sm focus:outline-none">
-          </div>
-          <div>
-            <label class="text-xs text-botanical-sage mb-1 block">공유</label>
-            <input type="number" data-field="performance.shares" placeholder="-" value="${content.performance.shares || ''}" class="w-full px-3 py-2 rounded-lg border border-botanical-stone text-sm focus:outline-none">
-          </div>
-          <div>
-            <label class="text-xs text-botanical-sage mb-1 block">댓글</label>
-            <input type="number" data-field="performance.comments" placeholder="-" value="${content.performance.comments || ''}" class="w-full px-3 py-2 rounded-lg border border-botanical-stone text-sm focus:outline-none">
-          </div>
-          <div>
-            <label class="text-xs text-botanical-sage mb-1 block">저장</label>
-            <input type="number" data-field="performance.saves" placeholder="-" value="${content.performance.saves || ''}" class="w-full px-3 py-2 rounded-lg border border-botanical-stone text-sm focus:outline-none">
+            <div class="flex items-center justify-between mb-1">
+              <label class="text-xs text-botanical-sage">성과 지표 <span class="text-botanical-sage/60">(읽기 전용)</span></label>
+              <button type="button" onclick="goToPerformance()" class="text-xs text-botanical-terracotta hover:underline">성과분석에서 수정 →</button>
+            </div>
+            <div class="grid grid-cols-5 gap-1 text-center">
+              <div class="px-2 py-2 rounded-lg bg-botanical-cream/40 border border-botanical-stone/50">
+                <p class="text-[10px] text-botanical-sage">조회</p>
+                <p class="text-xs font-medium">${content.performance.views ? (content.performance.views / 1000).toFixed(1) + 'K' : '-'}</p>
+              </div>
+              <div class="px-2 py-2 rounded-lg bg-botanical-cream/40 border border-botanical-stone/50">
+                <p class="text-[10px] text-botanical-sage">좋아요</p>
+                <p class="text-xs font-medium">${content.performance.likes ? (content.performance.likes / 1000).toFixed(1) + 'K' : '-'}</p>
+              </div>
+              <div class="px-2 py-2 rounded-lg bg-botanical-cream/40 border border-botanical-stone/50">
+                <p class="text-[10px] text-botanical-sage">공유</p>
+                <p class="text-xs font-medium">${content.performance.shares || '-'}</p>
+              </div>
+              <div class="px-2 py-2 rounded-lg bg-botanical-cream/40 border border-botanical-stone/50">
+                <p class="text-[10px] text-botanical-sage">댓글</p>
+                <p class="text-xs font-medium">${content.performance.comments || '-'}</p>
+              </div>
+              <div class="px-2 py-2 rounded-lg bg-botanical-cream/40 border border-botanical-stone/50">
+                <p class="text-[10px] text-botanical-sage">저장</p>
+                <p class="text-xs font-medium">${content.performance.saves || '-'}</p>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -2465,6 +2470,22 @@ function autoSaveTopField(el, contentId) {
   saveAllData();
 }
 
+// 성과분석 탭에서 성과 셀 입력 저장 ("1.5K" / "245" 모두 허용)
+function savePerfCell(el, contentId, field) {
+  const content = contentsData.contents.find(c => c.id === contentId);
+  if (!content) return;
+  if (!content.performance) content.performance = {};
+  const raw = (el.value || '').trim();
+  let num;
+  if (raw === '' || raw === '-') num = 0;
+  else if (/^[\d.]+\s*[Kk]$/.test(raw)) num = parseFloat(raw) * 1000;
+  else num = parseFloat(raw);
+  content.performance[field] = isNaN(num) ? 0 : Math.round(num);
+  saveAllData();
+  // 콘텐츠 목록이 열려있으면 상세 폼의 readonly 성과 블록도 갱신
+  renderContentList();
+}
+
 // 상단 기본 정보 섹션의 모든 필드를 DOM에서 읽어 일괄 저장 (버튼 수동 저장 + 재렌더)
 function saveTopInfo(contentId) {
   const content = contentsData.contents.find(c => c.id === contentId);
@@ -2997,6 +3018,19 @@ function renderPerformance() {
     c.status === '업로드완료' && getUploadDate(c).startsWith(perfSelectedMonth)
   );
 
+  // 성과 입력 대기 체크 (업로드 후 2주 지남 + 성과 데이터 없음)
+  const nowDate = new Date();
+  const needsPerfList = monthContents.filter(c => {
+    const d = getUploadDate(c);
+    if (!d) return false;
+    const uploadDate = new Date(d);
+    const twoWeeksLater = new Date(uploadDate);
+    twoWeeksLater.setDate(twoWeeksLater.getDate() + 14);
+    const hasPerf = c.performance && (c.performance.views || c.performance.likes || c.performance.saves);
+    return nowDate >= twoWeeksLater && !hasPerf;
+  });
+  const needsPerfIds = new Set(needsPerfList.map(c => c.id));
+
   // Daily follower data
   const dailyData = performanceData.follower?.history?.daily || [];
   const maxDailyChange = dailyData.length > 0 ? Math.max(...dailyData.map(d => d.change)) : 0;
@@ -3066,43 +3100,87 @@ function renderPerformance() {
         </div>
       </div>
 
+      <!-- 성과 입력 대기 알림 배너 -->
+      ${needsPerfList.length > 0 ? `
+      <div class="bg-botanical-terracotta/10 border border-botanical-terracotta/40 rounded-xl px-4 py-3 mb-4 flex items-start gap-2">
+        <span class="text-lg leading-none">🔔</span>
+        <div class="text-sm">
+          <p class="font-medium text-botanical-terracotta">성과 입력 대기 ${needsPerfList.length}건</p>
+          <p class="text-xs text-botanical-sage mt-0.5">업로드 후 2주 지난 콘텐츠의 성과를 입력해주세요: ${needsPerfList.map(c => c.title || '무제').join(', ')}</p>
+        </div>
+      </div>
+      ` : ''}
+
       <!-- Content Performance Input -->
       <div class="bg-white rounded-2xl p-6 shadow-sm mb-6">
         <h3 class="font-medium mb-4">콘텐츠별 성과 입력</h3>
-        <div class="border border-botanical-stone rounded-xl overflow-x-auto">
-          <table class="w-full text-xs min-w-[640px] md:min-w-0">
+
+        <!-- PC: 테이블 -->
+        <div class="hidden md:block border border-botanical-stone rounded-xl overflow-x-auto">
+          <table class="w-full text-xs">
             <thead>
               <tr class="bg-botanical-cream/50">
-                <th class="px-3 py-2 text-left font-medium whitespace-nowrap">콘텐츠</th>
-                <th class="px-3 py-2 text-center font-medium whitespace-nowrap w-16">업로드</th>
-                <th class="px-3 py-2 text-center font-medium whitespace-nowrap w-14">조회</th>
-                <th class="px-3 py-2 text-center font-medium whitespace-nowrap w-14">좋아요</th>
-                <th class="px-3 py-2 text-center font-medium whitespace-nowrap w-12">공유</th>
-                <th class="px-3 py-2 text-center font-medium whitespace-nowrap w-12">댓글</th>
-                <th class="px-3 py-2 text-center font-medium whitespace-nowrap w-12">저장</th>
-                <th class="px-3 py-2 text-center font-medium whitespace-nowrap w-14">유입</th>
+                <th class="px-3 py-2 text-left font-medium whitespace-nowrap w-20">카테고리</th>
+                <th class="px-3 py-2 text-left font-medium">제목</th>
+                <th class="px-3 py-2 text-center font-medium whitespace-nowrap w-16">업로드일</th>
+                <th class="px-3 py-2 text-center font-medium whitespace-nowrap w-16">조회</th>
+                <th class="px-3 py-2 text-center font-medium whitespace-nowrap w-16">좋아요</th>
+                <th class="px-3 py-2 text-center font-medium whitespace-nowrap w-14">공유</th>
+                <th class="px-3 py-2 text-center font-medium whitespace-nowrap w-14">댓글</th>
+                <th class="px-3 py-2 text-center font-medium whitespace-nowrap w-14">저장</th>
               </tr>
             </thead>
             <tbody>
-              ${monthContents.length > 0 ? monthContents.map(c => `
-                <tr class="border-t border-botanical-stone hover:bg-botanical-cream/30 transition-all">
+              ${monthContents.length > 0 ? monthContents.map(c => {
+                const catColor = categoryColors[c.category] || '#8C9A84';
+                const needs = needsPerfIds.has(c.id);
+                return `
+                <tr data-perf-row="${c.id}" class="border-t border-botanical-stone hover:bg-botanical-cream/30 transition-all ${needs ? 'bg-botanical-terracotta/5' : ''}">
                   <td class="px-3 py-2">
-                    <div class="flex items-center gap-2 whitespace-nowrap">
-                      <span class="px-1.5 py-0.5 rounded text-xs bg-botanical-sage/20 text-botanical-sage">${c.type}</span>
-                      <span onclick="goToContentExpanded(${c.id})" class="cursor-pointer hover:text-botanical-terracotta hover:underline">${c.title}</span>
-                    </div>
+                    <span class="flex items-center gap-1.5">
+                      <span class="w-2 h-2 rounded-full flex-shrink-0" style="background-color: ${catColor};"></span>
+                      <span class="text-botanical-sage truncate">${c.category}</span>
+                    </span>
                   </td>
-                  <td class="px-3 py-2 text-center">${getUploadDate(c).slice(5).replace('-', '/') || '-'}</td>
-                  <td class="px-3 py-2"><input type="text" value="${c.performance.views ? (c.performance.views / 1000).toFixed(1) + 'K' : ''}" placeholder="-" class="w-full text-center bg-transparent border-b border-transparent hover:border-botanical-stone focus:border-botanical-sage focus:outline-none"></td>
-                  <td class="px-3 py-2"><input type="text" value="${c.performance.likes ? (c.performance.likes / 1000).toFixed(1) + 'K' : ''}" placeholder="-" class="w-full text-center bg-transparent border-b border-transparent hover:border-botanical-stone focus:border-botanical-sage focus:outline-none"></td>
-                  <td class="px-3 py-2"><input type="text" value="${c.performance.shares || ''}" placeholder="-" class="w-full text-center bg-transparent border-b border-transparent hover:border-botanical-stone focus:border-botanical-sage focus:outline-none"></td>
-                  <td class="px-3 py-2"><input type="text" value="${c.performance.comments || ''}" placeholder="-" class="w-full text-center bg-transparent border-b border-transparent hover:border-botanical-stone focus:border-botanical-sage focus:outline-none"></td>
-                  <td class="px-3 py-2"><input type="text" value="${c.performance.saves || ''}" placeholder="-" class="w-full text-center bg-transparent border-b border-transparent hover:border-botanical-stone focus:border-botanical-sage focus:outline-none"></td>
-                  <td class="px-3 py-2"><input type="text" value="" placeholder="-" class="w-full text-center bg-transparent border-b border-transparent hover:border-botanical-stone focus:border-botanical-sage focus:outline-none text-green-600"></td>
+                  <td class="px-3 py-2">
+                    <span class="flex items-center gap-1.5 whitespace-nowrap">
+                      ${needs ? '<span title="성과 입력 필요">🔔</span>' : ''}
+                      <span onclick="goToContentExpanded(${c.id})" class="cursor-pointer hover:text-botanical-terracotta hover:underline">${c.title || '무제'}</span>
+                    </span>
+                  </td>
+                  <td class="px-3 py-2 text-center text-botanical-sage">${getUploadDate(c) ? getUploadDate(c).slice(5).replace('-', '/') : '-'}</td>
+                  <td class="px-3 py-2"><input type="text" onchange="savePerfCell(this, ${c.id}, 'views')" value="${c.performance.views ? (c.performance.views / 1000).toFixed(1) + 'K' : ''}" placeholder="-" class="w-full text-center bg-transparent border-b border-transparent hover:border-botanical-stone focus:border-botanical-sage focus:outline-none"></td>
+                  <td class="px-3 py-2"><input type="text" onchange="savePerfCell(this, ${c.id}, 'likes')" value="${c.performance.likes ? (c.performance.likes / 1000).toFixed(1) + 'K' : ''}" placeholder="-" class="w-full text-center bg-transparent border-b border-transparent hover:border-botanical-stone focus:border-botanical-sage focus:outline-none"></td>
+                  <td class="px-3 py-2"><input type="text" onchange="savePerfCell(this, ${c.id}, 'shares')" value="${c.performance.shares || ''}" placeholder="-" class="w-full text-center bg-transparent border-b border-transparent hover:border-botanical-stone focus:border-botanical-sage focus:outline-none"></td>
+                  <td class="px-3 py-2"><input type="text" onchange="savePerfCell(this, ${c.id}, 'comments')" value="${c.performance.comments || ''}" placeholder="-" class="w-full text-center bg-transparent border-b border-transparent hover:border-botanical-stone focus:border-botanical-sage focus:outline-none"></td>
+                  <td class="px-3 py-2"><input type="text" onchange="savePerfCell(this, ${c.id}, 'saves')" value="${c.performance.saves || ''}" placeholder="-" class="w-full text-center bg-transparent border-b border-transparent hover:border-botanical-stone focus:border-botanical-sage focus:outline-none"></td>
                 </tr>
-              `).join('') : '<tr><td colspan="8" class="px-3 py-4 text-center text-botanical-sage">해당 월 콘텐츠 없음</td></tr>'}
+              `;}).join('') : '<tr><td colspan="8" class="px-3 py-4 text-center text-botanical-sage">해당 월 콘텐츠 없음</td></tr>'}
             </tbody>
           </table>
+        </div>
+
+        <!-- 모바일: 2줄 카드 -->
+        <div class="md:hidden space-y-3">
+          ${monthContents.length > 0 ? monthContents.map(c => {
+            const catColor = categoryColors[c.category] || '#8C9A84';
+            const needs = needsPerfIds.has(c.id);
+            return `
+            <div data-perf-row="${c.id}" class="border border-botanical-stone rounded-xl p-3 ${needs ? 'bg-botanical-terracotta/5' : 'bg-white'}">
+              <div class="flex items-center gap-2 mb-2 text-xs flex-wrap">
+                <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full flex-shrink-0" style="background-color: ${catColor};"></span><span class="text-botanical-sage">${c.category}</span></span>
+                <span onclick="goToContentExpanded(${c.id})" class="font-medium flex-1 min-w-0 truncate cursor-pointer hover:text-botanical-terracotta hover:underline">${needs ? '🔔 ' : ''}${c.title || '무제'}</span>
+                <span class="text-botanical-sage text-[10px]">${getUploadDate(c) ? getUploadDate(c).slice(5).replace('-', '/') : '-'}</span>
+              </div>
+              <div class="grid grid-cols-5 gap-1 text-center text-xs">
+                <div><p class="text-[10px] text-botanical-sage mb-0.5">조회</p><input type="text" onchange="savePerfCell(this, ${c.id}, 'views')" value="${c.performance.views ? (c.performance.views / 1000).toFixed(1) + 'K' : ''}" placeholder="-" class="w-full text-center px-1 py-1 rounded border border-botanical-stone focus:border-botanical-sage focus:outline-none"></div>
+                <div><p class="text-[10px] text-botanical-sage mb-0.5">좋아요</p><input type="text" onchange="savePerfCell(this, ${c.id}, 'likes')" value="${c.performance.likes ? (c.performance.likes / 1000).toFixed(1) + 'K' : ''}" placeholder="-" class="w-full text-center px-1 py-1 rounded border border-botanical-stone focus:border-botanical-sage focus:outline-none"></div>
+                <div><p class="text-[10px] text-botanical-sage mb-0.5">공유</p><input type="text" onchange="savePerfCell(this, ${c.id}, 'shares')" value="${c.performance.shares || ''}" placeholder="-" class="w-full text-center px-1 py-1 rounded border border-botanical-stone focus:border-botanical-sage focus:outline-none"></div>
+                <div><p class="text-[10px] text-botanical-sage mb-0.5">댓글</p><input type="text" onchange="savePerfCell(this, ${c.id}, 'comments')" value="${c.performance.comments || ''}" placeholder="-" class="w-full text-center px-1 py-1 rounded border border-botanical-stone focus:border-botanical-sage focus:outline-none"></div>
+                <div><p class="text-[10px] text-botanical-sage mb-0.5">저장</p><input type="text" onchange="savePerfCell(this, ${c.id}, 'saves')" value="${c.performance.saves || ''}" placeholder="-" class="w-full text-center px-1 py-1 rounded border border-botanical-stone focus:border-botanical-sage focus:outline-none"></div>
+              </div>
+            </div>
+          `;}).join('') : '<p class="text-sm text-botanical-sage text-center py-4">해당 월 콘텐츠 없음</p>'}
         </div>
       </div>
 
@@ -3378,10 +3456,6 @@ function switchPerfTab(tab) {
 
   document.querySelectorAll('.perf-section').forEach(s => s.classList.add('hidden'));
   document.getElementById('perf-' + tab).classList.remove('hidden');
-}
-
-function goToPerformance(contentId) {
-  switchTab('performance');
 }
 
 function saveFollowerCount() {
