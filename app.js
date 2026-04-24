@@ -12,6 +12,51 @@ let currentYear = now.getFullYear();
 let currentMonth = now.getMonth() + 1; // 1-indexed (0-11 -> 1-12)
 let currentView = 'monthly';
 
+// ========== 월 선택 헬퍼 (탭별 독립 상태) ==========
+// 각 탭은 자신의 월 상태를 가짐. 탭 간 UI는 연동되지 않음.
+// 데이터 소스(contentsData, revenueData 등)는 공통이라 "4월"을 선택하면
+// 어느 탭이든 같은 4월 데이터를 본다.
+function pad2(n) { return String(n).padStart(2, '0'); }
+function ym(y, m) { return `${y}-${pad2(m)}`; }
+
+// 오늘 기준 미래 3개월 + 과거 11개월 = 15개 옵션
+// selectedMonth가 범위 밖이면 추가해서 항상 선택값이 보이도록
+function getMonthOptions(selectedMonth) {
+  const nowDate = new Date();
+  const baseY = nowDate.getFullYear();
+  const baseM = nowDate.getMonth() + 1;
+  const opts = [];
+  const seen = new Set();
+  for (let i = 3; i >= -11; i--) {
+    const d = new Date(baseY, baseM - 1 + i, 1);
+    const value = ym(d.getFullYear(), d.getMonth() + 1);
+    seen.add(value);
+    opts.push({ value, label: `${d.getFullYear()}년 ${d.getMonth() + 1}월` });
+  }
+  if (selectedMonth && !seen.has(selectedMonth)) {
+    const [y, m] = selectedMonth.split('-').map(Number);
+    opts.push({ value: selectedMonth, label: `${y}년 ${m}월` });
+    opts.sort((a, b) => b.value.localeCompare(a.value));
+  }
+  return opts;
+}
+
+function renderMonthSelect(id, selectedMonth, onchangeFnName) {
+  const opts = getMonthOptions(selectedMonth);
+  const caret = `url('data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%2712%27 height=%2712%27 viewBox=%270 0 24 24%27 fill=%27none%27 stroke=%27%238C9A84%27 stroke-width=%272%27%3E%3Cpath d=%27m6 9 6 6 6-6%27/%3E%3C/svg%3E')`;
+  return `
+    <select id="${id}" onchange="${onchangeFnName}(this.value)" class="px-4 py-2 pr-8 rounded-full border border-botanical-stone bg-white text-sm focus:outline-none appearance-none bg-no-repeat" style="background-image: ${caret}; background-position: right 12px center;">
+      ${opts.map(o => `<option value="${o.value}" ${o.value === selectedMonth ? 'selected' : ''}>${o.label}</option>`).join('')}
+    </select>
+  `;
+}
+
+// 탭별 월 상태 (초기값: 오늘)
+const _initMonth = ym(now.getFullYear(), now.getMonth() + 1);
+let dashSelectedMonth = _initMonth;
+let revenueSelectedMonth = _initMonth;
+let perfSelectedMonth = _initMonth;
+
 const categoryColors = {
   // 일반 카테고리
   '취업/이직': '#879483',
@@ -1178,17 +1223,25 @@ function goToPerformance(contentId) {
 }
 
 // ========== Dashboard ==========
+function changeDashMonth(monthStr) {
+  dashSelectedMonth = monthStr;
+  renderDashboard();
+}
+
 function renderDashboard() {
-  // 현재 월 기준 업로드완료 콘텐츠만 카운트 (업로드 날짜는 마일스톤 기준)
-  const currentMonthStr = `${currentYear}-${String(currentMonth).padStart(2, '0')}`;
+  // 대시보드는 dashSelectedMonth 기준으로 업로드완료 콘텐츠 카운트 (독립 월 상태)
+  const dashMonthStr = dashSelectedMonth;
+  const dashY = parseInt(dashMonthStr.slice(0, 4));
+  const dashM = parseInt(dashMonthStr.slice(5));
+
   const uploadedThisMonth = contentsData.contents.filter(c => {
     const d = getUploadDate(c);
-    return c.status === '업로드완료' && d && d.startsWith(currentMonthStr);
+    return c.status === '업로드완료' && d && d.startsWith(dashMonthStr);
   });
 
   const generalContents = uploadedThisMonth.filter(c => !['광고', '판매', '협찬'].includes(c.category)).length;
   const adContents = uploadedThisMonth.filter(c => ['광고', '판매', '협찬'].includes(c.category)).length;
-  // 단계별 진행 상태: 기획 → 제작 → 업로드
+  // 단계별 진행 상태: 기획 → 제작 → 업로드 (월과 무관한 전체 현황)
   const needPlanning = contentsData.contents.filter(c => ['아이디어', '계약완료'].includes(c.status)).length;
   const needProduction = contentsData.contents.filter(c => ['기획중', '기획안1차공유', '기획안최종컨펌'].includes(c.status)).length;
   const needUpload = contentsData.contents.filter(c => ['제작중', '영상1차공유', '영상최종컨펌'].includes(c.status)).length;
@@ -1207,14 +1260,14 @@ function renderDashboard() {
   const totalGoal = 8;
   const totalCount = Object.values(categoryCounts).reduce((a, b) => a + b, 0);
 
-  // Monthly trend data (12 months) - 실제 업로드 마일스톤 기준
+  // Monthly trend (12 months) — 선택한 월의 연도 기준
   const monthlyContents = Array(12).fill(0);
   contentsData.contents.forEach(c => {
     const d = getUploadDate(c);
     if (d && c.status === '업로드완료') {
       const uploadMonth = parseInt(d.slice(5, 7));
       const uploadYear = parseInt(d.slice(0, 4));
-      if (uploadYear === currentYear && uploadMonth >= 1 && uploadMonth <= 12) {
+      if (uploadYear === dashY && uploadMonth >= 1 && uploadMonth <= 12) {
         monthlyContents[uploadMonth - 1]++;
       }
     }
@@ -1225,6 +1278,12 @@ function renderDashboard() {
   const maxContents = Math.max(...monthlyContents, 1);
 
   document.getElementById('dashboard-content').innerHTML = `
+    <!-- 월 선택기 -->
+    <div class="flex items-center gap-3 mb-6">
+      ${renderMonthSelect('dashboard-month-select', dashSelectedMonth, 'changeDashMonth')}
+      <span class="text-xs text-botanical-sage">${dashM}월 업로드완료 콘텐츠 기준</span>
+    </div>
+
     <!-- 콘텐츠 현황 -->
     <div class="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
       <div class="bg-white rounded-2xl p-4 shadow-sm border border-botanical-stone">
@@ -1280,11 +1339,12 @@ function renderDashboard() {
       <div class="flex items-end justify-between gap-1" style="height: 120px;">
         ${monthlyContents.map((count, idx) => {
           const month = idx + 1;
-          const isCurrentMonth = month === currentMonth;
-          const isFuture = month > currentMonth;
+          const isSelectedMonth = month === dashM;
+          const realNow = new Date();
+          const isFuture = dashY > realNow.getFullYear() || (dashY === realNow.getFullYear() && month > realNow.getMonth() + 1);
           const height = count > 0 ? (count / maxContents) * 100 : 0;
-          const bgColor = isFuture ? '#E6E2DA' : (isCurrentMonth ? '#2D3A31' : '#8C9A84');
-          const textColor = isFuture ? 'text-botanical-clay' : (isCurrentMonth ? 'text-botanical-fg font-semibold' : 'text-botanical-sage');
+          const bgColor = isFuture ? '#E6E2DA' : (isSelectedMonth ? '#2D3A31' : '#8C9A84');
+          const textColor = isFuture ? 'text-botanical-clay' : (isSelectedMonth ? 'text-botanical-fg font-semibold' : 'text-botanical-sage');
           return `
             <div class="flex-1 flex flex-col items-center gap-1">
               <div class="w-full rounded-t" style="height: ${height}px; background-color: ${bgColor};"></div>
@@ -2712,8 +2772,12 @@ function syncRevenueFromContent(content) {
 }
 
 function recalculateRevenueSummary() {
-  const currentMonthStr = `${currentYear}-${String(currentMonth).padStart(2, '0')}`;
-  const yearStr = String(currentYear);
+  // 항상 오늘 기준 올해를 연간으로 사용 (사용자가 선택한 월과 독립)
+  const realNow = new Date();
+  const realYear = realNow.getFullYear();
+  const realMonth = realNow.getMonth() + 1;
+  const currentMonthStr = `${realYear}-${String(realMonth).padStart(2, '0')}`;
+  const yearStr = String(realYear);
 
   if (!revenueData.byType) revenueData.byType = { ad: {}, sales: {}, sponsor: {} };
   ['ad', 'sales', 'sponsor'].forEach(t => {
@@ -3002,7 +3066,6 @@ function saveNewContent(formType) {
 }
 
 // ========== Performance ==========
-let perfSelectedMonth = `${currentYear}-${String(currentMonth).padStart(2, '0')}`;
 let perfSelectedYear = currentYear;
 let followerViewMode = 'daily';
 
@@ -3062,12 +3125,7 @@ function renderPerformance() {
     <div id="perf-detail" class="perf-section">
       <!-- Month Selector -->
       <div class="flex items-center gap-3 mb-6">
-        <select id="perf-month-select" onchange="changePerfMonth(this.value)" class="px-4 py-2 pr-8 rounded-full border border-botanical-stone bg-white text-sm focus:outline-none appearance-none bg-no-repeat" style="background-image: url('data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%2712%27 height=%2712%27 viewBox=%270 0 24 24%27 fill=%27none%27 stroke=%27%238C9A84%27 stroke-width=%272%27%3E%3Cpath d=%27m6 9 6 6 6-6%27/%3E%3C/svg%3E'); background-position: right 12px center;">
-          <option value="2026-04" ${perfSelectedMonth === '2026-04' ? 'selected' : ''}>2026년 4월</option>
-          <option value="2026-03" ${perfSelectedMonth === '2026-03' ? 'selected' : ''}>2026년 3월</option>
-          <option value="2026-02" ${perfSelectedMonth === '2026-02' ? 'selected' : ''}>2026년 2월</option>
-          <option value="2026-01" ${perfSelectedMonth === '2026-01' ? 'selected' : ''}>2026년 1월</option>
-        </select>
+        ${renderMonthSelect('perf-month-select', perfSelectedMonth, 'changePerfMonth')}
       </div>
 
       <!-- Month Summary -->
@@ -3510,56 +3568,94 @@ function saveFollowerCount() {
 }
 
 // ========== Revenue ==========
+function changeRevenueMonth(monthStr) {
+  revenueSelectedMonth = monthStr;
+  renderRevenue();
+}
+
 function renderRevenue() {
   const monthlyData = revenueData.monthly || [];
   const revenues = monthlyData.map(m => (m.ad || 0) + (m.sales || 0) + (m.sponsor || 0));
   const maxRevenue = revenues.length > 0 ? Math.max(...revenues) : 0;
 
+  // 이번 달 카드: revenueSelectedMonth 기준
+  const revMonth = revenueSelectedMonth;
+  const revMonthNum = parseInt(revMonth.slice(5));
+  const sumMonth = (type) => (revenueData.items?.[type] || [])
+    .filter(i => i.date?.startsWith(revMonth))
+    .reduce((s, i) => s + (i.amount || 0), 0);
+  const adMonth = sumMonth('ad');
+  const salesMonth = sumMonth('sales');
+  const sponsorMonth = sumMonth('sponsor');
+  const totalMonth = adMonth + salesMonth + sponsorMonth;
+
+  // 연간 누적: 항상 오늘 기준 올해 (1~12월)
+  const realYear = new Date().getFullYear();
+  const yearStr = String(realYear);
+  const sumYear = (type) => (revenueData.items?.[type] || [])
+    .filter(i => i.date?.startsWith(yearStr))
+    .reduce((s, i) => s + (i.amount || 0), 0);
+  const adYear = sumYear('ad');
+  const salesYear = sumYear('sales');
+  const sponsorYear = sumYear('sponsor');
+  const totalYear = adYear + salesYear + sponsorYear;
+
   document.getElementById('revenue-content').innerHTML = `
+    <!-- 월 선택기 -->
+    <div class="flex items-center gap-3 mb-6">
+      ${renderMonthSelect('revenue-month-select', revenueSelectedMonth, 'changeRevenueMonth')}
+      <span class="text-xs text-botanical-sage">${revMonthNum}월 기준 / 연간 누적은 ${realYear}년</span>
+    </div>
+
     <div class="grid grid-cols-2 gap-4 mb-6">
       <div class="bg-white rounded-2xl p-4 shadow-sm border border-botanical-stone">
-        <p class="text-sm text-botanical-sage font-medium uppercase mb-1">이번 달</p>
-        <p class="text-3xl font-semibold"><span class="font-serif">${fmt(revenueData.summary.thisMonth)}</span><span class="text-lg">원</span></p>
+        <p class="text-sm text-botanical-sage font-medium uppercase mb-1">${revMonthNum}월</p>
+        <p class="text-3xl font-semibold"><span class="font-serif">${fmt(totalMonth)}</span><span class="text-lg">원</span></p>
         <div class="flex flex-col md:flex-row gap-2 mt-3">
           <div class="flex-1 p-2 rounded-lg border-l-2 border-botanical-terracotta bg-botanical-cream/30">
             <p class="text-xs text-botanical-sage">광고</p>
-            <p class="text-base font-semibold font-serif">${fmt(revenueData.byType.ad.thisMonth)}<span class="text-xs">원</span></p>
+            <p class="text-base font-semibold font-serif">${fmt(adMonth)}<span class="text-xs">원</span></p>
           </div>
           <div class="flex-1 p-2 rounded-lg border-l-2 border-botanical-sage bg-botanical-cream/30">
             <p class="text-xs text-botanical-sage">판매</p>
-            <p class="text-base font-semibold font-serif">${fmt(revenueData.byType.sales.thisMonth)}<span class="text-xs">원</span></p>
+            <p class="text-base font-semibold font-serif">${fmt(salesMonth)}<span class="text-xs">원</span></p>
           </div>
         </div>
       </div>
       <div class="bg-white rounded-2xl p-4 shadow-sm border border-botanical-stone">
-        <p class="text-sm text-botanical-sage font-medium uppercase mb-1">연간 누적</p>
-        <p class="text-3xl font-semibold"><span class="font-serif">${fmt(revenueData.summary.thisYear)}</span><span class="text-lg">원</span></p>
+        <p class="text-sm text-botanical-sage font-medium uppercase mb-1">${realYear}년 누적</p>
+        <p class="text-3xl font-semibold"><span class="font-serif">${fmt(totalYear)}</span><span class="text-lg">원</span></p>
         <div class="flex flex-col md:flex-row gap-2 mt-3">
           <div class="flex-1 p-2 rounded-lg border-l-2 border-botanical-terracotta bg-botanical-cream/30">
             <p class="text-xs text-botanical-sage">광고</p>
-            <p class="text-base font-semibold font-serif">${fmt(revenueData.byType.ad.thisYear)}<span class="text-xs">원</span></p>
+            <p class="text-base font-semibold font-serif">${fmt(adYear)}<span class="text-xs">원</span></p>
           </div>
           <div class="flex-1 p-2 rounded-lg border-l-2 border-botanical-sage bg-botanical-cream/30">
             <p class="text-xs text-botanical-sage">판매</p>
-            <p class="text-base font-semibold font-serif">${fmt(revenueData.byType.sales.thisYear)}<span class="text-xs">원</span></p>
+            <p class="text-base font-semibold font-serif">${fmt(salesYear)}<span class="text-xs">원</span></p>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- Revenue Trend -->
+    <!-- Revenue Trend (올해 1~12월) -->
     <div class="bg-white rounded-2xl p-5 shadow-sm mb-6">
-      <h4 class="text-base font-semibold mb-4">수익 <span class="font-serif italic">Trend</span></h4>
+      <h4 class="text-base font-semibold mb-4">${realYear}년 수익 <span class="font-serif italic">Trend</span></h4>
       <div class="flex items-end justify-between gap-1" style="height: 120px;">
         ${[1,2,3,4,5,6,7,8,9,10,11,12].map(month => {
-          const data = monthlyData.find(m => parseInt(m.month.slice(5)) === month);
-          const total = data ? data.ad + data.sales + data.sponsor : 0;
-          const isCurrentMonth = month === currentMonth;
-          const isFuture = month > currentMonth;
-          const maxRev = maxRevenue > 0 ? maxRevenue : 1;
+          const mStr = `${realYear}-${pad2(month)}`;
+          const total = ['ad','sales','sponsor'].reduce((s, t) =>
+            s + (revenueData.items?.[t] || [])
+              .filter(i => i.date?.startsWith(mStr))
+              .reduce((a, i) => a + (i.amount || 0), 0), 0);
+          const realNow = new Date();
+          const realCurMonth = realNow.getMonth() + 1;
+          const isSelectedMonth = realYear === parseInt(revMonth.slice(0,4)) && month === revMonthNum;
+          const isFuture = month > realCurMonth;
+          const maxRev = Math.max(maxRevenue, 1);
           const height = total > 0 ? Math.max((total / maxRev) * 100, 5) : 0;
-          const bgColor = isFuture ? '#E6E2DA' : (isCurrentMonth ? '#C27B66' : 'rgba(193,114,93,0.6)');
-          const textColor = isFuture ? 'text-botanical-clay' : (isCurrentMonth ? 'text-botanical-fg font-semibold' : 'text-botanical-sage');
+          const bgColor = isFuture ? '#E6E2DA' : (isSelectedMonth ? '#C27B66' : 'rgba(193,114,93,0.6)');
+          const textColor = isFuture ? 'text-botanical-clay' : (isSelectedMonth ? 'text-botanical-fg font-semibold' : 'text-botanical-sage');
           return `
             <div class="flex-1 flex flex-col items-center gap-1">
               <div class="w-full rounded-t" style="height: ${height}px; background-color: ${bgColor};"></div>
@@ -3569,13 +3665,13 @@ function renderRevenue() {
         }).join('')}
       </div>
       <div class="mt-3 pt-3 border-t border-botanical-stone flex justify-between text-xs">
-        <span class="text-botanical-sage">연 누적 ${fmt(revenueData.summary?.thisYear || 0)}원</span>
+        <span class="text-botanical-sage">${realYear}년 누적 ${fmt(totalYear)}원</span>
         <span class="text-botanical-terracotta font-medium">기타소득 한도 ${fmt(7500000 - (revenueData.tax?.etc88 || 0))}원 여유</span>
       </div>
     </div>
 
     <div class="bg-white rounded-2xl p-5 shadow-sm mb-6">
-      <p class="text-base font-semibold mb-3">세금 구분</p>
+      <p class="text-base font-semibold mb-3">세금 구분 (${realYear}년)</p>
       <div class="grid grid-cols-2 gap-3">
         <div class="p-3 rounded-xl" style="background-color: rgba(135,148,131,0.1);">
           <span class="text-sm text-botanical-sage">기타소득 8.8%</span>
@@ -3600,9 +3696,10 @@ function renderRevenue() {
 }
 
 function renderRevenueList(title, items, color) {
-  const currentMonthStr = `${currentYear}-${String(currentMonth).padStart(2, '0')}`;
-  const monthItems = items.filter(item => item.date.startsWith(currentMonthStr));
-  const yearItems = items;
+  const monthStr = revenueSelectedMonth;
+  const yearStr = String(new Date().getFullYear());
+  const monthItems = items.filter(item => item.date.startsWith(monthStr));
+  const yearItems = items.filter(item => item.date.startsWith(yearStr));
 
   const colorStyles = {
     'botanical-terracotta': { border: 'border-botanical-terracotta', text: '' },
@@ -3612,7 +3709,7 @@ function renderRevenueList(title, items, color) {
   const style = colorStyles[color] || colorStyles['botanical-sage'];
 
   const itemsHtml = items.map(item => {
-    const isOld = !item.date.startsWith(currentMonthStr);
+    const isOld = !item.date.startsWith(monthStr);
     return `
       <div class="flex items-center justify-between py-1 hover:bg-botanical-cream/30 cursor-pointer ${isOld ? 'text-botanical-sage/70' : ''}">
         <div class="flex items-center gap-2">
@@ -3699,7 +3796,11 @@ function renderRevenueList(title, items, color) {
 
 // ========== Memos ==========
 let draggedMemoId = null;
-const expandedMemoIds = new Set();
+let mobileEditingMemoId = null; // 모바일 인라인 편집 대상
+
+function isMobileViewport() {
+  return window.matchMedia('(max-width: 767px)').matches;
+}
 
 function renderMemos() {
   if (!memosData) memosData = { memos: [] };
@@ -3707,6 +3808,7 @@ function renderMemos() {
 
   if (memos.length === 0) {
     selectedMemoId = null;
+    mobileEditingMemoId = null;
   } else if (selectedMemoId != null && !memos.find(m => m.id === selectedMemoId)) {
     selectedMemoId = null;
   }
@@ -3718,69 +3820,138 @@ function renderMemos() {
   const pinIconSolid = `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M16 9V4l1-1V2H7v1l1 1v5l-2 2v2h5v7l1 1 1-1v-7h5v-2z"/></svg>`;
   const pinIconOutline = `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M16 9V4l1-1V2H7v1l1 1v5l-2 2v2h5v7l1 1 1-1v-7h5v-2z"/></svg>`;
   const gripIcon = `<svg width="10" height="14" viewBox="0 0 10 14" fill="currentColor"><circle cx="3" cy="3" r="1.1"/><circle cx="7" cy="3" r="1.1"/><circle cx="3" cy="7" r="1.1"/><circle cx="7" cy="7" r="1.1"/><circle cx="3" cy="11" r="1.1"/><circle cx="7" cy="11" r="1.1"/></svg>`;
-  const pencilIcon = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 1 1 3 3L7 19l-4 1 1-4z"/></svg>`;
+  const trashIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6h14z"/></svg>`;
+  const saveIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>`;
 
-  const listItem = (memo) => {
-    const isExpanded = expandedMemoIds.has(memo.id);
+  // === 모바일 리스트 아이템: 클릭 시 인라인 편집으로 전환 ===
+  const mobileListItem = (memo) => {
+    const isEditing = mobileEditingMemoId === memo.id;
+    const title = memo.title?.trim() || '제목 없음';
+    const content = memo.content || '';
+    const preview = content.split('\n').find(l => l.trim()) || '';
+    if (isEditing) {
+      return `
+        <div class="memo-item relative p-3 rounded-lg bg-amber-100/40 border border-amber-200" data-memo-id="${memo.id}">
+          <div class="flex items-center justify-between gap-2 mb-2">
+            <button onclick="toggleMemoPin(${memo.id})" title="${memo.pinned ? '고정 해제' : '상단 고정'}" class="shrink-0 ${memo.pinned ? 'text-botanical-terracotta' : 'text-botanical-sage/60'} transition-colors">${memo.pinned ? pinIconSolid : pinIconOutline}</button>
+            <div class="flex items-center gap-1">
+              <button onclick="mobileFinishEditMemo()" class="px-2 py-1 text-xs rounded bg-botanical-fg text-white">완료</button>
+              <button onclick="deleteMemo(${memo.id})" title="삭제" class="p-1 rounded text-botanical-sage hover:text-red-400">${trashIcon}</button>
+            </div>
+          </div>
+          <input type="text" value="${escapeHtml(memo.title || '')}" placeholder="제목"
+                 oninput="onMemoInlineInput(${memo.id}, 'title', this.value)"
+                 class="w-full text-base font-semibold bg-transparent border-b border-botanical-stone focus:border-botanical-sage focus:outline-none pb-1 mb-2">
+          <textarea placeholder="내용"
+                    oninput="onMemoInlineInput(${memo.id}, 'content', this.value)"
+                    class="w-full text-sm bg-transparent focus:outline-none resize-none leading-relaxed" style="min-height: 160px;">${escapeHtml(memo.content || '')}</textarea>
+          <p class="text-[10px] text-botanical-sage/70 mt-1">입력 중 자동 저장돼요</p>
+        </div>
+      `;
+    }
+    return `
+      <div class="memo-item relative p-3 rounded-lg transition-colors cursor-pointer hover:bg-botanical-cream/40" data-memo-id="${memo.id}" onclick="mobileStartEditMemo(${memo.id})">
+        <div class="flex items-start gap-2">
+          <button onclick="event.stopPropagation(); toggleMemoPin(${memo.id})" title="${memo.pinned ? '고정 해제' : '상단 고정'}" class="shrink-0 py-0.5 ${memo.pinned ? 'text-botanical-terracotta' : 'text-botanical-sage/40'} transition-colors">${memo.pinned ? pinIconSolid : pinIconOutline}</button>
+          <div class="flex-1 min-w-0">
+            <p class="memo-title font-sans font-semibold text-sm truncate ${memo.title?.trim() ? 'text-botanical-fg' : 'text-botanical-sage/60'}">${escapeHtml(title)}</p>
+            <p class="memo-preview text-xs text-botanical-sage truncate mt-0.5">${escapeHtml(preview)}</p>
+          </div>
+        </div>
+      </div>
+    `;
+  };
+
+  // === PC 리스트 아이템: 클릭 시 우측 패널 편집 ===
+  const pcListItem = (memo) => {
     const isSel = memo.id === selectedMemoId;
     const title = memo.title?.trim() || '제목 없음';
     const content = memo.content || '';
     const preview = content.split('\n').find(l => l.trim()) || '';
     return `
-      <div class="memo-item group relative px-2 py-2 rounded-lg transition-colors ${isSel ? 'bg-amber-100/70' : 'hover:bg-botanical-cream/40'}"
+      <div class="memo-item group relative px-2 py-2 rounded-lg transition-colors cursor-pointer ${isSel ? 'bg-amber-100/70' : 'hover:bg-botanical-cream/40'}"
            data-memo-id="${memo.id}"
+           onclick="selectMemoForEdit(${memo.id})"
            ondragover="onMemoDragOver(event, ${memo.id})"
            ondragleave="onMemoDragLeave(event)"
            ondrop="onMemoDrop(event, ${memo.id})">
         <div class="flex items-start gap-1.5">
           <span class="memo-handle text-botanical-sage/40 hover:text-botanical-sage cursor-grab active:cursor-grabbing shrink-0 py-1"
                 draggable="true"
+                onclick="event.stopPropagation()"
                 ondragstart="onMemoDragStart(event, ${memo.id})"
                 ondragend="onMemoDragEnd(event)"
                 title="드래그로 순서 변경">${gripIcon}</span>
-          <button onclick="toggleMemoPin(${memo.id})" title="${memo.pinned ? '고정 해제' : '상단 고정'}" class="shrink-0 py-0.5 ${memo.pinned ? 'text-botanical-terracotta' : 'text-botanical-sage/40 hover:text-botanical-sage'} transition-colors">
+          <button onclick="event.stopPropagation(); toggleMemoPin(${memo.id})" title="${memo.pinned ? '고정 해제' : '상단 고정'}" class="shrink-0 py-0.5 ${memo.pinned ? 'text-botanical-terracotta' : 'text-botanical-sage/40 hover:text-botanical-sage'} transition-colors">
             ${memo.pinned ? pinIconSolid : pinIconOutline}
           </button>
-          <div class="flex-1 min-w-0 cursor-pointer" onclick="toggleMemoExpand(${memo.id})">
+          <div class="flex-1 min-w-0">
             <p class="memo-title font-sans font-semibold text-sm truncate ${memo.title?.trim() ? 'text-botanical-fg' : 'text-botanical-sage/60'}">${escapeHtml(title)}</p>
-            ${!isExpanded ? `<p class="memo-preview text-xs text-botanical-sage truncate mt-0.5">${escapeHtml(preview)}</p>` : ''}
+            <p class="memo-preview text-xs text-botanical-sage truncate mt-0.5">${escapeHtml(preview)}</p>
           </div>
-          <button onclick="editMemo(${memo.id})" title="오른쪽에서 편집" class="shrink-0 py-0.5 opacity-0 group-hover:opacity-100 text-botanical-sage/60 hover:text-botanical-fg transition-all">${pencilIcon}</button>
-          <svg onclick="toggleMemoExpand(${memo.id})" class="shrink-0 mt-1 text-botanical-sage/50 cursor-pointer transition-transform ${isExpanded ? 'rotate-90' : ''}" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m9 18 6-6-6-6"/></svg>
         </div>
-        ${isExpanded ? `
-          <div class="memo-fullcontent mt-2 ml-6 pr-2 text-[13px] text-botanical-fg/85 whitespace-pre-wrap leading-relaxed" style="user-select: text; -webkit-user-select: text;">${content ? escapeHtml(content) : '<span class="text-botanical-sage/60">(내용 없음)</span>'}</div>
-        ` : ''}
       </div>
     `;
   };
 
   const selected = memos.find(m => m.id === selectedMemoId);
 
-  document.getElementById('memos-content').innerHTML = `
-    <div class="flex gap-0 bg-white rounded-2xl shadow-sm border border-botanical-stone overflow-hidden" style="height: calc(100vh - 220px); min-height: 500px;">
+  // 공통 헤더 (카운트 + 수동 저장 + 새 메모)
+  const header = `
+    <div class="flex items-center justify-between px-3 py-3 border-b border-botanical-stone">
+      <div class="flex items-center gap-2">
+        <span class="text-sm font-semibold text-botanical-fg">${memos.length}개</span>
+      </div>
+      <div class="flex items-center gap-1">
+        <button onclick="manualSaveMemos()" title="지금 저장 (백업용)" class="w-7 h-7 rounded-full border border-botanical-stone text-botanical-sage hover:text-botanical-fg hover:border-botanical-sage flex items-center justify-center transition-all">
+          ${saveIcon}
+        </button>
+        <button onclick="addMemo()" title="새 메모" class="w-7 h-7 rounded-full bg-botanical-fg text-white flex items-center justify-center hover:opacity-90 transition-all">
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+        </button>
+      </div>
+    </div>
+  `;
+
+  const emptyList = `
+    <p class="text-sm text-botanical-sage px-3 py-6 text-center">아직 메모가 없어요.<br>우상단 + 버튼으로 시작.</p>
+  `;
+
+  // === 모바일: 단일 컬럼, 아이템 탭으로 인라인 편집 ===
+  const mobileHTML = `
+    <div class="md:hidden bg-white rounded-2xl shadow-sm border border-botanical-stone">
+      ${header}
+      <div class="p-2 space-y-0.5">
+        ${memos.length === 0 ? emptyList : `
+          ${pinned.length > 0 ? `
+            <div class="mb-2">
+              <p class="text-xs font-semibold text-botanical-fg px-2 py-1">고정</p>
+              <div class="space-y-0.5">${pinned.map(mobileListItem).join('')}</div>
+            </div>
+          ` : ''}
+          ${unpinned.length > 0 ? `
+            <div class="space-y-0.5">${unpinned.map(mobileListItem).join('')}</div>
+          ` : ''}
+        `}
+      </div>
+    </div>
+  `;
+
+  // === PC: 2패널 (좌측 목록 / 우측 편집) ===
+  const pcHTML = `
+    <div class="hidden md:flex gap-0 bg-white rounded-2xl shadow-sm border border-botanical-stone overflow-hidden" style="height: calc(100vh - 220px); min-height: 500px;">
       <aside class="shrink-0 border-r border-botanical-stone flex flex-col" style="width: 440px;">
-        <div class="flex items-center justify-between px-3 py-3 border-b border-botanical-stone">
-          <div class="flex items-center gap-2">
-            <span class="text-sm font-semibold text-botanical-fg">${memos.length}개</span>
-            ${memos.length > 0 ? `<button onclick="collapseAllMemos()" title="모두 접기" class="text-xs text-botanical-sage hover:text-botanical-fg transition-colors">모두 접기</button>` : ''}
-          </div>
-          <button onclick="addMemo()" title="새 메모" class="w-7 h-7 rounded-full bg-botanical-fg text-white flex items-center justify-center hover:opacity-90 transition-all">
-            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
-          </button>
-        </div>
+        ${header}
         <div class="flex-1 overflow-y-auto p-2">
-          ${memos.length === 0 ? `
-            <p class="text-sm text-botanical-sage px-3 py-6 text-center">아직 메모가 없어요.<br>우상단 + 버튼으로 시작.</p>
-          ` : `
+          ${memos.length === 0 ? emptyList : `
             ${pinned.length > 0 ? `
               <div class="mb-3">
                 <p class="text-xs font-semibold text-botanical-fg px-2 py-1">고정</p>
-                <div class="space-y-0.5">${pinned.map(listItem).join('')}</div>
+                <div class="space-y-0.5">${pinned.map(pcListItem).join('')}</div>
               </div>
             ` : ''}
             ${unpinned.length > 0 ? `
-              <div class="space-y-0.5">${unpinned.map(listItem).join('')}</div>
+              <div class="space-y-0.5">${unpinned.map(pcListItem).join('')}</div>
             ` : ''}
           `}
         </div>
@@ -3788,16 +3959,16 @@ function renderMemos() {
 
       <main class="flex-1 min-w-0 flex flex-col">
         ${!selected ? `
-          <div class="flex-1 flex items-center justify-center text-botanical-sage text-sm px-8 text-center">왼쪽에서 읽기·복사, 편집은 메모의 ✏️ 아이콘을 눌러 여기서</div>
+          <div class="flex-1 flex items-center justify-center text-botanical-sage text-sm px-8 text-center">왼쪽 메모를 클릭하면 여기서 바로 편집할 수 있어요</div>
         ` : `
           <div class="flex items-center justify-between px-6 py-3 border-b border-botanical-stone">
-            <span class="text-xs text-botanical-sage">편집 중</span>
+            <span class="text-xs text-botanical-sage">편집 중 · 자동 저장</span>
             <div class="flex gap-1">
               <button onclick="toggleMemoPin(${selected.id})" title="${selected.pinned ? '고정 해제' : '상단 고정'}" class="p-1.5 rounded ${selected.pinned ? 'text-botanical-terracotta' : 'text-botanical-sage hover:text-botanical-fg'} transition-all">
                 ${selected.pinned ? pinIconSolid : pinIconOutline}
               </button>
               <button onclick="deleteMemo(${selected.id})" title="삭제" class="p-1.5 rounded text-botanical-sage hover:text-red-400 transition-all">
-                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6h14z"/></svg>
+                ${trashIcon}
               </button>
             </div>
           </div>
@@ -3809,26 +3980,78 @@ function renderMemos() {
       </main>
     </div>
   `;
+
+  document.getElementById('memos-content').innerHTML = mobileHTML + pcHTML;
 }
 
-function toggleMemoExpand(id) {
-  if (expandedMemoIds.has(id)) expandedMemoIds.delete(id);
-  else expandedMemoIds.add(id);
-  renderMemos();
-}
-
-function editMemo(id) {
+// === 모바일 인라인 편집 ===
+let _memoInlineSaveTimer = null;
+function mobileStartEditMemo(id) {
+  mobileEditingMemoId = id;
   selectedMemoId = id;
-  expandedMemoIds.delete(id); // 편집으로 가면 좌측은 접어서 공간 절약
   renderMemos();
   requestAnimationFrame(() => {
-    document.querySelector('#memos-content main input[type="text"]')?.focus();
+    const container = document.querySelector(`.md\\:hidden [data-memo-id="${id}"]`);
+    container?.querySelector('textarea')?.focus();
   });
 }
 
-function collapseAllMemos() {
-  expandedMemoIds.clear();
+function mobileFinishEditMemo() {
+  mobileEditingMemoId = null;
+  if (_memoInlineSaveTimer) {
+    clearTimeout(_memoInlineSaveTimer);
+    _memoInlineSaveTimer = null;
+    saveAllData();
+  }
   renderMemos();
+}
+
+function onMemoInlineInput(id, field, value) {
+  const memo = memosData?.memos?.find(m => m.id === id);
+  if (!memo) return;
+  memo[field] = value;
+  memo.updatedAt = Date.now();
+  // debounce 자동 저장
+  if (_memoInlineSaveTimer) clearTimeout(_memoInlineSaveTimer);
+  _memoInlineSaveTimer = setTimeout(() => {
+    _memoInlineSaveTimer = null;
+    saveAllData();
+  }, 400);
+}
+
+// === PC: 목록 클릭 → 우측 편집 ===
+function selectMemoForEdit(id) {
+  selectedMemoId = id;
+  renderMemos();
+  requestAnimationFrame(() => {
+    document.querySelector('#memos-content .hidden.md\\:flex main input[type="text"]')?.focus();
+  });
+}
+
+// === 수동 저장 버튼 ===
+function manualSaveMemos() {
+  saveAllData();
+  showMemoSaveToast();
+}
+
+function showMemoSaveToast() {
+  let toast = document.getElementById('memo-save-toast');
+  if (!toast) {
+    toast = document.createElement('div');
+    toast.id = 'memo-save-toast';
+    toast.className = 'fixed bottom-6 left-1/2 -translate-x-1/2 z-[60] px-4 py-2 rounded-full bg-botanical-fg text-white text-sm shadow-lg transition-opacity';
+    document.body.appendChild(toast);
+  }
+  toast.textContent = '저장 완료';
+  toast.style.opacity = '1';
+  clearTimeout(showMemoSaveToast._t);
+  showMemoSaveToast._t = setTimeout(() => { toast.style.opacity = '0'; }, 1500);
+}
+
+// 하위 호환: 외부에서 editMemo 호출 가능성 대비
+function editMemo(id) {
+  if (isMobileViewport()) mobileStartEditMemo(id);
+  else selectMemoForEdit(id);
 }
 
 function escapeHtml(s) {
