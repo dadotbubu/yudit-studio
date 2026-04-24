@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=1280">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>yudit studio</title>
   <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png?v=2">
   <link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png?v=2">
@@ -70,33 +70,33 @@
   <!-- Paper Grain -->
   <div class="pointer-events-none fixed inset-0 z-50 opacity-[0.02]" style="background-image: url('data:image/svg+xml,%3Csvg viewBox=%270 0 400 400%27 xmlns=%27http://www.w3.org/2000/svg%27%3E%3Cfilter id=%27n%27%3E%3CfeTurbulence type=%27fractalNoise%27 baseFrequency=%270.9%27 numOctaves=%274%27 stitchTiles=%27stitch%27/%3E%3C/filter%3E%3Crect width=%27100%25%27 height=%27100%25%27 filter=%27url(%23n)%27/%3E%3C/svg%3E');"></div>
 
-  <div class="max-w-7xl mx-auto px-6 py-8">
+  <div class="max-w-7xl mx-auto px-4 md:px-6 py-4 md:py-8">
 
     <!-- Header -->
-    <header class="flex items-center justify-between mb-8">
-      <div>
-        <h1 class="font-serif text-3xl font-semibold tracking-tight">
+    <header class="flex items-center justify-between mb-4 md:mb-8 gap-2">
+      <div class="min-w-0">
+        <h1 class="font-serif text-xl md:text-3xl font-semibold tracking-tight">
           <span class="italic">yudit</span> <span class="italic">studio</span>
         </h1>
-        <p class="text-botanical-sage text-sm">Content Calendar & Management</p>
+        <p class="text-botanical-sage text-xs md:text-sm hidden md:block">Content Calendar & Management</p>
       </div>
-      <div class="flex items-center gap-3">
+      <div class="flex items-center gap-1 md:gap-3 shrink-0">
         <span id="save-status" class="text-xs"></span>
-        <span id="today-date" class="text-sm text-botanical-sage"></span>
-        <button onclick="forceRefresh()" title="최신 데이터 다시 불러오기 (캐시 무시)" class="w-8 h-8 rounded-full border border-botanical-stone flex items-center justify-center text-botanical-sage hover:border-botanical-sage hover:text-botanical-fg transition-all">
+        <span id="today-date" class="text-xs md:text-sm text-botanical-sage"></span>
+        <button onclick="forceRefresh()" title="최신 데이터 다시 불러오기 (캐시 무시)" class="w-7 h-7 md:w-8 md:h-8 rounded-full border border-botanical-stone flex items-center justify-center text-botanical-sage hover:border-botanical-sage hover:text-botanical-fg transition-all shrink-0">
           <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M3 22v-6h6"/><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 2v6h-6"/></svg>
         </button>
       </div>
     </header>
 
     <!-- Tabs -->
-    <div class="flex gap-2 mb-8 border-b border-botanical-stone pb-4">
-      <button onclick="switchTab('calendar')" id="tab-calendar" class="tab-btn px-4 py-2 text-sm font-medium transition-all duration-300 text-botanical-fg border-b-2 border-botanical-fg">캘린더</button>
-      <button onclick="switchTab('dashboard')" id="tab-dashboard" class="tab-btn px-4 py-2 text-sm font-medium transition-all duration-300 text-botanical-sage border-b-2 border-transparent hover:text-botanical-fg">대시보드</button>
-      <button onclick="switchTab('content')" id="tab-content" class="tab-btn px-4 py-2 text-sm font-medium transition-all duration-300 text-botanical-sage border-b-2 border-transparent hover:text-botanical-fg">콘텐츠</button>
-      <button onclick="switchTab('performance')" id="tab-performance" class="tab-btn px-4 py-2 text-sm font-medium transition-all duration-300 text-botanical-sage border-b-2 border-transparent hover:text-botanical-fg">성과분석</button>
-      <button onclick="switchTab('revenue')" id="tab-revenue" class="tab-btn px-4 py-2 text-sm font-medium transition-all duration-300 text-botanical-sage border-b-2 border-transparent hover:text-botanical-fg">수익리포트</button>
-      <button onclick="switchTab('memos')" id="tab-memos" class="tab-btn px-4 py-2 text-sm font-medium transition-all duration-300 text-botanical-sage border-b-2 border-transparent hover:text-botanical-fg">메모</button>
+    <div class="flex gap-1 md:gap-2 mb-4 md:mb-8 border-b border-botanical-stone pb-2 md:pb-4 overflow-x-auto whitespace-nowrap">
+      <button onclick="switchTab('calendar')" id="tab-calendar" class="tab-btn px-3 md:px-4 py-2 text-xs md:text-sm font-medium transition-all duration-300 text-botanical-fg border-b-2 border-botanical-fg">캘린더</button>
+      <button onclick="switchTab('dashboard')" id="tab-dashboard" class="tab-btn px-3 md:px-4 py-2 text-xs md:text-sm font-medium transition-all duration-300 text-botanical-sage border-b-2 border-transparent hover:text-botanical-fg">대시보드</button>
+      <button onclick="switchTab('content')" id="tab-content" class="tab-btn px-3 md:px-4 py-2 text-xs md:text-sm font-medium transition-all duration-300 text-botanical-sage border-b-2 border-transparent hover:text-botanical-fg">콘텐츠</button>
+      <button onclick="switchTab('performance')" id="tab-performance" class="tab-btn px-3 md:px-4 py-2 text-xs md:text-sm font-medium transition-all duration-300 text-botanical-sage border-b-2 border-transparent hover:text-botanical-fg">성과분석</button>
+      <button onclick="switchTab('revenue')" id="tab-revenue" class="tab-btn px-3 md:px-4 py-2 text-xs md:text-sm font-medium transition-all duration-300 text-botanical-sage border-b-2 border-transparent hover:text-botanical-fg">수익리포트</button>
+      <button onclick="switchTab('memos')" id="tab-memos" class="tab-btn px-3 md:px-4 py-2 text-xs md:text-sm font-medium transition-all duration-300 text-botanical-sage border-b-2 border-transparent hover:text-botanical-fg">메모</button>
     </div>
 
     <!-- Calendar Tab -->
@@ -150,10 +150,10 @@
 
   </div>
 
-  <!-- Calendar Popup Modal -->
+  <!-- Calendar Popup Modal (mobile: bottom sheet, PC: center modal) -->
   <div id="calendar-popup" class="fixed inset-0 z-50 hidden">
     <div class="absolute inset-0 bg-black/30" onclick="closeCalendarPopup()"></div>
-    <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white rounded-2xl shadow-xl w-full max-w-md p-6">
+    <div class="absolute bottom-0 left-0 right-0 md:bottom-auto md:top-1/2 md:left-1/2 md:right-auto md:-translate-x-1/2 md:-translate-y-1/2 bg-white rounded-t-2xl rounded-b-none md:rounded-2xl shadow-xl w-full md:max-w-md p-4 md:p-6 max-h-[85vh] overflow-y-auto">
       <div id="popup-content"></div>
     </div>
   </div>

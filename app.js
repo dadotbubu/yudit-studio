@@ -341,22 +341,22 @@ function renderMonthlyView() {
   const prevLastDay = new Date(currentYear, currentMonth - 1, 0).getDate();
 
   let html = `
-    <div class="grid grid-cols-7 gap-2 mb-2">
-      <div class="text-center text-sm font-medium text-botanical-sage py-2">월</div>
-      <div class="text-center text-sm font-medium text-botanical-sage py-2">화</div>
-      <div class="text-center text-sm font-medium text-botanical-sage py-2">수</div>
-      <div class="text-center text-sm font-medium text-botanical-sage py-2">목</div>
-      <div class="text-center text-sm font-medium text-botanical-sage py-2">금</div>
-      <div class="text-center text-sm font-medium text-botanical-sage py-2">토</div>
-      <div class="text-center text-sm font-medium text-botanical-terracotta py-2">일</div>
+    <div class="grid grid-cols-7 gap-1 md:gap-2 mb-2">
+      <div class="text-center text-xs md:text-sm font-medium text-botanical-sage py-1 md:py-2">월</div>
+      <div class="text-center text-xs md:text-sm font-medium text-botanical-sage py-1 md:py-2">화</div>
+      <div class="text-center text-xs md:text-sm font-medium text-botanical-sage py-1 md:py-2">수</div>
+      <div class="text-center text-xs md:text-sm font-medium text-botanical-sage py-1 md:py-2">목</div>
+      <div class="text-center text-xs md:text-sm font-medium text-botanical-sage py-1 md:py-2">금</div>
+      <div class="text-center text-xs md:text-sm font-medium text-botanical-sage py-1 md:py-2">토</div>
+      <div class="text-center text-xs md:text-sm font-medium text-botanical-terracotta py-1 md:py-2">일</div>
     </div>
-    <div class="grid grid-cols-7 gap-2">
+    <div class="grid grid-cols-7 gap-1 md:gap-2">
   `;
 
   // Previous month
   for (let i = startDayOfWeek - 1; i >= 0; i--) {
     const day = prevLastDay - i;
-    html += `<div class="min-h-[6rem] p-2 rounded-xl text-sm text-botanical-clay">${day}</div>`;
+    html += `<div class="min-h-[3rem] md:min-h-[6rem] p-1 md:p-2 rounded-lg md:rounded-xl text-xs md:text-sm text-botanical-clay">${day}</div>`;
   }
 
   // Current month
@@ -368,7 +368,7 @@ function renderMonthlyView() {
     const isSunday = dayOfWeek === 6;
     const isToday = today.getFullYear() === currentYear && today.getMonth() + 1 === currentMonth && today.getDate() === day;
 
-    let cellClass = 'min-h-[6rem] p-2 rounded-xl text-sm cursor-pointer transition-all';
+    let cellClass = 'min-h-[3rem] md:min-h-[6rem] p-1 md:p-2 rounded-lg md:rounded-xl text-xs md:text-sm cursor-pointer transition-all';
     let dayClass = 'font-medium';
 
     if (isToday) {
@@ -390,9 +390,18 @@ function renderMonthlyView() {
 
     let itemsHtml = '';
     if (items.length > 0) {
+      // Mobile: dots only (max 3 + overflow count)
+      const dotVisible = items.slice(0, 3);
+      const dotExtra = items.length - dotVisible.length;
+      const dotsHtml = dotVisible.map(item =>
+        `<span class="inline-block w-1.5 h-1.5 rounded-full shrink-0" style="background-color: ${isToday ? 'white' : (categoryColors[item.category] || '#8C9A84')};"></span>`
+      ).join('');
+      const dotExtraHtml = dotExtra > 0 ? `<span class="text-[9px] leading-none ${isToday ? 'opacity-70' : 'text-botanical-sage'}">+${dotExtra}</span>` : '';
+
+      // PC: full text
       const visible = items.slice(0, 2);
       const extra = items.length - visible.length;
-      itemsHtml = visible.map(item => `
+      const pcItemsHtml = visible.map(item => `
         <div class="mt-1 text-xs ${isToday ? 'font-normal' : ''}">
           <p class="flex items-start gap-1">
             <span class="w-1.5 h-1.5 rounded-full mt-1 shrink-0" style="background-color: ${isToday ? 'white' : (categoryColors[item.category] || '#8C9A84')};"></span>
@@ -401,9 +410,12 @@ function renderMonthlyView() {
           <p class="ml-2.5 ${isToday ? 'opacity-70' : (item.type === '광고' ? 'text-botanical-terracotta' : 'text-botanical-sage')}">${statusText(item.status)}</p>
         </div>
       `).join('');
-      if (extra > 0) {
-        itemsHtml += `<p class="mt-1 text-[10px] ${isToday ? 'opacity-70' : 'text-botanical-sage'} font-medium">+${extra} 더보기</p>`;
-      }
+      const pcExtraHtml = extra > 0 ? `<p class="mt-1 text-[10px] ${isToday ? 'opacity-70' : 'text-botanical-sage'} font-medium">+${extra} 더보기</p>` : '';
+
+      itemsHtml = `
+        <div class="md:hidden flex items-center gap-1 mt-1 flex-wrap">${dotsHtml}${dotExtraHtml}</div>
+        <div class="hidden md:block">${pcItemsHtml}${pcExtraHtml}</div>
+      `;
     }
 
     html += `
@@ -417,7 +429,7 @@ function renderMonthlyView() {
   // Next month
   const remainingCells = (7 - ((startDayOfWeek + daysInMonth) % 7)) % 7;
   for (let i = 1; i <= remainingCells; i++) {
-    html += `<div class="min-h-[6rem] p-2 rounded-xl text-sm text-botanical-clay">${i}</div>`;
+    html += `<div class="min-h-[3rem] md:min-h-[6rem] p-1 md:p-2 rounded-lg md:rounded-xl text-xs md:text-sm text-botanical-clay">${i}</div>`;
   }
 
   html += '</div>';
@@ -1231,7 +1243,7 @@ function renderContentList() {
       </div>
       <div class="flex gap-2">
         <button onclick="collapseAllContentForms()" class="px-4 py-2 border border-botanical-stone rounded-xl text-sm font-medium text-botanical-sage hover:bg-botanical-cream/40 transition-all">목록</button>
-        <button onclick="showNewContentModal()" class="px-4 py-2 bg-botanical-fg text-white rounded-xl text-sm font-medium hover:bg-botanical-fg/90 transition-all">+ 새 콘텐츠 등록</button>
+        <button onclick="showNewContentModal()" class="fixed bottom-6 right-6 md:relative md:bottom-auto md:right-auto w-14 h-14 md:w-auto md:h-auto rounded-full md:rounded-xl shadow-lg md:shadow-none z-40 flex items-center justify-center md:px-4 md:py-2 bg-botanical-fg text-white text-2xl md:text-sm font-medium hover:bg-botanical-fg/90 transition-all"><span class="md:hidden leading-none">+</span><span class="hidden md:inline">+ 새 콘텐츠 등록</span></button>
       </div>
     </div>
 
@@ -1287,8 +1299,28 @@ function renderContentList() {
 
     html += `
       <div class="bg-white rounded-2xl shadow-sm overflow-hidden ${isCompleted ? 'border-l-4 border-botanical-sage' : ''}">
-        <div onclick="toggleContentForm(${content.id})" class="px-5 py-4 cursor-pointer hover:bg-botanical-cream/30 transition-all">
-          <div class="flex items-center gap-3 text-sm">
+        <div onclick="toggleContentForm(${content.id})" class="px-3 md:px-5 py-3 md:py-4 cursor-pointer hover:bg-botanical-cream/30 transition-all">
+          <!-- Mobile: 3-row stack -->
+          <div class="md:hidden space-y-1.5">
+            <div class="flex items-center gap-2 text-xs flex-wrap">
+              <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full flex-shrink-0" style="background-color: ${categoryColor};"></span><span class="text-botanical-sage">${content.category}</span></span>
+              <span class="px-2 py-0.5 rounded-full text-[10px] whitespace-nowrap" style="background-color: ${statusStyle.bg}; color: ${statusStyle.text};">${statusText(content.status)}</span>
+              <span class="px-2 py-0.5 rounded-full text-[10px] font-medium whitespace-nowrap bg-botanical-sage/20 text-botanical-sage">${content.type}</span>
+              <span class="ml-auto text-botanical-sage text-[10px]">${uploadedAt ? uploadedAt.slice(5).replace('-', '/') : '-'}</span>
+            </div>
+            <div class="flex items-center gap-2">
+              <span data-content-title="${content.id}" class="text-base font-medium flex-1 min-w-0 truncate">${content.title || '무제'}</span>
+              ${needsPerformance ? '<span class="text-sm shrink-0" title="성과 입력 필요">🔔</span>' : ''}
+            </div>
+            <div class="flex items-center gap-3 text-[11px] text-botanical-sage">
+              <span>조회 <span class="${isCompleted ? 'font-semibold text-botanical-fg' : ''}">${content.performance.views ? (content.performance.views / 1000).toFixed(1) + 'K' : '-'}</span></span>
+              <span>좋아요 <span class="${isCompleted ? 'text-botanical-fg' : ''}">${content.performance.likes ? (content.performance.likes / 1000).toFixed(1) + 'K' : '-'}</span></span>
+              <span>저장 <span class="${isCompleted ? 'font-semibold text-botanical-terracotta' : ''}">${content.performance.saves || '-'}</span></span>
+              ${content.url ? `<a href="${content.url}" target="_blank" class="ml-auto text-blue-500 underline" onclick="event.stopPropagation()">링크</a>` : ''}
+            </div>
+          </div>
+          <!-- PC: single-row (기존 유지) -->
+          <div class="hidden md:flex items-center gap-3 text-sm">
             <span class="w-20 shrink-0"><span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full flex-shrink-0" style="background-color: ${categoryColor};"></span><span class="text-xs text-botanical-sage truncate">${content.category}</span></span></span>
             <span class="w-24 shrink-0"><span class="px-2 py-1 rounded-full text-xs whitespace-nowrap" style="background-color: ${statusStyle.bg}; color: ${statusStyle.text};">${statusText(content.status)}</span></span>
             <span class="w-14 shrink-0"><span class="px-2 py-1 rounded-full text-xs font-medium whitespace-nowrap bg-botanical-sage/20 text-botanical-sage">${content.type}</span></span>
@@ -1354,7 +1386,7 @@ function renderContentForm(content) {
           </div>
           <button onclick="saveCheckpoint(${content.id}, '기본정보', this)" title="체크포인트 저장 (되돌리기 지점 생성)" class="px-3 py-1 bg-botanical-fg text-white rounded-lg text-xs font-medium hover:bg-botanical-fg/90 transition-all">저장</button>
         </div>
-        <div class="grid grid-cols-4 gap-4">
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
           <div>
             <label class="text-xs text-botanical-sage mb-1 block">상태</label>
             ${content.isRevenue ? `
@@ -1401,7 +1433,7 @@ function renderContentForm(content) {
             <input type="text" data-field="keywords" value="${content.keywords ?? content.title ?? ''}" placeholder="${content.isRevenue ? '브랜드 / 상품명' : '핵심 키워드'}" class="w-full px-3 py-2 rounded-lg border border-botanical-stone text-sm focus:outline-none">
           </div>
         </div>
-        <div class="grid grid-cols-6 gap-4">
+        <div class="grid grid-cols-3 md:grid-cols-6 gap-4">
           <div>
             <label class="text-xs text-botanical-sage mb-1 block">URL</label>
             <input type="text" data-field="url" placeholder="인스타 링크" value="${content.url || ''}" class="w-full px-3 py-2 rounded-lg border border-botanical-stone text-sm focus:outline-none">
@@ -1432,7 +1464,7 @@ function renderContentForm(content) {
         <div class="border-t border-botanical-stone pt-4 mt-4">
           <p class="text-sm font-medium mb-3">일정 (캘린더 연동)</p>
           ${content.isRevenue ? `
-          <div class="grid grid-cols-3 gap-3">
+          <div class="grid grid-cols-2 md:grid-cols-3 gap-3">
             <div>
               <label class="text-xs text-botanical-sage block mb-1">계약완료</label>
               <input type="date" id="milestone-${content.id}-contract" value="${getMilestoneDate(content, '계약완료')}" oninput="updateMilestone(${content.id}, '계약완료', this.value)" class="w-full px-3 py-2 rounded-lg border border-botanical-stone text-sm focus:outline-none">
@@ -1459,7 +1491,7 @@ function renderContentForm(content) {
             </div>
           </div>
           ` : `
-          <div class="grid grid-cols-4 gap-3">
+          <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
             <div>
               <label class="text-xs text-botanical-sage block mb-1">아이디어</label>
               <input type="date" id="milestone-${content.id}-idea" value="${getMilestoneDate(content, '아이디어')}" oninput="updateMilestone(${content.id}, '아이디어', this.value)" class="w-full px-3 py-2 rounded-lg border border-botanical-stone text-sm focus:outline-none">
@@ -1508,13 +1540,13 @@ function renderContentForm(content) {
               <tr class="border-b border-botanical-stone">
                 <td class="px-4 py-3 bg-botanical-cream/40 font-medium align-middle">광고비 (원)</td>
                 <td class="px-4 py-2">
-                  <div class="grid grid-cols-4 gap-2 items-center">
+                  <div class="grid grid-cols-2 md:grid-cols-4 gap-2 items-center">
                     <input type="number" id="adfee-reels-${content.id}" value="${content.adInfo?.reelsFee || ''}" oninput="updateAdFee(${content.id})" placeholder="0" class="w-full px-3 rounded-lg border border-botanical-stone text-sm focus:outline-none" style="height:38px;">
                     <input type="number" id="adfee-content-${content.id}" value="${content.adInfo?.contentFee || ''}" oninput="updateAdFee(${content.id})" placeholder="0" class="w-full px-3 rounded-lg border border-botanical-stone text-sm focus:outline-none" style="height:38px;">
                     <input type="number" id="adfee-secondary-${content.id}" value="${content.adInfo?.secondaryFee || ''}" oninput="updateAdFee(${content.id})" placeholder="0" class="w-full px-3 rounded-lg border border-botanical-stone text-sm focus:outline-none" style="height:38px;">
                     <div class="text-right text-sm"><span class="text-botanical-sage text-xs">합계 </span><span class="font-serif font-semibold" id="adfee-total-${content.id}">${fmt((content.adInfo?.reelsFee || 0) + (content.adInfo?.contentFee || 0) + (content.adInfo?.secondaryFee || 0))}</span></div>
                   </div>
-                  <div class="grid grid-cols-4 gap-2 mt-1 text-[10px] text-botanical-sage text-center">
+                  <div class="grid grid-cols-2 md:grid-cols-4 gap-2 mt-1 text-[10px] text-botanical-sage text-center">
                     <span>릴스업로드비</span><span>컨텐츠제작비</span><span>2차활용비(월)</span><span></span>
                   </div>
                 </td>
@@ -1569,7 +1601,7 @@ function renderContentForm(content) {
               <tr ${content.category === '광고' ? 'class="border-b border-botanical-stone"' : ''}>
                 <td class="px-4 py-3 bg-botanical-cream/40 font-medium align-middle">참고 링크</td>
                 <td class="px-4 py-2">
-                  <div class="grid grid-cols-2 gap-3">
+                  <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
                     ${[0, 1].map(idx => {
                       const link = content.adInfo?.refLinks?.[idx] || '';
                       return `
@@ -2937,7 +2969,7 @@ function renderPerformance() {
       <!-- Month Summary -->
       <div class="bg-white rounded-2xl p-6 shadow-sm mb-6">
         <h3 class="font-medium mb-4">${monthNum}월 성과 요약</h3>
-        <div class="grid grid-cols-5 gap-4">
+        <div class="grid grid-cols-2 md:grid-cols-5 gap-4">
           <div class="text-center">
             <p class="text-xl font-semibold">${monthPerf.totalContents || 0}</p>
             <p class="text-xs text-botanical-sage">총 콘텐츠</p>
@@ -3024,7 +3056,7 @@ function renderPerformance() {
         </div>
 
         <!-- Summary Cards -->
-        <div class="grid grid-cols-4 gap-4 mb-6">
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
           <div class="p-4 bg-botanical-sage/10 rounded-xl text-center">
             <p class="text-2xl font-semibold text-botanical-fg">${currentFollowerCount.toLocaleString()}</p>
             <p class="text-xs text-botanical-sage">${todayHasEntry ? '오늘 팔로워' : (latestDateStr ? `${latestDateStr} 기준` : '팔로워 수')}</p>
