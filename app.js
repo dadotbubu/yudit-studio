@@ -3195,14 +3195,12 @@ function renderPerformance() {
         </div>
 
         <!-- 팔로워 입력 -->
-        <div class="p-4 bg-botanical-cream/30 rounded-xl mb-4 border border-botanical-stone">
-          <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
-            <div class="flex flex-wrap items-center gap-2 md:gap-4">
-              <span class="text-sm font-medium whitespace-nowrap">팔로워 입력</span>
-              <input type="date" id="follower-date" value="${today}" class="px-3 py-1.5 rounded-lg border border-botanical-stone bg-white text-sm focus:outline-none focus:border-botanical-sage">
-              <input type="number" id="follower-count" placeholder="팔로워 수" class="w-32 px-3 py-1.5 rounded-lg border border-botanical-stone bg-white text-sm focus:outline-none focus:border-botanical-sage">
-            </div>
-            <button onclick="saveFollowerCount()" class="px-4 py-1.5 bg-botanical-sage text-white rounded-lg text-sm font-medium hover:bg-botanical-fg transition-all self-start md:self-auto whitespace-nowrap">저장</button>
+        <div class="p-3 md:p-4 bg-botanical-cream/30 rounded-xl mb-4 border border-botanical-stone">
+          <div class="flex items-center gap-2 md:gap-4 flex-wrap">
+            <span class="text-sm font-medium whitespace-nowrap">팔로워 입력</span>
+            <input type="date" id="follower-date" value="${today}" class="px-3 py-1.5 rounded-lg border border-botanical-stone bg-white text-sm focus:outline-none focus:border-botanical-sage">
+            <input type="number" id="follower-count" placeholder="팔로워 수" class="flex-1 md:flex-none md:w-32 min-w-0 px-3 py-1.5 rounded-lg border border-botanical-stone bg-white text-sm focus:outline-none focus:border-botanical-sage">
+            <button onclick="saveFollowerCount()" class="px-4 py-1.5 bg-botanical-sage text-white rounded-lg text-sm font-medium hover:bg-botanical-fg transition-all whitespace-nowrap shrink-0">저장</button>
           </div>
         </div>
 
