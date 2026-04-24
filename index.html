@@ -14,7 +14,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600;700&family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400;1,600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="tailwind.css?v=14">
+  <link rel="stylesheet" href="tailwind.css?v=15">
   <style>
     body { font-family: 'Noto Sans KR', sans-serif; background-color: #F9F8F4; color: #2D3A31; }
     .font-serif { font-family: 'Playfair Display', serif !important; }
@@ -36,12 +36,24 @@
     .production-form input[type="number"],
     .production-form select { height: 38px; box-sizing: border-box; }
     .production-form textarea { box-sizing: border-box; }
+    /* iOS Safari/Chrome: date input이 native 렌더링으로 커지는 것 방지 */
+    .production-form input[type="date"] {
+      -webkit-appearance: none;
+      appearance: none;
+      line-height: 1;
+    }
     /* 모바일에서 필드 높이 축소 */
     @media (max-width: 767px) {
       .production-form input[type="text"],
       .production-form input[type="date"],
       .production-form input[type="number"],
-      .production-form select { height: 32px; }
+      .production-form select {
+        height: 32px !important;
+        min-height: 32px;
+        padding-top: 4px;
+        padding-bottom: 4px;
+        font-size: 13px;
+      }
     }
     /* 스크립트 테이블 컬럼 리사이즈 핸들 */
     .script-table { border-collapse: collapse; }
@@ -171,6 +183,6 @@
     </div>
   </div>
 
-  <script src="app.js?v=45"></script>
+  <script src="app.js?v=46"></script>
 </body>
 </html>
