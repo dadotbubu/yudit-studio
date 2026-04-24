@@ -78,6 +78,7 @@
     }
     /* 모바일에서 한글 단어 단위 wrap (글자 중간에 세로로 쪼개지지 않도록) */
     @media (max-width: 767px) {
+      html, body { overflow-x: hidden; }
       body { word-break: keep-all; }
       /* 콘텐츠 상세 폼 열려있을 때 모바일 FAB(+) 숨김 - 저장 버튼 충돌 방지 */
       body:has(.production-form.active) #content-fab-btn { display: none; }
@@ -183,6 +184,6 @@
     </div>
   </div>
 
-  <script src="app.js?v=49"></script>
+  <script src="app.js?v=51"></script>
 </body>
 </html>

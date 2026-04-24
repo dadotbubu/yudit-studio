@@ -19,26 +19,46 @@ let currentView = 'monthly';
 function pad2(n) { return String(n).padStart(2, '0'); }
 function ym(y, m) { return `${y}-${pad2(m)}`; }
 
-// 오늘 기준 미래 3개월 + 과거 11개월 = 15개 옵션
-// selectedMonth가 범위 밖이면 추가해서 항상 선택값이 보이도록
+// 시작 기준월 = 2026-04 (스튜디오 사용 시작 시점, 이전 월은 표시 안 함)
+// 상단(가장 최신) = 오늘의 실제 월. 달력이 다음 달로 넘어가면 자동 반영.
+// 하단(가장 과거) = 2026-04.
+const MONTH_SELECT_START = '2026-04'; // 최저월
 function getMonthOptions(selectedMonth) {
-  const nowDate = new Date();
-  const baseY = nowDate.getFullYear();
-  const baseM = nowDate.getMonth() + 1;
+  const [startY, startM] = MONTH_SELECT_START.split('-').map(Number);
+  const realNow = new Date();
+  let topY = realNow.getFullYear();
+  let topM = realNow.getMonth() + 1;
+  // 오늘이 시작월보다 이전이면 시작월 = 오늘 (방어적)
+  if (topY < startY || (topY === startY && topM < startM)) {
+    topY = startY; topM = startM;
+  }
   const opts = [];
   const seen = new Set();
-  for (let i = 3; i >= -11; i--) {
-    const d = new Date(baseY, baseM - 1 + i, 1);
-    const value = ym(d.getFullYear(), d.getMonth() + 1);
+  // top부터 start까지 역순으로 쌓기
+  let y = topY, m = topM;
+  while (y > startY || (y === startY && m >= startM)) {
+    const value = ym(y, m);
     seen.add(value);
-    opts.push({ value, label: `${d.getFullYear()}년 ${d.getMonth() + 1}월` });
+    opts.push({ value, label: `${y}년 ${m}월` });
+    m--;
+    if (m < 1) { m = 12; y--; }
   }
   if (selectedMonth && !seen.has(selectedMonth)) {
-    const [y, m] = selectedMonth.split('-').map(Number);
-    opts.push({ value: selectedMonth, label: `${y}년 ${m}월` });
+    const [sy, sm] = selectedMonth.split('-').map(Number);
+    opts.push({ value: selectedMonth, label: `${sy}년 ${sm}월` });
     opts.sort((a, b) => b.value.localeCompare(a.value));
   }
   return opts;
+}
+
+// 오늘 실제 월을 "YYYY-MM" 으로 (시작월보다 과거면 시작월로 클램프)
+function getDefaultSelectedMonth() {
+  const [startY, startM] = MONTH_SELECT_START.split('-').map(Number);
+  const realNow = new Date();
+  const y = realNow.getFullYear();
+  const m = realNow.getMonth() + 1;
+  if (y < startY || (y === startY && m < startM)) return MONTH_SELECT_START;
+  return ym(y, m);
 }
 
 function renderMonthSelect(id, selectedMonth, onchangeFnName) {
@@ -51,11 +71,19 @@ function renderMonthSelect(id, selectedMonth, onchangeFnName) {
   `;
 }
 
-// 탭별 월 상태 (초기값: 오늘)
-const _initMonth = ym(now.getFullYear(), now.getMonth() + 1);
-let dashSelectedMonth = _initMonth;
-let revenueSelectedMonth = _initMonth;
-let perfSelectedMonth = _initMonth;
+// 탭별 월 상태 (초기값: 오늘의 실제 월, 시작월 2026-04보다 과거면 시작월로 클램프)
+let dashSelectedMonth = getDefaultSelectedMonth();
+let revenueSelectedMonth = getDefaultSelectedMonth();
+let perfSelectedMonth = getDefaultSelectedMonth();
+let contentSelectedMonth = getDefaultSelectedMonth();
+
+// 콘텐츠의 기준 날짜: 업로드완료 마일스톤 > 예정일(uploadDate 메모). 둘 다 없으면 null.
+function getContentRefDate(content) {
+  const upload = getUploadDate(content); // 업로드완료 마일스톤 날짜
+  if (upload) return upload;
+  if (content.uploadDate) return content.uploadDate; // 예정일 메모
+  return null;
+}
 
 const categoryColors = {
   // 일반 카테고리
@@ -1375,24 +1403,34 @@ function switchContentFilter(filter) {
   renderContentList();
 }
 
+function changeContentMonth(monthStr) {
+  contentSelectedMonth = monthStr;
+  renderContentList();
+}
+
 function renderContentList() {
-  // Filter contents based on type
+  // 1) 타입 필터 (전체/일반/수익)
   let filteredContents = contentsData.contents;
   if (contentTypeFilter === 'general') {
     filteredContents = contentsData.contents.filter(c => !c.isRevenue);
   } else if (contentTypeFilter === 'revenue') {
     filteredContents = contentsData.contents.filter(c => c.isRevenue);
   }
+
+  // 2) 월 필터: 업로드완료 마일스톤 우선, 없으면 예정일. 둘 다 없으면 항상 표시.
+  const monthStr = contentSelectedMonth;
+  filteredContents = filteredContents.filter(c => {
+    const ref = getContentRefDate(c);
+    if (!ref) return true; // 날짜 미정 → 항상 노출
+    return ref.startsWith(monthStr);
+  });
+
   const contentCount = filteredContents.length;
 
   let html = `
     <div class="flex flex-wrap items-center justify-between gap-3 mb-6">
       <div class="flex flex-wrap items-center gap-2 md:gap-4">
-        <select id="content-month-select" onchange="filterContentByMonth()" class="px-4 py-2 pr-8 rounded-full border border-botanical-stone bg-white text-sm focus:outline-none appearance-none bg-no-repeat" style="background-image: url('data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%2712%27 height=%2712%27 viewBox=%270 0 24 24%27 fill=%27none%27 stroke=%27%238C9A84%27 stroke-width=%272%27%3E%3Cpath d=%27m6 9 6 6 6-6%27/%3E%3C/svg%3E'); background-position: right 12px center;">
-          <option value="2026-04">2026년 4월</option>
-          <option value="2026-03">2026년 3월</option>
-          <option value="2026-02">2026년 2월</option>
-        </select>
+        ${renderMonthSelect('content-month-select', contentSelectedMonth, 'changeContentMonth')}
         <div class="flex gap-1 bg-botanical-stone p-1 rounded-full">
           <button onclick="switchContentFilter('all')" id="content-filter-all" class="content-filter-btn px-3 py-1 rounded-full text-xs font-medium ${contentTypeFilter === 'all' ? 'bg-botanical-fg text-white' : 'bg-botanical-stone text-botanical-sage'}">전체</button>
           <button onclick="switchContentFilter('general')" id="content-filter-general" class="content-filter-btn px-3 py-1 rounded-full text-xs font-medium ${contentTypeFilter === 'general' ? 'bg-botanical-fg text-white' : 'bg-botanical-stone text-botanical-sage'}">일반</button>
@@ -3841,10 +3879,12 @@ function renderMemos() {
           </div>
           <input type="text" value="${escapeHtml(memo.title || '')}" placeholder="제목"
                  oninput="onMemoInlineInput(${memo.id}, 'title', this.value)"
-                 class="w-full text-base font-semibold bg-transparent border-b border-botanical-stone focus:border-botanical-sage focus:outline-none pb-1 mb-2">
+                 class="w-full font-semibold bg-transparent border-b border-botanical-stone focus:border-botanical-sage focus:outline-none pb-1 mb-2"
+                 style="font-size: 16px;">
           <textarea placeholder="내용"
                     oninput="onMemoInlineInput(${memo.id}, 'content', this.value)"
-                    class="w-full text-sm bg-transparent focus:outline-none resize-none leading-relaxed" style="min-height: 160px;">${escapeHtml(memo.content || '')}</textarea>
+                    class="w-full bg-transparent focus:outline-none resize-none leading-relaxed"
+                    style="min-height: 160px; font-size: 16px;">${escapeHtml(memo.content || '')}</textarea>
           <p class="text-[10px] text-botanical-sage/70 mt-1">입력 중 자동 저장돼요</p>
         </div>
       `;
