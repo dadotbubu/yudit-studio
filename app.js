@@ -456,23 +456,35 @@ function renderMonthlyView() {
 
 function renderWeeklyView() {
   const today = new Date();
+  const tomorrow = new Date(today);
+  tomorrow.setDate(today.getDate() + 1);
   const startOfWeek = new Date(today);
   startOfWeek.setDate(today.getDate() - ((today.getDay() + 6) % 7));
 
+  // Mobile: Today + Tomorrow 2 cards
   let html = `
-    <div class="grid grid-cols-7 gap-1 md:gap-2 mb-3">
-      <div class="text-center text-xs md:text-sm font-medium text-botanical-sage py-1 md:py-2">월</div>
-      <div class="text-center text-xs md:text-sm font-medium text-botanical-sage py-1 md:py-2">화</div>
-      <div class="text-center text-xs md:text-sm font-medium text-botanical-sage py-1 md:py-2">수</div>
-      <div class="text-center text-xs md:text-sm font-medium text-botanical-sage py-1 md:py-2">목</div>
-      <div class="text-center text-xs md:text-sm font-medium text-botanical-sage py-1 md:py-2">금</div>
-      <div class="text-center text-xs md:text-sm font-medium text-botanical-sage py-1 md:py-2">토</div>
-      <div class="text-center text-xs md:text-sm font-medium text-botanical-terracotta py-1 md:py-2">일</div>
+    <div class="md:hidden space-y-3">
+      ${renderDayCard(today, today, '오늘')}
+      ${renderDayCard(tomorrow, today, '내일')}
     </div>
   `;
 
+  // PC: Two-week grid (기존)
+  html += `
+    <div class="hidden md:block">
+      <div class="grid grid-cols-7 gap-2 mb-3">
+        <div class="text-center text-sm font-medium text-botanical-sage py-2">월</div>
+        <div class="text-center text-sm font-medium text-botanical-sage py-2">화</div>
+        <div class="text-center text-sm font-medium text-botanical-sage py-2">수</div>
+        <div class="text-center text-sm font-medium text-botanical-sage py-2">목</div>
+        <div class="text-center text-sm font-medium text-botanical-sage py-2">금</div>
+        <div class="text-center text-sm font-medium text-botanical-sage py-2">토</div>
+        <div class="text-center text-sm font-medium text-botanical-terracotta py-2">일</div>
+      </div>
+  `;
+
   // This week
-  html += '<div class="grid grid-cols-7 gap-1 md:gap-2 mb-3">';
+  html += '<div class="grid grid-cols-7 gap-2 mb-3">';
   for (let i = 0; i < 7; i++) {
     const d = new Date(startOfWeek);
     d.setDate(startOfWeek.getDate() + i);
@@ -481,12 +493,15 @@ function renderWeeklyView() {
   html += '</div>';
 
   // Next week
-  html += '<div class="grid grid-cols-7 gap-1 md:gap-2">';
+  html += '<div class="grid grid-cols-7 gap-2">';
   for (let i = 7; i < 14; i++) {
     const d = new Date(startOfWeek);
     d.setDate(startOfWeek.getDate() + i);
     html += renderWeeklyCell(d, today);
   }
+  html += '</div>';
+
+  // Close PC wrapper
   html += '</div>';
 
   // Legend
@@ -502,6 +517,47 @@ function renderWeeklyView() {
   document.getElementById('weekly-view').classList.remove('hidden');
   document.getElementById('monthly-view').classList.add('hidden');
   document.getElementById('milestone-view').classList.add('hidden');
+}
+
+function renderDayCard(date, today, label) {
+  const dateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+  const items = calendarData.items.filter(item => item.date === dateStr);
+  const isToday = date.toDateString() === today.toDateString();
+  const dayOfWeek = ['일', '월', '화', '수', '목', '금', '토'][date.getDay()];
+
+  let cellClass = 'p-4 rounded-xl border cursor-pointer transition-all';
+  if (isToday) {
+    cellClass += ' bg-botanical-fg text-white border-botanical-fg';
+  } else if (items.length > 0) {
+    const hasAd = items.some(i => i.type === '광고');
+    cellClass += hasAd
+      ? ' bg-botanical-terracotta/10 border-botanical-terracotta'
+      : ' bg-botanical-sage/10 border-botanical-sage';
+  } else {
+    cellClass += ' bg-white border-botanical-stone';
+  }
+
+  const itemsHtml = items.length > 0
+    ? items.map(item => `
+        <div class="flex items-start gap-2 mt-2 text-sm">
+          <span class="w-2 h-2 rounded-full mt-1.5 shrink-0" style="background-color: ${isToday ? 'white' : (categoryColors[item.category] || '#8C9A84')};"></span>
+          <div class="flex-1 min-w-0">
+            <p class="leading-snug">${getCalendarItemName(item)}</p>
+            <p class="text-xs ${isToday ? 'opacity-70' : (item.type === '광고' ? 'text-botanical-terracotta' : 'text-botanical-sage')}">${statusText(item.status)}</p>
+          </div>
+        </div>
+      `).join('')
+    : `<p class="text-sm mt-2 ${isToday ? 'opacity-70' : 'text-botanical-sage'}">일정 없음</p>`;
+
+  return `
+    <div class="${cellClass}" onclick="openDateDetail('${dateStr}')">
+      <div class="flex items-baseline gap-2">
+        <h3 class="font-semibold text-lg">${label}</h3>
+        <span class="text-sm ${isToday ? 'opacity-80' : 'text-botanical-sage'}">${date.getMonth() + 1}월 ${date.getDate()}일 (${dayOfWeek})</span>
+      </div>
+      ${itemsHtml}
+    </div>
+  `;
 }
 
 function renderWeeklyCell(date, today) {
@@ -1257,7 +1313,7 @@ function renderContentList() {
       </div>
       <div class="flex gap-2">
         <button onclick="collapseAllContentForms()" class="px-4 py-2 border border-botanical-stone rounded-xl text-sm font-medium text-botanical-sage hover:bg-botanical-cream/40 transition-all">목록</button>
-        <button onclick="showNewContentModal()" class="fixed bottom-6 right-6 md:relative md:bottom-auto md:right-auto w-14 h-14 md:w-auto md:h-auto rounded-full md:rounded-xl shadow-lg md:shadow-none z-40 flex items-center justify-center md:px-4 md:py-2 bg-botanical-fg text-white text-2xl md:text-sm font-medium hover:bg-botanical-fg/90 transition-all"><span class="md:hidden leading-none">+</span><span class="hidden md:inline">+ 새 콘텐츠 등록</span></button>
+        <button id="content-fab-btn" onclick="showNewContentModal()" class="fixed bottom-6 right-6 md:relative md:bottom-auto md:right-auto w-14 h-14 md:w-auto md:h-auto rounded-full md:rounded-xl shadow-lg md:shadow-none z-40 flex items-center justify-center md:px-4 md:py-2 bg-botanical-fg text-white text-2xl md:text-sm font-medium hover:bg-botanical-fg/90 transition-all"><span class="md:hidden leading-none">+</span><span class="hidden md:inline">+ 새 콘텐츠 등록</span></button>
       </div>
     </div>
 
@@ -1326,11 +1382,14 @@ function renderContentList() {
               <span data-content-title="${content.id}" class="text-base font-medium flex-1 min-w-0 truncate">${content.title || '무제'}</span>
               ${needsPerformance ? '<span class="text-sm shrink-0" title="성과 입력 필요">🔔</span>' : ''}
             </div>
-            <div class="flex items-center gap-3 text-[11px] text-botanical-sage">
+            <div class="flex flex-wrap gap-x-3 gap-y-1 text-[11px] text-botanical-sage">
+              <span>업로드 <span class="${isCompleted ? 'text-botanical-fg' : ''}">${uploadedAt ? uploadedAt.slice(5).replace('-', '/') : '-'}</span></span>
+              <span>URL <span>${content.url ? `<a href="${content.url}" target="_blank" class="text-blue-500 underline" onclick="event.stopPropagation()">링크</a>` : '-'}</span></span>
               <span>조회 <span class="${isCompleted ? 'font-semibold text-botanical-fg' : ''}">${content.performance.views ? (content.performance.views / 1000).toFixed(1) + 'K' : '-'}</span></span>
               <span>좋아요 <span class="${isCompleted ? 'text-botanical-fg' : ''}">${content.performance.likes ? (content.performance.likes / 1000).toFixed(1) + 'K' : '-'}</span></span>
+              <span>공유 <span class="${isCompleted ? 'text-botanical-fg' : ''}">${content.performance.shares || '-'}</span></span>
+              <span>댓글 <span class="${isCompleted ? 'text-botanical-fg' : ''}">${content.performance.comments || '-'}</span></span>
               <span>저장 <span class="${isCompleted ? 'font-semibold text-botanical-terracotta' : ''}">${content.performance.saves || '-'}</span></span>
-              ${content.url ? `<a href="${content.url}" target="_blank" class="ml-auto text-blue-500 underline" onclick="event.stopPropagation()">링크</a>` : ''}
             </div>
           </div>
           <!-- PC: single-row (기존 유지) -->
@@ -1689,10 +1748,10 @@ function renderContentForm(content) {
                 ['reason', '잘 터진 이유 (정보 / 공감 / 유머 등)', 'textarea', ''],
               ].map(([field, label, type, ph], i, arr) => `
                 <tr${i < arr.length - 1 ? ' class="border-b border-botanical-stone"' : ''}>
-                  <td class="px-2 md:px-4 py-2 md:py-3 bg-botanical-cream/30 font-medium w-28 md:w-1/3 text-xs md:text-sm break-keep align-top">${label}</td>
+                  <td class="px-2 md:px-4 py-2 md:py-3 bg-botanical-cream/30 font-medium w-32 md:w-1/3 text-[11px] md:text-sm leading-tight md:leading-normal break-keep align-top">${label}</td>
                   <td class="px-2 md:px-4 py-2 md:py-3 text-xs md:text-sm">${
                     type === 'textarea'
-                      ? `<textarea rows="1" oninput="autoResize(this);updateReference(${content.id}, '${field}', this.value)" placeholder="${ph}" class="auto-grow w-full bg-transparent focus:outline-none resize-none overflow-hidden leading-relaxed" style="min-height: 24px;">${content.reference?.[field] ?? ''}</textarea>`
+                      ? `<textarea rows="1" oninput="autoResize(this);updateReference(${content.id}, '${field}', this.value)" placeholder="${ph}" class="auto-grow w-full bg-transparent focus:outline-none resize-none overflow-hidden leading-relaxed break-words" style="min-height: 24px; word-break: break-word;">${content.reference?.[field] ?? ''}</textarea>`
                       : type === 'url'
                       ? `<div class="flex items-center gap-2">
                           <input type="text" value="${content.reference?.[field] ?? ''}" placeholder="${ph}" oninput="updateReference(${content.id}, '${field}', this.value)" class="flex-1 bg-transparent focus:outline-none">
@@ -1790,7 +1849,7 @@ function renderContentForm(content) {
             </div>
           </div>
           <div class="border border-botanical-stone rounded-lg overflow-x-auto">
-            <table class="script-table text-sm" data-content-id="${content.id}" style="table-layout: fixed; width: auto;">
+            <table class="script-table text-sm min-w-[720px] md:min-w-0" data-content-id="${content.id}" style="table-layout: fixed; width: auto;">
               <colgroup>
                 <col style="width: ${colSection}px">
                 <col style="width: ${colDialogue}px">
@@ -3010,8 +3069,8 @@ function renderPerformance() {
       <!-- Content Performance Input -->
       <div class="bg-white rounded-2xl p-6 shadow-sm mb-6">
         <h3 class="font-medium mb-4">콘텐츠별 성과 입력</h3>
-        <div class="border border-botanical-stone rounded-xl overflow-hidden">
-          <table class="w-full text-xs">
+        <div class="border border-botanical-stone rounded-xl overflow-x-auto">
+          <table class="w-full text-xs min-w-[640px] md:min-w-0">
             <thead>
               <tr class="bg-botanical-cream/50">
                 <th class="px-3 py-2 text-left font-medium whitespace-nowrap">콘텐츠</th>
@@ -3224,8 +3283,8 @@ function renderPerformance() {
       <!-- 월간 콘텐츠 성과 비교 -->
       <div class="bg-white rounded-2xl p-6 shadow-sm mb-6">
         <h3 class="font-medium mb-4">월간 콘텐츠 성과 비교</h3>
-        <div class="border border-botanical-stone rounded-xl overflow-hidden">
-          <table class="w-full text-xs">
+        <div class="border border-botanical-stone rounded-xl overflow-x-auto">
+          <table class="w-full text-xs min-w-[640px] md:min-w-0">
             <thead>
               <tr class="bg-botanical-cream/50">
                 <th class="px-3 py-2 text-left font-medium whitespace-nowrap">월</th>

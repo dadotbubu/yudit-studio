@@ -14,7 +14,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600;700&family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400;1,600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="tailwind.css?v=10">
+  <link rel="stylesheet" href="tailwind.css?v=11">
   <style>
     body { font-family: 'Noto Sans KR', sans-serif; background-color: #F9F8F4; color: #2D3A31; }
     .font-serif { font-family: 'Playfair Display', serif !important; }
@@ -60,6 +60,8 @@
     /* 모바일에서 한글 단어 단위 wrap (글자 중간에 세로로 쪼개지지 않도록) */
     @media (max-width: 767px) {
       body { word-break: keep-all; }
+      /* 콘텐츠 상세 폼 열려있을 때 모바일 FAB(+) 숨김 - 저장 버튼 충돌 방지 */
+      body:has(.production-form.active) #content-fab-btn { display: none; }
     }
     /* 메모 드래그 드롭 인디케이터 */
     .memo-item.drop-before::before, .memo-item.drop-after::after {
@@ -118,7 +120,7 @@
         </div>
         <div class="flex gap-1 bg-botanical-stone p-1 rounded-full">
           <button onclick="switchCalendarView('monthly')" id="view-monthly" class="calendar-view-btn px-4 py-1.5 rounded-full text-xs font-medium bg-white text-botanical-fg shadow-sm">월간</button>
-          <button onclick="switchCalendarView('weekly')" id="view-weekly" class="calendar-view-btn px-4 py-1.5 rounded-full text-xs font-medium text-botanical-sage">주간</button>
+          <button onclick="switchCalendarView('weekly')" id="view-weekly" class="calendar-view-btn px-4 py-1.5 rounded-full text-xs font-medium text-botanical-sage"><span class="md:hidden">오늘</span><span class="hidden md:inline">주간</span></button>
           <button onclick="switchCalendarView('milestone')" id="view-milestone" class="calendar-view-btn px-4 py-1.5 rounded-full text-xs font-medium text-botanical-sage">마일스톤</button>
         </div>
       </div>
@@ -162,6 +164,6 @@
     </div>
   </div>
 
-  <script src="app.js?v=41"></script>
+  <script src="app.js?v=42"></script>
 </body>
 </html>
