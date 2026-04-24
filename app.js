@@ -45,6 +45,12 @@ const STATUS_LABEL = {
 };
 const statusText = (s) => STATUS_LABEL[s] || s || '';
 
+// 실제 업로드 날짜는 '업로드완료' 마일스톤에서만 가져옴
+// content.uploadDate (상단 '예정일' 메모 필드)는 어느 로직에도 연결 안 함
+function getUploadDate(content) {
+  return (content?.milestones || []).find(m => m.status === '업로드완료')?.date || '';
+}
+
 // 링크 열기 버튼 — URL 있으면 활성 <a>, 없으면 회색 disabled <span>
 function openLinkBtn(url, label = '열기') {
   const base = 'px-2 text-xs border rounded-lg shrink-0 flex items-center';
@@ -788,7 +794,7 @@ function openDateItemDetail(itemId, dateStr) {
           </div>
           <div class="flex items-center gap-2">
             <span class="text-sm text-botanical-sage w-16">업로드</span>
-            <span class="text-sm">${linkedContent.uploadDate || '-'}</span>
+            <span class="text-sm">${getUploadDate(linkedContent) || '-'}</span>
           </div>
         </div>
         <div class="flex gap-2">
@@ -1062,11 +1068,12 @@ function goToContentExpanded(contentId) {
 
 // ========== Dashboard ==========
 function renderDashboard() {
-  // 현재 월 기준 업로드완료 콘텐츠만 카운트
+  // 현재 월 기준 업로드완료 콘텐츠만 카운트 (업로드 날짜는 마일스톤 기준)
   const currentMonthStr = `${currentYear}-${String(currentMonth).padStart(2, '0')}`;
-  const uploadedThisMonth = contentsData.contents.filter(c =>
-    c.status === '업로드완료' && c.uploadDate && c.uploadDate.startsWith(currentMonthStr)
-  );
+  const uploadedThisMonth = contentsData.contents.filter(c => {
+    const d = getUploadDate(c);
+    return c.status === '업로드완료' && d && d.startsWith(currentMonthStr);
+  });
 
   const generalContents = uploadedThisMonth.filter(c => !['광고', '판매', '협찬'].includes(c.category)).length;
   const adContents = uploadedThisMonth.filter(c => ['광고', '판매', '협찬'].includes(c.category)).length;
@@ -1089,12 +1096,13 @@ function renderDashboard() {
   const totalGoal = 8;
   const totalCount = Object.values(categoryCounts).reduce((a, b) => a + b, 0);
 
-  // Monthly trend data (12 months) - 실제 데이터 기반
+  // Monthly trend data (12 months) - 실제 업로드 마일스톤 기준
   const monthlyContents = Array(12).fill(0);
   contentsData.contents.forEach(c => {
-    if (c.uploadDate && c.status === '업로드완료') {
-      const uploadMonth = parseInt(c.uploadDate.slice(5, 7)); // Extract month (1-12)
-      const uploadYear = parseInt(c.uploadDate.slice(0, 4));
+    const d = getUploadDate(c);
+    if (d && c.status === '업로드완료') {
+      const uploadMonth = parseInt(d.slice(5, 7));
+      const uploadYear = parseInt(d.slice(0, 4));
       if (uploadYear === currentYear && uploadMonth >= 1 && uploadMonth <= 12) {
         monthlyContents[uploadMonth - 1]++;
       }
@@ -1265,10 +1273,11 @@ function renderContentList() {
     const isCompleted = content.status === '완료' || content.status === '업로드완료';
     const categoryColor = categoryColors[content.category] || '#8C9A84';
 
-    // 성과 입력 필요 체크 (업로드 후 2주 지남 + 성과 데이터 없음)
+    // 성과 입력 필요 체크 (실제 업로드 마일스톤 기준 + 2주 지남 + 성과 데이터 없음)
     let needsPerformance = false;
-    if (content.uploadDate && isCompleted) {
-      const uploadDate = new Date(content.uploadDate);
+    const uploadedAt = getUploadDate(content);
+    if (uploadedAt && isCompleted) {
+      const uploadDate = new Date(uploadedAt);
       const twoWeeksLater = new Date(uploadDate);
       twoWeeksLater.setDate(twoWeeksLater.getDate() + 14);
       const today = new Date();
@@ -1284,7 +1293,7 @@ function renderContentList() {
             <span class="w-24 shrink-0"><span class="px-2 py-1 rounded-full text-xs whitespace-nowrap" style="background-color: ${statusStyle.bg}; color: ${statusStyle.text};">${statusText(content.status)}</span></span>
             <span class="w-14 shrink-0"><span class="px-2 py-1 rounded-full text-xs font-medium whitespace-nowrap bg-botanical-sage/20 text-botanical-sage">${content.type}</span></span>
             <span class="font-medium flex-1 min-w-0 flex items-center gap-2"><span data-content-title="${content.id}" class="truncate">${content.title || '무제'}</span>${needsPerformance ? '<span class="text-sm shrink-0" title="성과 입력 필요">🔔</span>' : ''}</span>
-            <span class="w-12 shrink-0 text-botanical-sage text-xs text-center" data-upload-cell="${content.id}">${content.uploadDate ? content.uploadDate.slice(5).replace('-', '/') : '-'}</span>
+            <span class="w-12 shrink-0 text-botanical-sage text-xs text-center" data-upload-cell="${content.id}">${uploadedAt ? uploadedAt.slice(5).replace('-', '/') : '-'}</span>
             <span class="w-10 shrink-0 text-xs text-center">${content.url ? `<a href="${content.url}" target="_blank" class="text-blue-500 underline" onclick="event.stopPropagation()">링크</a>` : '<span class="text-botanical-sage">-</span>'}</span>
             <span class="w-14 shrink-0 text-xs text-center ${isCompleted ? 'font-semibold' : 'text-botanical-sage'}">${content.performance.views ? (content.performance.views / 1000).toFixed(1) + 'K' : '-'}</span>
             <span class="w-12 shrink-0 text-xs text-center ${isCompleted ? '' : 'text-botanical-sage'}">${content.performance.likes ? (content.performance.likes / 1000).toFixed(1) + 'K' : '-'}</span>
@@ -1384,11 +1393,8 @@ function renderContentForm(content) {
             </select>
           </div>
           <div>
-            <label class="text-xs text-botanical-sage mb-1 block">예정일</label>
-            <div class="relative">
-              <input type="date" data-field="uploadDate" value="${content.uploadDate || ''}" class="w-full px-3 py-2 pr-8 rounded-lg border border-botanical-stone text-sm focus:outline-none">
-              ${content.uploadDate ? `<button type="button" onclick="clearUploadDate(${content.id})" title="예정일 지우기" class="absolute right-2 top-1/2 -translate-y-1/2 w-5 h-5 rounded-full text-botanical-sage hover:text-red-500 hover:bg-red-50 flex items-center justify-center text-xs">×</button>` : ''}
-            </div>
+            <label class="text-xs text-botanical-sage mb-1 block">예정일 <span class="text-botanical-sage/60 font-normal">(메모용)</span></label>
+            <input type="date" data-field="uploadDate" value="${content.uploadDate || ''}" class="w-full px-3 py-2 rounded-lg border border-botanical-stone text-sm focus:outline-none">
           </div>
           <div>
             <label class="text-xs text-botanical-sage mb-1 block">${content.isRevenue ? '브랜드 / 상품' : '핵심 키워드'}</label>
@@ -1843,20 +1849,14 @@ function updateMilestone(contentId, status, date) {
     }
   }
 
-  // '업로드완료' 마일스톤은 상단 예정일(uploadDate)과 양방향 동기화
+  // '업로드완료' 마일스톤 변경 시 목록 '업로드' 열 국소 갱신
   if (status === '업로드완료') {
-    content.uploadDate = date || '';
-    // 폼이 열려있으면 예정일 input에도 반영
-    const el = document.querySelector(`#top-info-${contentId} [data-field="uploadDate"]`);
-    if (el) el.value = content.uploadDate;
+    const uploadCell = document.querySelector(`[data-upload-cell="${contentId}"]`);
+    if (uploadCell) {
+      uploadCell.textContent = date ? date.slice(5).replace('-', '/') : '-';
+    }
+    if (typeof renderPerformance === 'function') renderPerformance();
   }
-  // 목록 '업로드' 열 국소 갱신 (전체 재렌더 안 함 — 포커스 유지)
-  const uploadCell = document.querySelector(`[data-upload-cell="${contentId}"]`);
-  if (uploadCell) {
-    uploadCell.textContent = content.uploadDate ? content.uploadDate.slice(5).replace('-', '/') : '-';
-  }
-  // 성과분석 탭에도 반영 (업로드완료 상태 + 해당월 콘텐츠 목록이 바뀜)
-  if (typeof renderPerformance === 'function') renderPerformance();
 
   // 캘린더에도 업데이트
   const existingCalendarItem = calendarData.items.find(
@@ -2311,34 +2311,6 @@ function toggleChecklist(contentId, kind, idx, checked) {
   saveAllData();
 }
 
-// 예정일 × 버튼 전용 지우기
-function clearUploadDate(contentId) {
-  const content = contentsData.contents.find(c => c.id === contentId);
-  if (!content) return;
-  content.uploadDate = '';
-  // 마일스톤도 제거
-  if (content.milestones) {
-    const idx = content.milestones.findIndex(m => m.status === '업로드완료');
-    if (idx >= 0) content.milestones.splice(idx, 1);
-  }
-  // 캘린더 마일스톤 항목도 제거
-  calendarData.items = calendarData.items.filter(i =>
-    !(i.contentId === contentId && i.status === '업로드완료' && i.isMilestone)
-  );
-  // DOM 동기화
-  const dateEl = document.querySelector(`#top-info-${contentId} [data-field="uploadDate"]`);
-  if (dateEl) dateEl.value = '';
-  const msEl = document.getElementById('milestone-' + contentId + '-upload');
-  if (msEl) msEl.value = '';
-  const uploadCell = document.querySelector(`[data-upload-cell="${contentId}"]`);
-  if (uploadCell) uploadCell.textContent = '-';
-  saveAllData();
-  renderContentList();
-  reopenForm(contentId);
-  renderCalendar();
-  if (typeof renderPerformance === 'function') renderPerformance();
-}
-
 // 기본 정보 필드 자동 저장 (DOM input/change 이벤트 위임)
 // input+change 둘 다 감지해서 type=date/number 에서도 안전하게 저장
 function _topFieldAutoSave(e) {
@@ -2377,28 +2349,12 @@ function autoSaveTopField(el, contentId) {
         item.type = content.isRevenue ? '광고' : '일반';
       }
     });
-  } else if (field === 'uploadDate') {
-    content.uploadDate = val;
-    // 일정 섹션의 '업로드완료' 마일스톤도 동기화
-    if (!content.milestones) content.milestones = [];
-    const idx = content.milestones.findIndex(m => m.status === '업로드완료');
-    if (val) {
-      if (idx >= 0) content.milestones[idx].date = val;
-      else content.milestones.push({ status: '업로드완료', date: val });
-    } else if (idx >= 0) {
-      content.milestones.splice(idx, 1);
-    }
-    // 일정 섹션 업로드완료 input도 동기화
-    const msEl = document.getElementById('milestone-' + contentId + '-upload');
-    if (msEl) msEl.value = val;
-    // 목록 '업로드' 열 국소 갱신
-    const uploadCell = document.querySelector(`[data-upload-cell="${contentId}"]`);
-    if (uploadCell) uploadCell.textContent = val ? val.slice(5).replace('-', '/') : '-';
   } else {
+    // 예정일(uploadDate) 포함 기타 단순 필드 — 어느 로직에도 연결 안 함 (메모성)
     content[field] = val;
   }
-  // 성과분석 탭은 업로드날짜/상태/성과/카테고리 에 따라 내용 바뀌므로 갱신
-  if (['uploadDate', 'status', 'category'].includes(field) || field.startsWith('performance.')) {
+  // 성과분석 탭은 상태/카테고리/성과에 따라 내용 바뀌므로 갱신 (uploadDate는 제외 — 메모)
+  if (['status', 'category'].includes(field) || field.startsWith('performance.')) {
     if (typeof renderPerformance === 'function') renderPerformance();
   }
   saveAllData();
@@ -2614,7 +2570,7 @@ function syncRevenueFromContent(content) {
   if (!revenueData.items.ad) revenueData.items.ad = [];
 
   const total = (content.adInfo?.reelsFee || 0) + (content.adInfo?.contentFee || 0) + (content.adInfo?.secondaryFee || 0);
-  const date = content.uploadDate || new Date().toISOString().slice(0, 10);
+  const date = getUploadDate(content) || new Date().toISOString().slice(0, 10);
   const brand = content.title || '무제';
   const incomeType = content.adInfo?.incomeType || 'etc';
 
@@ -2869,7 +2825,6 @@ function saveNewContent(formType) {
 
   // 현재 상태: 선택한 상태가 있으면 그것, 없으면 기본값
   const currentStatus = selectedStatus || (formType === 'revenue' ? '계약완료' : '아이디어');
-  const uploadDate = (selectedStatus === '업로드완료' && selectedDate) ? selectedDate : '';
 
   const contentId = Date.now();
   const newContent = {
@@ -2878,7 +2833,7 @@ function saveNewContent(formType) {
     type: type,
     category: category,
     status: currentStatus,
-    uploadDate: uploadDate,
+    uploadDate: '',
     isRevenue: formType === 'revenue',
     milestones: milestones,
     url: '',
@@ -2932,9 +2887,9 @@ function renderPerformance() {
   const monthPerf = performanceData.monthly[perfSelectedMonth] || {};
   const monthNum = parseInt(perfSelectedMonth.slice(5));
 
-  // Get contents for selected month — 업로드완료 상태 + uploadDate 가 해당 월인 콘텐츠만
+  // Get contents for selected month — 상태 '업로드완료' + 업로드완료 마일스톤 날짜가 해당 월
   const monthContents = contentsData.contents.filter(c =>
-    (c.uploadDate || '').startsWith(perfSelectedMonth) && c.status === '업로드완료'
+    c.status === '업로드완료' && getUploadDate(c).startsWith(perfSelectedMonth)
   );
 
   // Daily follower data
@@ -3032,7 +2987,7 @@ function renderPerformance() {
                       <span onclick="goToContentExpanded(${c.id})" class="cursor-pointer hover:text-botanical-terracotta hover:underline">${c.title}</span>
                     </div>
                   </td>
-                  <td class="px-3 py-2 text-center">${c.uploadDate.slice(5).replace('-', '/')}</td>
+                  <td class="px-3 py-2 text-center">${getUploadDate(c).slice(5).replace('-', '/') || '-'}</td>
                   <td class="px-3 py-2"><input type="text" value="${c.performance.views ? (c.performance.views / 1000).toFixed(1) + 'K' : ''}" placeholder="-" class="w-full text-center bg-transparent border-b border-transparent hover:border-botanical-stone focus:border-botanical-sage focus:outline-none"></td>
                   <td class="px-3 py-2"><input type="text" value="${c.performance.likes ? (c.performance.likes / 1000).toFixed(1) + 'K' : ''}" placeholder="-" class="w-full text-center bg-transparent border-b border-transparent hover:border-botanical-stone focus:border-botanical-sage focus:outline-none"></td>
                   <td class="px-3 py-2"><input type="text" value="${c.performance.shares || ''}" placeholder="-" class="w-full text-center bg-transparent border-b border-transparent hover:border-botanical-stone focus:border-botanical-sage focus:outline-none"></td>
