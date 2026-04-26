@@ -108,6 +108,33 @@ const SUPABASE_TABLE = 'studio_data';
 const DEFAULT_CLIENT_NOTION = 'https://www.notion.so/34a066f53222807e9fc9e625d5edee26';
 const DEFAULT_TRANSCRIPT_LINK = 'https://getthescript.app/instagram-transcript';
 const MY_INSTA_URL = 'https://www.instagram.com/yudit_life/';
+
+// 자주 쓰는 내용 — 처음 실행 시 시드되는 기본 템플릿 (이후에는 사용자가 UI로 관리)
+// type: 'text' (텍스트만) | 'titled' (제목 4자 + 내용)
+const TEMPLATE_GROUPS_SEED = [
+  {
+    id: 1,
+    name: '답글',
+    type: 'text',
+    items: [
+      '요청하신 내용 DM으로 발송해 드렸어요 🤗',
+      '메시지함 확인 부탁드려요! 방금 전송 완료했어요 💌',
+      '문의하신 내용에 대한 답변 지금 막 보내드렸습니다 📲',
+      '방금 DM 드렸어요! 오늘 하루도 행복하게 보내세요 ☀️',
+      '확인 부탁드려요! 방금 DM함으로 전송했습니다 🎀',
+      '메시지함 보시면 제가 보낸 자료 보이실 거예요 👀',
+      '자료 공유해 드렸습니다! 유용하게 사용해 주세요 🛠️',
+      'DM 발송 완료! 메시지 알람 확인 부탁드립니다 🔔',
+      '따뜻한 관심 감사드려요! DM으로 답변 드렸습니다 🧡',
+      'DM 전송 완료! 오늘도 좋은 하루 되시길 바랄게요 ☕️',
+      '메시지 확인 부탁드려요! 지금 막 보내드렸어요 📩',
+      '정보 공유해 드렸어요! DM함 꼭 체크해 주세요 📍',
+      '요청하신 내용 정리해서 메시지로 보내드렸어요 📝',
+      '방금 메시지 드렸는데 혹시 안 왔으면 알려주세요 🙋‍♀️',
+      '지금 막 보내드렸어요 메시지함 확인해주세요📬'
+    ].map((text, i) => ({ id: 1000 + i + 1, text }))
+  }
+];
 const fmt = (n) => (Number(n) || 0).toLocaleString();
 
 // 상태 표시 전용 짧은 레이블 (데이터 값은 기존 그대로 유지)
@@ -2549,6 +2576,185 @@ function copyMyInstaLink() {
   });
 }
 
+// ========== 자주 쓰는 내용 (템플릿 그룹) ==========
+let activeTemplateGroupId = null;
+
+function ensureTemplateData() {
+  if (!memosData) memosData = { memos: [] };
+  if (!Array.isArray(memosData.templateGroups) || memosData.templateGroups.length === 0) {
+    memosData.templateGroups = JSON.parse(JSON.stringify(TEMPLATE_GROUPS_SEED));
+  }
+  // type 필드 누락된 기존 데이터 호환
+  memosData.templateGroups.forEach(g => {
+    if (!g.type) g.type = 'text';
+    if (!Array.isArray(g.items)) g.items = [];
+  });
+  if (!activeTemplateGroupId || !memosData.templateGroups.find(g => g.id === activeTemplateGroupId)) {
+    activeTemplateGroupId = memosData.templateGroups[0]?.id || null;
+  }
+}
+
+function nextTemplateGroupId() {
+  const ids = memosData.templateGroups.map(g => g.id);
+  return (ids.length ? Math.max(...ids) : 0) + 1;
+}
+
+function nextTemplateItemId() {
+  const all = memosData.templateGroups.flatMap(g => g.items.map(i => i.id));
+  return (all.length ? Math.max(...all) : 1000) + 1;
+}
+
+function selectTemplateGroup(id) {
+  activeTemplateGroupId = id;
+  renderMemos();
+}
+
+function addTemplateGroup() {
+  const name = prompt('새 탭 이름 (예: 답글, 링크, 광고):', '');
+  if (!name?.trim()) return;
+  const trimmed = name.trim();
+  const typeChoice = confirm(`"${trimmed}" 탭의 형태?\n\n[확인] = 제목 + 내용  (예: 링크 아카이빙)\n[취소] = 텍스트만  (예: 답글)`);
+  const type = typeChoice ? 'titled' : 'text';
+  const newGroup = { id: nextTemplateGroupId(), name: trimmed, type, items: [] };
+  memosData.templateGroups.push(newGroup);
+  activeTemplateGroupId = newGroup.id;
+  saveAllData();
+  renderMemos();
+}
+
+function deleteTemplateGroup(id) {
+  if (memosData.templateGroups.length <= 1) {
+    alert('최소 1개 탭은 남겨야 해요.');
+    return;
+  }
+  const g = memosData.templateGroups.find(x => x.id === id);
+  if (!g) return;
+  if (!confirm(`"${g.name}" 탭과 그 안의 ${g.items.length}개 항목을 삭제할까요?`)) return;
+  memosData.templateGroups = memosData.templateGroups.filter(x => x.id !== id);
+  if (activeTemplateGroupId === id) {
+    activeTemplateGroupId = memosData.templateGroups[0]?.id || null;
+  }
+  saveAllData();
+  renderMemos();
+}
+
+function addTemplateItem() {
+  const g = memosData.templateGroups.find(x => x.id === activeTemplateGroupId);
+  if (!g) return;
+  const newItem = g.type === 'titled'
+    ? { id: nextTemplateItemId(), title: '', text: '' }
+    : { id: nextTemplateItemId(), text: '' };
+  g.items.push(newItem);
+  saveAllData();
+  renderMemos();
+  requestAnimationFrame(() => {
+    const inputs = document.querySelectorAll('[data-template-item-input]');
+    inputs[inputs.length - 1]?.focus();
+  });
+}
+
+let _templateItemSaveTimer = null;
+function updateTemplateItem(itemId, field, value) {
+  for (const g of memosData.templateGroups) {
+    const it = g.items.find(i => i.id === itemId);
+    if (it) {
+      it[field] = value;
+      break;
+    }
+  }
+  if (_templateItemSaveTimer) clearTimeout(_templateItemSaveTimer);
+  _templateItemSaveTimer = setTimeout(() => {
+    _templateItemSaveTimer = null;
+    saveAllData();
+  }, 400);
+}
+
+function deleteTemplateItem(itemId) {
+  for (const g of memosData.templateGroups) {
+    const idx = g.items.findIndex(i => i.id === itemId);
+    if (idx >= 0) {
+      if (!confirm('이 항목을 삭제할까요?')) return;
+      g.items.splice(idx, 1);
+      saveAllData();
+      renderMemos();
+      return;
+    }
+  }
+}
+
+function copyTemplateItem(itemId) {
+  let text = '';
+  for (const g of memosData.templateGroups) {
+    const it = g.items.find(i => i.id === itemId);
+    if (it) { text = it.text || ''; break; } // 제목 제외, text 만 복사
+  }
+  if (!text) { alert('내용이 비어 있어요.'); return; }
+  navigator.clipboard.writeText(text).then(() => {
+    showMemoSaveToast('복사됨');
+  }).catch(() => alert('복사 실패. 직접 복사:\n' + text));
+}
+
+function renderTemplateSection() {
+  ensureTemplateData();
+  const groups = memosData.templateGroups;
+  const active = groups.find(g => g.id === activeTemplateGroupId) || groups[0];
+
+  // 탭들 (활성/비활성, 옆에 × 삭제)
+  const tabsHtml = groups.map(g => {
+    const isActive = g.id === active.id;
+    return `
+      <span class="inline-flex items-center rounded-full overflow-hidden text-xs md:text-sm ${isActive ? 'bg-botanical-fg text-white' : 'bg-botanical-cream/50 text-botanical-sage'}">
+        <button onclick="selectTemplateGroup(${g.id})" class="px-3 py-1.5 ${isActive ? 'hover:opacity-90' : 'hover:text-botanical-fg'}">${escapeHtml(g.name)}</button>
+        <button onclick="event.stopPropagation(); deleteTemplateGroup(${g.id})" title="이 탭 삭제" class="pr-2 pl-1 py-1.5 ${isActive ? 'opacity-70 hover:opacity-100 hover:text-red-200' : 'opacity-60 hover:opacity-100 hover:text-red-500'}">×</button>
+      </span>
+    `;
+  }).join('');
+
+  // 항목들 (탭 type 따라 렌더 다름)
+  const isTitled = active.type === 'titled';
+  const itemsHtml = active.items.length === 0
+    ? `<p class="text-xs text-botanical-sage text-center py-4">항목이 없어요. 아래 + 버튼으로 추가.</p>`
+    : active.items.map(it => `
+        <div class="flex items-start gap-2 px-3 py-2 rounded-lg border border-botanical-stone bg-botanical-cream/20">
+          ${isTitled ? `
+            <input type="text" data-template-item-input value="${escapeHtml(it.title || '')}" maxlength="4"
+                   oninput="updateTemplateItem(${it.id}, 'title', this.value)"
+                   placeholder="제목"
+                   class="shrink-0 bg-white border border-botanical-stone rounded px-1 py-0.5 text-center text-xs md:text-sm focus:outline-none focus:border-botanical-sage"
+                   style="font-size: 16px; width: 4.75rem; min-width: 4.75rem; max-width: 4.75rem;">
+          ` : ''}
+          <input type="text" ${isTitled ? '' : 'data-template-item-input'} value="${escapeHtml(it.text || '')}"
+                 oninput="updateTemplateItem(${it.id}, 'text', this.value)"
+                 placeholder="${isTitled ? '링크 또는 내용' : '내용 입력'}"
+                 class="flex-1 min-w-0 bg-transparent focus:outline-none text-xs md:text-sm leading-relaxed"
+                 style="font-size: 16px;">
+          <button onclick="copyTemplateItem(${it.id})" class="shrink-0 px-2 py-1 text-[11px] md:text-xs rounded border border-botanical-stone text-botanical-sage hover:bg-botanical-cream hover:text-botanical-fg transition-all">복사</button>
+          <button onclick="deleteTemplateItem(${it.id})" title="삭제" class="shrink-0 p-1 rounded text-botanical-sage/60 hover:text-red-500 transition-all">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6h14z"/></svg>
+          </button>
+        </div>
+      `).join('');
+
+  return `
+    <details class="mb-4 bg-white rounded-2xl shadow-sm border border-botanical-stone" open>
+      <summary class="list-none cursor-pointer flex items-center justify-between px-4 py-3 border-b border-botanical-stone group">
+        <span class="text-sm font-semibold text-botanical-fg flex items-center gap-2">
+          📌 자주 쓰는 내용 <span class="text-xs text-botanical-sage font-normal">(${active.items.length})</span>
+        </span>
+        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-botanical-sage transition-transform group-open:rotate-90"><path d="m9 18 6-6-6-6"/></svg>
+      </summary>
+      <div class="p-3">
+        <div class="flex flex-wrap items-center gap-1.5 mb-3 pb-3 border-b border-botanical-stone">
+          ${tabsHtml}
+          <button onclick="addTemplateGroup()" title="탭 추가" class="px-2.5 py-1.5 rounded-full text-xs border border-dashed border-botanical-sage text-botanical-sage hover:bg-botanical-cream/50 transition-all">+ 탭</button>
+        </div>
+        <div class="space-y-2">${itemsHtml}</div>
+        <button onclick="addTemplateItem()" class="mt-3 w-full px-3 py-2 rounded-lg border border-dashed border-botanical-stone text-xs text-botanical-sage hover:bg-botanical-cream/50 transition-all">+ 항목 추가</button>
+      </div>
+    </details>
+  `;
+}
+
 function updateContentField(contentId, field, value) {
   const content = contentsData.contents.find(c => c.id === contentId);
   if (!content) return;
@@ -4072,7 +4278,7 @@ function renderMemos() {
     </div>
   `;
 
-  document.getElementById('memos-content').innerHTML = mobileHTML + pcHTML;
+  document.getElementById('memos-content').innerHTML = renderTemplateSection() + mobileHTML + pcHTML;
 }
 
 // === 모바일 인라인 편집 ===

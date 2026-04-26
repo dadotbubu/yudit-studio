@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>자주 쓰는 내용 — 목업 v2</title>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="tailwind.css?v=15">
+  <style>
+    body { font-family: 'Noto Sans KR', sans-serif; background-color: #F9F8F4; color: #2D3A31; }
+    @media (max-width: 767px) { body { word-break: keep-all; } }
+    /* 제목 4자(한글) 풀 노출용 — Noto Sans KR 16px 기준 ≈ 4.5rem */
+    .title-cell { width: 4.75rem; min-width: 4.75rem; max-width: 4.75rem; }
+  </style>
+</head>
+<body class="min-h-screen">
+  <div class="max-w-3xl mx-auto px-4 py-8">
+    <h1 class="text-2xl font-semibold mb-2">📌 자주 쓰는 내용 — 목업 v3</h1>
+    <p class="text-sm text-botanical-sage mb-6">메모 탭 <b>상단</b>. 탭 만들 때 "텍스트만 / 제목+내용" 형태 선택 → 항목 추가는 형태에 따라 자동.</p>
+
+    <!-- ========== 메인 박스 ========== -->
+    <details class="mt-2 bg-white rounded-2xl shadow-sm border border-botanical-stone" open>
+      <summary class="list-none cursor-pointer flex items-center justify-between px-4 py-3 border-b border-botanical-stone group">
+        <span class="text-sm font-semibold text-botanical-fg flex items-center gap-2">
+          📌 자주 쓰는 내용 <span class="text-xs text-botanical-sage font-normal">(15)</span>
+        </span>
+        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-botanical-sage transition-transform group-open:rotate-90"><path d="m9 18 6-6-6-6"/></svg>
+      </summary>
+      <div class="p-3">
+
+        <!-- 탭 줄: 각 탭 옆에 × 삭제 -->
+        <div class="flex flex-wrap items-center gap-1.5 mb-3 pb-3 border-b border-botanical-stone">
+          <span class="inline-flex items-center bg-botanical-fg text-white rounded-full overflow-hidden text-xs md:text-sm">
+            <button class="px-3 py-1.5 hover:opacity-90">답글</button>
+            <button title="이 탭 삭제" class="pr-2 pl-1 py-1.5 opacity-70 hover:opacity-100 hover:text-red-200">×</button>
+          </span>
+          <span class="inline-flex items-center bg-botanical-cream/50 text-botanical-sage rounded-full overflow-hidden text-xs md:text-sm">
+            <button class="px-3 py-1.5 hover:text-botanical-fg">링크</button>
+            <button title="이 탭 삭제" class="pr-2 pl-1 py-1.5 opacity-60 hover:opacity-100 hover:text-red-500">×</button>
+          </span>
+          <span class="inline-flex items-center bg-botanical-cream/50 text-botanical-sage rounded-full overflow-hidden text-xs md:text-sm">
+            <button class="px-3 py-1.5 hover:text-botanical-fg">광고</button>
+            <button title="이 탭 삭제" class="pr-2 pl-1 py-1.5 opacity-60 hover:opacity-100 hover:text-red-500">×</button>
+          </span>
+          <button title="탭 추가" class="px-2.5 py-1.5 rounded-full text-xs border border-dashed border-botanical-sage text-botanical-sage hover:bg-botanical-cream/50 transition-all">+ 탭</button>
+        </div>
+
+        <!-- ★ 시나리오 1: '답글' 탭 (제목 없는 텍스트 항목) -->
+        <p class="text-[10px] text-botanical-sage mb-1 uppercase tracking-wide">↓ 답글 탭 (제목 없는 일반 항목)</p>
+        <div class="space-y-2 mb-4">
+          <div class="flex items-start gap-2 px-3 py-2 rounded-lg border border-botanical-stone bg-botanical-cream/20">
+            <input type="text" value="요청하신 내용 DM으로 발송해 드렸어요 🤗" class="flex-1 min-w-0 bg-transparent focus:outline-none text-xs md:text-sm leading-relaxed" style="font-size: 16px;">
+            <button class="shrink-0 px-2 py-1 text-[11px] md:text-xs rounded border border-botanical-stone text-botanical-sage hover:bg-botanical-cream hover:text-botanical-fg">복사</button>
+            <button title="삭제" class="shrink-0 p-1 rounded text-botanical-sage/60 hover:text-red-500">
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6h14z"/></svg>
+            </button>
+          </div>
+          <div class="flex items-start gap-2 px-3 py-2 rounded-lg border border-botanical-stone bg-botanical-cream/20">
+            <input type="text" value="메시지함 확인 부탁드려요! 방금 전송 완료했어요 💌" class="flex-1 min-w-0 bg-transparent focus:outline-none text-xs md:text-sm leading-relaxed" style="font-size: 16px;">
+            <button class="shrink-0 px-2 py-1 text-[11px] md:text-xs rounded border border-botanical-stone text-botanical-sage hover:bg-botanical-cream hover:text-botanical-fg">복사</button>
+            <button title="삭제" class="shrink-0 p-1 rounded text-botanical-sage/60 hover:text-red-500">
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6h14z"/></svg>
+            </button>
+          </div>
+        </div>
+
+        <!-- ★ 시나리오 2: '링크' 탭 (제목 4자 + 내용) -->
+        <p class="text-[10px] text-botanical-sage mb-1 uppercase tracking-wide">↓ 링크 탭 (제목 4자 + 내용 항목, 4글자까지 풀 노출)</p>
+        <div class="space-y-2 mb-4">
+          <div class="flex items-start gap-2 px-3 py-2 rounded-lg border border-botanical-stone bg-botanical-cream/20">
+            <input type="text" value="공지" maxlength="4" class="title-cell shrink-0 bg-white border border-botanical-stone rounded px-1 py-0.5 text-center text-xs md:text-sm focus:outline-none focus:border-botanical-sage" style="font-size: 16px;">
+            <input type="text" value="https://www.notion.so/abc123-운영지침" class="flex-1 min-w-0 bg-transparent focus:outline-none text-xs md:text-sm leading-relaxed" style="font-size: 16px;">
+            <button class="shrink-0 px-2 py-1 text-[11px] md:text-xs rounded border border-botanical-stone text-botanical-sage hover:bg-botanical-cream hover:text-botanical-fg">복사</button>
+            <button title="삭제" class="shrink-0 p-1 rounded text-botanical-sage/60 hover:text-red-500">
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6h14z"/></svg>
+            </button>
+          </div>
+          <div class="flex items-start gap-2 px-3 py-2 rounded-lg border border-botanical-stone bg-botanical-cream/20">
+            <input type="text" value="자료실" maxlength="4" class="title-cell shrink-0 bg-white border border-botanical-stone rounded px-1 py-0.5 text-center text-xs md:text-sm focus:outline-none focus:border-botanical-sage" style="font-size: 16px;">
+            <input type="text" value="https://drive.google.com/file/abc/공유드라이브" class="flex-1 min-w-0 bg-transparent focus:outline-none text-xs md:text-sm leading-relaxed" style="font-size: 16px;">
+            <button class="shrink-0 px-2 py-1 text-[11px] md:text-xs rounded border border-botanical-stone text-botanical-sage hover:bg-botanical-cream hover:text-botanical-fg">복사</button>
+            <button title="삭제" class="shrink-0 p-1 rounded text-botanical-sage/60 hover:text-red-500">
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6h14z"/></svg>
+            </button>
+          </div>
+          <div class="flex items-start gap-2 px-3 py-2 rounded-lg border border-botanical-stone bg-botanical-cream/20">
+            <input type="text" value="브랜딩" maxlength="4" class="title-cell shrink-0 bg-white border border-botanical-stone rounded px-1 py-0.5 text-center text-xs md:text-sm focus:outline-none focus:border-botanical-sage" style="font-size: 16px;">
+            <input type="text" value="https://www.figma.com/file/xyz/브랜드가이드" class="flex-1 min-w-0 bg-transparent focus:outline-none text-xs md:text-sm leading-relaxed" style="font-size: 16px;">
+            <button class="shrink-0 px-2 py-1 text-[11px] md:text-xs rounded border border-botanical-stone text-botanical-sage hover:bg-botanical-cream hover:text-botanical-fg">복사</button>
+            <button title="삭제" class="shrink-0 p-1 rounded text-botanical-sage/60 hover:text-red-500">
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6h14z"/></svg>
+            </button>
+          </div>
+          <p class="text-[10px] text-botanical-sage/70 italic">↑ "복사" 누르면 제목 ("공지", "자료실", "브랜딩") 빼고 <b>https://… 부분만</b> 클립보드로</p>
+        </div>
+
+        <!-- 항목 추가 버튼 (탭 형태에 따라 자동 결정) -->
+        <button class="w-full px-3 py-2 rounded-lg border border-dashed border-botanical-stone text-xs text-botanical-sage hover:bg-botanical-cream/50">+ 항목 추가</button>
+        <p class="text-[10px] text-botanical-sage/70 mt-1 text-center">현재 탭이 "텍스트만"이면 한 줄, "제목+내용"이면 두 칸으로 자동 추가</p>
+
+      </div>
+    </details>
+
+    <h2 class="mt-12 mb-3 text-sm font-semibold text-botanical-fg">동작 정리</h2>
+    <ul class="text-sm space-y-1.5 text-botanical-fg">
+      <li>• <b>탭 클릭</b> → 해당 탭의 항목 표시</li>
+      <li>• <b>탭 옆 ×</b> → "이 탭 삭제하시겠습니까?" → 탭과 그 안의 항목 전부 삭제</li>
+      <li>• <b>+ 탭</b> → ① 이름 입력 → ② 형태 선택 (텍스트만 / 제목+내용)</li>
+      <li>• <b>+ 항목 추가</b> → 현재 탭의 형태에 맞춰 자동 (한 줄 or 두 칸)</li>
+      <li>• <b>제목 칸</b>: 최대 4자, 한글 4자까지 잘림 없이 풀 노출 (≈ 76px)</li>
+      <li>• <b>복사</b> → 클립보드 (제목+내용 탭은 <b>내용만</b>) + "복사됨" 토스트</li>
+      <li>• <b>휴지통</b> → 확인 후 항목 삭제</li>
+      <li>• <b>모든 입력</b> → 400ms debounce 자동저장 (Supabase 동기화)</li>
+      <li>• <b>접기/펼치기</b> → 헤더 클릭 (기본 펼쳐짐)</li>
+    </ul>
+
+    <h2 class="mt-12 mb-3 text-sm font-semibold text-botanical-fg">데이터 구조</h2>
+    <pre class="text-xs bg-white border border-botanical-stone rounded-lg p-3 overflow-x-auto"><code>memosData.templateGroups = [
+  {
+    id: 1, name: '답글', type: 'text',                          // 텍스트만 탭
+    items: [
+      { id: 1001, text: '요청하신 내용 DM으로...' },
+      { id: 1002, text: '메시지함 확인 부탁드려요...' }
+    ]
+  },
+  {
+    id: 2, name: '링크', type: 'titled',                        // 제목+내용 탭
+    items: [
+      { id: 2001, title: '공지',   text: 'https://...' },
+      { id: 2002, title: '자료실', text: 'https://...' },
+      { id: 2003, title: '브랜딩', text: 'https://...' }
+    ]
+  }
+]</code></pre>
+
+  </div>
+</body>
+</html>
