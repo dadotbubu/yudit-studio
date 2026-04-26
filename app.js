@@ -3934,8 +3934,8 @@ function renderMemos() {
                  style="font-size: 16px;">
           <textarea placeholder="내용"
                     oninput="onMemoInlineInput(${memo.id}, 'content', this.value)"
-                    class="w-full text-xs bg-transparent focus:outline-none resize-none leading-relaxed"
-                    style="min-height: 160px;">${escapeHtml(memo.content || '')}</textarea>
+                    class="w-full bg-transparent focus:outline-none resize-none leading-relaxed"
+                    style="min-height: 160px; font-size: 16px;">${escapeHtml(memo.content || '')}</textarea>
           <p class="text-[10px] text-botanical-sage/70 mt-1">입력 중 자동 저장돼요</p>
         </div>
       `;
