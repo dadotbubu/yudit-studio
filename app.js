@@ -1954,7 +1954,7 @@ function renderContentForm(content) {
             </div>
           </div>
           <div class="border border-botanical-stone rounded-lg overflow-x-auto">
-            <table class="script-table text-sm min-w-[720px] md:min-w-0" data-content-id="${content.id}" style="table-layout: fixed; width: auto;">
+            <table class="script-table text-xs md:text-sm min-w-[720px] md:min-w-0" data-content-id="${content.id}" style="table-layout: fixed; width: auto;">
               <colgroup>
                 <col style="width: ${colSection}px">
                 <col style="width: ${colDialogue}px">
@@ -2000,7 +2000,7 @@ function renderContentForm(content) {
             <button onclick="saveCheckpoint(${content.id}, '캡션', this)" title="체크포인트 저장" class="px-3 py-1 bg-botanical-fg text-white rounded-lg text-xs font-medium hover:bg-botanical-fg/90 transition-all">저장</button>
           </div>
         </div>
-        <textarea id="caption-${content.id}" rows="3" oninput="autoResize(this);updateContentField(${content.id}, 'caption', this.value)" placeholder="인스타그램 캡션 입력..." class="auto-grow w-full px-3 py-2 rounded-lg border border-botanical-stone text-sm focus:outline-none focus:border-botanical-sage resize-none overflow-hidden">${content.caption || ''}</textarea>
+        <textarea id="caption-${content.id}" rows="3" oninput="autoResize(this);updateContentField(${content.id}, 'caption', this.value)" placeholder="인스타그램 캡션 입력..." class="auto-grow w-full px-3 py-2 rounded-lg border border-botanical-stone text-xs md:text-sm focus:outline-none focus:border-botanical-sage resize-none overflow-hidden">${content.caption || ''}</textarea>
       </div>
 
       <!-- 4. 공유 링크 + DM 자동 답변 -->
@@ -2011,16 +2011,18 @@ function renderContentForm(content) {
             공유 링크 & DM 답변
           </h3>
           <div class="flex gap-2">
+            <button onclick="copyShareLink(${content.id})" class="px-3 py-1 rounded-full text-xs border border-botanical-stone hover:bg-botanical-cream transition-all">링크 복사</button>
             <button onclick="copyDM(${content.id})" class="px-3 py-1 rounded-full text-xs border border-botanical-stone hover:bg-botanical-cream transition-all">DM 복사</button>
             <button onclick="saveCheckpoint(${content.id}, '공유&DM', this)" title="체크포인트 저장" class="px-3 py-1 bg-botanical-fg text-white rounded-lg text-xs font-medium hover:bg-botanical-fg/90 transition-all">저장</button>
           </div>
         </div>
-        <div class="mb-4">
-          <input type="text" value="${content.shareLink || ''}" oninput="updateContentField(${content.id}, 'shareLink', this.value)" placeholder="팔로워 공유용 링크" class="w-full px-4 py-2 rounded-lg border border-botanical-stone text-sm focus:outline-none focus:border-botanical-sage">
+        <div class="mb-4 flex gap-2">
+          <input id="sharelink-${content.id}" type="text" value="${content.shareLink || ''}" oninput="updateContentField(${content.id}, 'shareLink', this.value)" placeholder="팔로워 공유용 링크" class="flex-1 min-w-0 px-4 py-2 rounded-lg border border-botanical-stone text-sm focus:outline-none focus:border-botanical-sage">
+          <button onclick="openShareLink(${content.id})" class="shrink-0 px-3 py-2 rounded-lg border border-botanical-stone text-sm text-botanical-sage hover:bg-botanical-cream hover:text-botanical-fg transition-all">열기</button>
         </div>
         <div>
           <label class="text-xs text-botanical-sage mb-2 block">DM 자동 답변</label>
-          <textarea id="dm-${content.id}" rows="4" oninput="autoResize(this);updateContentField(${content.id}, 'dm', this.value)" class="auto-grow w-full px-3 py-2 rounded-lg border border-botanical-stone text-sm focus:outline-none focus:border-botanical-sage resize-none overflow-hidden">${content.dm || '안녕하세요 🙋‍♀️\n버튼 누르시면 👇🏻\n[ ]\n자료 확인하실 수 있어요'}</textarea>
+          <textarea id="dm-${content.id}" rows="4" oninput="autoResize(this);updateContentField(${content.id}, 'dm', this.value)" class="auto-grow w-full px-3 py-2 rounded-lg border border-botanical-stone text-xs md:text-sm focus:outline-none focus:border-botanical-sage resize-none overflow-hidden">${content.dm || '안녕하세요 🙋‍♀️\n버튼 누르시면 👇🏻\n[ ]\n자료 확인하실 수 있어요'}</textarea>
         </div>
       </div>
 
@@ -2498,6 +2500,20 @@ function copyDM(contentId) {
   const el = document.getElementById('dm-' + contentId);
   if (!el || !el.value.trim()) { alert('복사할 DM이 없습니다'); return; }
   navigator.clipboard.writeText(el.value).then(() => alert('DM 복사됨'));
+}
+
+function copyShareLink(contentId) {
+  const el = document.getElementById('sharelink-' + contentId);
+  if (!el || !el.value.trim()) { alert('복사할 링크가 없습니다'); return; }
+  navigator.clipboard.writeText(el.value).then(() => alert('링크 복사됨'));
+}
+
+function openShareLink(contentId) {
+  const el = document.getElementById('sharelink-' + contentId);
+  const url = el?.value?.trim();
+  if (!url) { alert('열 링크가 없습니다'); return; }
+  const safeUrl = /^https?:\/\//i.test(url) ? url : 'https://' + url;
+  window.open(safeUrl, '_blank', 'noopener,noreferrer');
 }
 
 function updateContentField(contentId, field, value) {
@@ -3106,6 +3122,7 @@ function saveNewContent(formType) {
 // ========== Performance ==========
 let perfSelectedYear = currentYear;
 let followerViewMode = 'daily';
+let perfSubTab = 'detail'; // 'detail' | 'compare' — 리렌더 후에도 보존
 
 function renderPerformance() {
   const monthPerf = performanceData.monthly[perfSelectedMonth] || {};
@@ -3156,11 +3173,11 @@ function renderPerformance() {
 
   document.getElementById('performance-content').innerHTML = `
     <div class="flex gap-6 mb-6 border-b border-botanical-stone/30">
-      <button onclick="switchPerfTab('detail')" id="perf-tab-detail" class="perf-tab-btn pb-3 text-sm font-medium border-b-2 border-botanical-fg text-botanical-fg">월 상세</button>
-      <button onclick="switchPerfTab('compare')" id="perf-tab-compare" class="perf-tab-btn pb-3 text-sm font-medium border-b-2 border-transparent text-botanical-sage hover:text-botanical-fg">월간 비교</button>
+      <button onclick="switchPerfTab('detail')" id="perf-tab-detail" class="perf-tab-btn pb-3 text-sm font-medium border-b-2 ${perfSubTab === 'detail' ? 'border-botanical-fg text-botanical-fg' : 'border-transparent text-botanical-sage hover:text-botanical-fg'}">월 상세</button>
+      <button onclick="switchPerfTab('compare')" id="perf-tab-compare" class="perf-tab-btn pb-3 text-sm font-medium border-b-2 ${perfSubTab === 'compare' ? 'border-botanical-fg text-botanical-fg' : 'border-transparent text-botanical-sage hover:text-botanical-fg'}">월간 비교</button>
     </div>
 
-    <div id="perf-detail" class="perf-section">
+    <div id="perf-detail" class="perf-section ${perfSubTab === 'detail' ? '' : 'hidden'}">
       <!-- Month Selector -->
       <div class="flex items-center gap-3 mb-6">
         ${renderMonthSelect('perf-month-select', perfSelectedMonth, 'changePerfMonth')}
@@ -3399,7 +3416,7 @@ function renderPerformance() {
       </div>
     </div>
 
-    <div id="perf-compare" class="perf-section hidden">
+    <div id="perf-compare" class="perf-section ${perfSubTab === 'compare' ? '' : 'hidden'}">
       <!-- Year Selector -->
       <div class="flex items-center gap-3 mb-6">
         <select id="perf-year-select" onchange="changePerfYear(this.value)" class="px-4 py-2 pr-8 rounded-full border border-botanical-stone bg-white text-sm focus:outline-none appearance-none bg-no-repeat" style="background-image: url('data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%2712%27 height=%2712%27 viewBox=%270 0 24 24%27 fill=%27none%27 stroke=%27%238C9A84%27 stroke-width=%272%27%3E%3Cpath d=%27m6 9 6 6 6-6%27/%3E%3C/svg%3E'); background-position: right 12px center;">
@@ -3542,6 +3559,7 @@ function switchFollowerView(mode) {
 }
 
 function switchPerfTab(tab) {
+  perfSubTab = tab;
   document.querySelectorAll('.perf-tab-btn').forEach(btn => {
     btn.classList.remove('text-botanical-fg', 'border-botanical-fg');
     btn.classList.add('text-botanical-sage', 'border-transparent');
@@ -3883,8 +3901,8 @@ function renderMemos() {
                  style="font-size: 16px;">
           <textarea placeholder="내용"
                     oninput="onMemoInlineInput(${memo.id}, 'content', this.value)"
-                    class="w-full bg-transparent focus:outline-none resize-none leading-relaxed"
-                    style="min-height: 160px; font-size: 16px;">${escapeHtml(memo.content || '')}</textarea>
+                    class="w-full text-xs bg-transparent focus:outline-none resize-none leading-relaxed"
+                    style="min-height: 160px;">${escapeHtml(memo.content || '')}</textarea>
           <p class="text-[10px] text-botanical-sage/70 mt-1">입력 중 자동 저장돼요</p>
         </div>
       `;
