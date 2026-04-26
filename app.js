@@ -51,6 +51,16 @@ function getMonthOptions(selectedMonth) {
   return opts;
 }
 
+// 시작월(2026-04) 부터 오늘 연도까지 연도 옵션 (역순)
+function getYearOptions() {
+  const startY = parseInt(MONTH_SELECT_START.slice(0, 4));
+  const nowY = new Date().getFullYear();
+  const top = Math.max(nowY, startY);
+  const opts = [];
+  for (let y = top; y >= startY; y--) opts.push(y);
+  return opts;
+}
+
 // 오늘 실제 월을 "YYYY-MM" 으로 (시작월보다 과거면 시작월로 클램프)
 function getDefaultSelectedMonth() {
   const [startY, startM] = MONTH_SELECT_START.split('-').map(Number);
@@ -393,6 +403,11 @@ function switchTab(tabName) {
   const btn = document.getElementById('tab-' + tabName);
   btn.classList.remove('text-botanical-sage', 'border-transparent');
   btn.classList.add('text-botanical-fg', 'border-botanical-fg');
+
+  // 메모탭 진입 시 '자주 쓰는 내용' 항상 접기
+  if (tabName === 'memos') {
+    document.querySelectorAll('#memos-content > details').forEach(d => d.removeAttribute('open'));
+  }
 }
 
 // ========== Calendar ==========
@@ -1574,6 +1589,11 @@ function renderContentForm(content) {
     'INTRO': '#0EA5E9',
     'MAIN 1': '#10B981',
     'MAIN 2': '#F59E0B',
+    'MAIN 3': '#06B6D4',
+    'MAIN 4': '#A855F7',
+    'MAIN 5': '#EF4444',
+    'MAIN 6': '#EAB308',
+    'MAIN 7': '#14B8A6',
     'OUTRO': '#EC4899',
     'CTA': '#EF4444'
   };
@@ -2389,7 +2409,21 @@ function addScriptRow(contentId) {
   ensureScript(content);
   const ver = content.script.currentVersion;
   if (!content.script.versions[ver].rows) content.script.versions[ver].rows = [];
-  content.script.versions[ver].rows.push({section: '', dialogue: '', subtitle: '', scene: ''});
+  const rows = content.script.versions[ver].rows;
+
+  // 다음 MAIN 번호 (기존 MAIN 1~N 중 최대 + 1)
+  let maxMain = 0;
+  rows.forEach(r => {
+    const m = (r.section || '').match(/^MAIN\s*(\d+)/);
+    if (m) maxMain = Math.max(maxMain, parseInt(m[1], 10));
+  });
+  const newRow = { section: `MAIN ${maxMain + 1}`, dialogue: '', subtitle: '', scene: '' };
+
+  // OUTRO 앞에 삽입 (OUTRO 없으면 맨 끝)
+  const outroIdx = rows.findIndex(r => r.section === 'OUTRO');
+  if (outroIdx === -1) rows.push(newRow);
+  else rows.splice(outroIdx, 0, newRow);
+
   saveAllData();
   renderContentList();
   reopenForm(contentId);
@@ -2578,6 +2612,95 @@ function copyMyInstaLink() {
 
 // ========== 자주 쓰는 내용 (템플릿 그룹) ==========
 let activeTemplateGroupId = null;
+let draggedTemplateTabId = null;
+let draggedTemplateItemId = null;
+
+// 백업용 수동 저장
+function manualSaveTemplates() {
+  saveAllData();
+  showMemoSaveToast('자주 쓰는 내용 저장됨');
+}
+
+// === 탭 드래그 ===
+function onTabDragStart(e, id) {
+  draggedTemplateTabId = id;
+  e.dataTransfer.effectAllowed = 'move';
+  try { e.dataTransfer.setData('text/plain', String(id)); } catch(_) {}
+  const pill = e.currentTarget.closest('[data-template-tab]');
+  if (pill) setTimeout(() => pill.classList.add('opacity-40'), 0);
+  e.stopPropagation();
+}
+function onTabDragOver(e, id) {
+  if (draggedTemplateTabId == null || draggedTemplateTabId === id) return;
+  e.preventDefault();
+  e.dataTransfer.dropEffect = 'move';
+}
+function onTabDrop(e, targetId) {
+  e.preventDefault();
+  if (draggedTemplateTabId == null || draggedTemplateTabId === targetId) return;
+  const arr = memosData.templateGroups;
+  const fromIdx = arr.findIndex(g => g.id === draggedTemplateTabId);
+  const toIdx = arr.findIndex(g => g.id === targetId);
+  if (fromIdx === -1 || toIdx === -1) return;
+  const [moved] = arr.splice(fromIdx, 1);
+  // toIdx 보정 (앞에서 빼냈으면 인덱스 -1)
+  const insertAt = fromIdx < toIdx ? toIdx : toIdx;
+  arr.splice(insertAt, 0, moved);
+  draggedTemplateTabId = null;
+  saveAllData();
+  renderMemos();
+}
+function onTabDragEnd(e) {
+  draggedTemplateTabId = null;
+  document.querySelectorAll('[data-template-tab]').forEach(el => el.classList.remove('opacity-40'));
+}
+
+// === 항목 드래그 ===
+function onTemplateItemDragStart(e, id) {
+  draggedTemplateItemId = id;
+  e.dataTransfer.effectAllowed = 'move';
+  try { e.dataTransfer.setData('text/plain', String(id)); } catch(_) {}
+  const item = e.currentTarget.closest('[data-template-item]');
+  if (item) setTimeout(() => item.classList.add('opacity-40'), 0);
+  e.stopPropagation();
+}
+function onTemplateItemDragOver(e, id) {
+  if (draggedTemplateItemId == null || draggedTemplateItemId === id) return;
+  e.preventDefault();
+  e.dataTransfer.dropEffect = 'move';
+  const rect = e.currentTarget.getBoundingClientRect();
+  const isAfter = (e.clientY - rect.top) > rect.height / 2;
+  e.currentTarget.classList.remove('drop-before', 'drop-after');
+  e.currentTarget.classList.add(isAfter ? 'drop-after' : 'drop-before');
+}
+function onTemplateItemDragLeave(e) {
+  e.currentTarget.classList.remove('drop-before', 'drop-after');
+}
+function onTemplateItemDrop(e, targetId) {
+  e.preventDefault();
+  const wasAfter = e.currentTarget.classList.contains('drop-after');
+  e.currentTarget.classList.remove('drop-before', 'drop-after');
+  if (draggedTemplateItemId == null || draggedTemplateItemId === targetId) return;
+  const g = memosData.templateGroups.find(x => x.id === activeTemplateGroupId);
+  if (!g) return;
+  const arr = g.items;
+  const fromIdx = arr.findIndex(i => i.id === draggedTemplateItemId);
+  if (fromIdx === -1) return;
+  const [moved] = arr.splice(fromIdx, 1);
+  let toIdx = arr.findIndex(i => i.id === targetId);
+  if (toIdx === -1) { arr.splice(fromIdx, 0, moved); return; }
+  if (wasAfter) toIdx += 1;
+  arr.splice(toIdx, 0, moved);
+  draggedTemplateItemId = null;
+  saveAllData();
+  renderMemos();
+}
+function onTemplateItemDragEnd(e) {
+  draggedTemplateItemId = null;
+  document.querySelectorAll('[data-template-item]').forEach(el => {
+    el.classList.remove('drop-before', 'drop-after', 'opacity-40');
+  });
+}
 
 function ensureTemplateData() {
   if (!memosData) memosData = { memos: [] };
@@ -2644,12 +2767,12 @@ function addTemplateItem() {
   const newItem = g.type === 'titled'
     ? { id: nextTemplateItemId(), title: '', text: '' }
     : { id: nextTemplateItemId(), text: '' };
-  g.items.push(newItem);
+  g.items.unshift(newItem); // 위로 추가
   saveAllData();
   renderMemos();
   requestAnimationFrame(() => {
-    const inputs = document.querySelectorAll('[data-template-item-input]');
-    inputs[inputs.length - 1]?.focus();
+    const firstInput = document.querySelector('[data-template-item-input]');
+    firstInput?.focus();
   });
 }
 
@@ -2699,23 +2822,46 @@ function renderTemplateSection() {
   const groups = memosData.templateGroups;
   const active = groups.find(g => g.id === activeTemplateGroupId) || groups[0];
 
-  // 탭들 (활성/비활성, 옆에 × 삭제)
+  // SVG 핸들들
+  const gripIconV = `<svg width="10" height="14" viewBox="0 0 10 14" fill="currentColor"><circle cx="3" cy="3" r="1.1"/><circle cx="7" cy="3" r="1.1"/><circle cx="3" cy="7" r="1.1"/><circle cx="7" cy="7" r="1.1"/><circle cx="3" cy="11" r="1.1"/><circle cx="7" cy="11" r="1.1"/></svg>`;
+  const gripIconH = `<svg width="14" height="10" viewBox="0 0 14 10" fill="currentColor"><rect x="1" y="1.5" width="12" height="1.4" rx="0.7"/><rect x="1" y="4.3" width="12" height="1.4" rx="0.7"/><rect x="1" y="7.1" width="12" height="1.4" rx="0.7"/></svg>`;
+  const saveIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>`;
+  const trashIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6h14z"/></svg>`;
+
+  // 탭 (드래그 핸들 = 3선 아이콘)
   const tabsHtml = groups.map(g => {
     const isActive = g.id === active.id;
     return `
-      <span class="inline-flex items-center rounded-full overflow-hidden text-xs md:text-sm ${isActive ? 'bg-botanical-fg text-white' : 'bg-botanical-cream/50 text-botanical-sage'}">
-        <button onclick="selectTemplateGroup(${g.id})" class="px-3 py-1.5 ${isActive ? 'hover:opacity-90' : 'hover:text-botanical-fg'}">${escapeHtml(g.name)}</button>
+      <span data-template-tab="${g.id}"
+            ondragover="onTabDragOver(event, ${g.id})"
+            ondrop="onTabDrop(event, ${g.id})"
+            class="inline-flex items-center rounded-full overflow-hidden text-xs md:text-sm transition-opacity ${isActive ? 'bg-botanical-fg text-white' : 'bg-botanical-cream/50 text-botanical-sage'}">
+        <span draggable="true"
+              ondragstart="onTabDragStart(event, ${g.id})"
+              ondragend="onTabDragEnd(event)"
+              title="드래그로 순서 변경"
+              class="pl-2 pr-0.5 py-1.5 cursor-grab active:cursor-grabbing ${isActive ? 'opacity-70 hover:opacity-100' : 'opacity-50 hover:opacity-100'}">${gripIconH}</span>
+        <button onclick="selectTemplateGroup(${g.id})" class="pl-1 pr-1 py-1.5 ${isActive ? 'hover:opacity-90' : 'hover:text-botanical-fg'}">${escapeHtml(g.name)}</button>
         <button onclick="event.stopPropagation(); deleteTemplateGroup(${g.id})" title="이 탭 삭제" class="pr-2 pl-1 py-1.5 ${isActive ? 'opacity-70 hover:opacity-100 hover:text-red-200' : 'opacity-60 hover:opacity-100 hover:text-red-500'}">×</button>
       </span>
     `;
   }).join('');
 
-  // 항목들 (탭 type 따라 렌더 다름)
+  // 항목 (드래그 핸들 = 점 6개 grip)
   const isTitled = active.type === 'titled';
   const itemsHtml = active.items.length === 0
     ? `<p class="text-xs text-botanical-sage text-center py-4">항목이 없어요. 아래 + 버튼으로 추가.</p>`
     : active.items.map(it => `
-        <div class="flex items-start gap-2 px-3 py-2 rounded-lg border border-botanical-stone bg-botanical-cream/20">
+        <div data-template-item="${it.id}"
+             ondragover="onTemplateItemDragOver(event, ${it.id})"
+             ondragleave="onTemplateItemDragLeave(event)"
+             ondrop="onTemplateItemDrop(event, ${it.id})"
+             class="memo-item flex items-start gap-1.5 px-2 py-2 rounded-lg border border-botanical-stone bg-botanical-cream/20 transition-opacity">
+          <span draggable="true"
+                ondragstart="onTemplateItemDragStart(event, ${it.id})"
+                ondragend="onTemplateItemDragEnd(event)"
+                title="드래그로 순서 변경"
+                class="shrink-0 self-center text-botanical-sage/50 hover:text-botanical-sage cursor-grab active:cursor-grabbing px-0.5">${gripIconV}</span>
           ${isTitled ? `
             <input type="text" data-template-item-input value="${escapeHtml(it.title || '')}" maxlength="4"
                    oninput="updateTemplateItem(${it.id}, 'title', this.value)"
@@ -2730,26 +2876,31 @@ function renderTemplateSection() {
                  style="font-size: 16px;">
           <button onclick="copyTemplateItem(${it.id})" class="shrink-0 px-2 py-1 text-[11px] md:text-xs rounded border border-botanical-stone text-botanical-sage hover:bg-botanical-cream hover:text-botanical-fg transition-all">복사</button>
           <button onclick="deleteTemplateItem(${it.id})" title="삭제" class="shrink-0 p-1 rounded text-botanical-sage/60 hover:text-red-500 transition-all">
-            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6h14z"/></svg>
+            ${trashIcon}
           </button>
         </div>
       `).join('');
 
   return `
-    <details class="mb-4 bg-white rounded-2xl shadow-sm border border-botanical-stone" open>
-      <summary class="list-none cursor-pointer flex items-center justify-between px-4 py-3 border-b border-botanical-stone group">
+    <details class="mb-4 bg-white rounded-2xl shadow-sm border border-botanical-stone">
+      <summary class="list-none cursor-pointer flex items-center justify-between px-4 py-3 group">
         <span class="text-sm font-semibold text-botanical-fg flex items-center gap-2">
           📌 자주 쓰는 내용 <span class="text-xs text-botanical-sage font-normal">(${active.items.length})</span>
         </span>
-        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-botanical-sage transition-transform group-open:rotate-90"><path d="m9 18 6-6-6-6"/></svg>
+        <span class="flex items-center gap-2">
+          <button onclick="event.preventDefault(); event.stopPropagation(); manualSaveTemplates();" title="지금 저장 (백업용)" class="w-7 h-7 rounded-full border border-botanical-stone text-botanical-sage hover:text-botanical-fg hover:border-botanical-sage flex items-center justify-center transition-all">
+            ${saveIcon}
+          </button>
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-botanical-sage transition-transform group-open:rotate-90"><path d="m9 18 6-6-6-6"/></svg>
+        </span>
       </summary>
       <div class="p-3">
         <div class="flex flex-wrap items-center gap-1.5 mb-3 pb-3 border-b border-botanical-stone">
           ${tabsHtml}
           <button onclick="addTemplateGroup()" title="탭 추가" class="px-2.5 py-1.5 rounded-full text-xs border border-dashed border-botanical-sage text-botanical-sage hover:bg-botanical-cream/50 transition-all">+ 탭</button>
         </div>
+        <button onclick="addTemplateItem()" class="mb-3 w-full px-3 py-2 rounded-lg border border-dashed border-botanical-stone text-xs text-botanical-sage hover:bg-botanical-cream/50 transition-all">+ 항목 추가 (위로)</button>
         <div class="space-y-2">${itemsHtml}</div>
-        <button onclick="addTemplateItem()" class="mt-3 w-full px-3 py-2 rounded-lg border border-dashed border-botanical-stone text-xs text-botanical-sage hover:bg-botanical-cream/50 transition-all">+ 항목 추가</button>
       </div>
     </details>
   `;
@@ -3359,7 +3510,11 @@ function saveNewContent(formType) {
 }
 
 // ========== Performance ==========
-let perfSelectedYear = currentYear;
+// 시작월(2026-04)보다 과거 연도면 시작 연도로 클램프
+let perfSelectedYear = (() => {
+  const startY = parseInt(MONTH_SELECT_START.slice(0, 4));
+  return Math.max(currentYear, startY);
+})();
 let followerViewMode = 'daily';
 let perfSubTab = 'detail'; // 'detail' | 'compare' — 리렌더 후에도 보존
 
@@ -3656,11 +3811,10 @@ function renderPerformance() {
     </div>
 
     <div id="perf-compare" class="perf-section ${perfSubTab === 'compare' ? '' : 'hidden'}">
-      <!-- Year Selector -->
+      <!-- Year Selector (시작월 2026-04 ~ 오늘 연도까지 동적 생성) -->
       <div class="flex items-center gap-3 mb-6">
         <select id="perf-year-select" onchange="changePerfYear(this.value)" class="px-4 py-2 pr-8 rounded-full border border-botanical-stone bg-white text-sm focus:outline-none appearance-none bg-no-repeat" style="background-image: url('data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%2712%27 height=%2712%27 viewBox=%270 0 24 24%27 fill=%27none%27 stroke=%27%238C9A84%27 stroke-width=%272%27%3E%3Cpath d=%27m6 9 6 6 6-6%27/%3E%3C/svg%3E'); background-position: right 12px center;">
-          <option value="2026" ${perfSelectedYear === 2026 ? 'selected' : ''}>2026년</option>
-          <option value="2025" ${perfSelectedYear === 2025 ? 'selected' : ''}>2025년</option>
+          ${getYearOptions().map(y => `<option value="${y}" ${perfSelectedYear === y ? 'selected' : ''}>${y}년</option>`).join('')}
         </select>
       </div>
 
