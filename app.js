@@ -2073,7 +2073,7 @@ function renderContentForm(content) {
             <button onclick="saveCheckpoint(${content.id}, '캡션', this)" title="체크포인트 저장" class="px-3 py-1 bg-botanical-fg text-white rounded-lg text-xs font-medium hover:bg-botanical-fg/90 transition-all">저장</button>
           </div>
         </div>
-        <textarea id="caption-${content.id}" rows="3" oninput="autoResize(this);updateContentField(${content.id}, 'caption', this.value)" placeholder="인스타그램 캡션 입력..." class="auto-grow w-full px-3 py-2 rounded-lg border border-botanical-stone text-xs md:text-sm focus:outline-none focus:border-botanical-sage resize-none overflow-hidden">${content.caption || ''}</textarea>
+        <textarea id="caption-${content.id}" rows="3" oninput="autoResize(this);updateContentField(${content.id}, 'caption', this.value)" placeholder="인스타그램 캡션 입력..." class="auto-grow w-full px-3 py-2 rounded-lg border border-botanical-stone text-xs md:text-sm leading-relaxed focus:outline-none focus:border-botanical-sage resize-none overflow-hidden">${content.caption || ''}</textarea>
       </div>
 
       <!-- 4. 공유 링크 + DM 자동 답변 -->
@@ -2095,7 +2095,7 @@ function renderContentForm(content) {
         </div>
         <div>
           <label class="text-xs text-botanical-sage mb-2 block">DM 자동 답변</label>
-          <textarea id="dm-${content.id}" rows="4" oninput="autoResize(this);updateContentField(${content.id}, 'dm', this.value)" class="auto-grow w-full px-3 py-2 rounded-lg border border-botanical-stone text-xs md:text-sm focus:outline-none focus:border-botanical-sage resize-none overflow-hidden">${content.dm || '안녕하세요 🙋‍♀️\n버튼 누르시면 👇🏻\n[ ]\n자료 확인하실 수 있어요'}</textarea>
+          <textarea id="dm-${content.id}" rows="4" oninput="autoResize(this);updateContentField(${content.id}, 'dm', this.value)" class="auto-grow w-full px-3 py-2 rounded-lg border border-botanical-stone text-xs md:text-sm leading-relaxed focus:outline-none focus:border-botanical-sage resize-none overflow-hidden">${content.dm || '안녕하세요 🙋‍♀️\n버튼 누르시면 👇🏻\n[ ]\n자료 확인하실 수 있어요'}</textarea>
         </div>
       </div>
 
@@ -4453,8 +4453,8 @@ function renderMemos() {
                  style="font-size: 16px;">
           <textarea placeholder="내용"
                     oninput="autoResize(this); onMemoInlineInput(${memo.id}, 'content', this.value)"
-                    class="auto-grow w-full bg-transparent focus:outline-none resize-none overflow-hidden leading-relaxed"
-                    style="min-height: 160px; font-size: 16px;">${escapeHtml(memo.content || '')}</textarea>
+                    class="auto-grow w-full text-xs bg-transparent focus:outline-none resize-none overflow-hidden leading-relaxed"
+                    style="min-height: 160px;">${escapeHtml(memo.content || '')}</textarea>
           <p class="text-[10px] text-botanical-sage/70 mt-1">입력 중 자동 저장돼요</p>
         </div>
       `;
