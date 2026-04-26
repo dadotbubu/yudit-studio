@@ -345,6 +345,45 @@ async function loadData() {
 
 // ========== Data Saving (Supabase + localStorage 백업) ==========
 let saveTimer = null;
+
+// 페이지 언로드 / 백그라운드 시 대기 중인 저장을 즉시 보냄 (iOS Safari 데이터 유실 방지)
+// fetch keepalive: 페이지가 닫혀도 브라우저가 요청 끝까지 보냄
+function flushSaveImmediately() {
+  if (saveTimer) {
+    clearTimeout(saveTimer);
+    saveTimer = null;
+  }
+  const payloads = [
+    ['calendar', calendarData],
+    ['contents', contentsData],
+    ['performance', performanceData],
+    ['revenue', revenueData],
+    ['memos', memosData]
+  ];
+  payloads.forEach(([key, data]) => {
+    if (!data) return;
+    try {
+      fetch(`${SUPABASE_URL}/rest/v1/${SUPABASE_TABLE}`, {
+        method: 'POST',
+        headers: {
+          'apikey': SUPABASE_KEY,
+          'Authorization': `Bearer ${SUPABASE_KEY}`,
+          'Content-Type': 'application/json',
+          'Prefer': 'resolution=merge-duplicates,return=minimal'
+        },
+        body: JSON.stringify({ key, data, updated_at: new Date().toISOString() }),
+        keepalive: true
+      });
+    } catch (e) { /* keepalive 실패해도 페이지는 이미 닫힘 */ }
+  });
+}
+
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) flushSaveImmediately();
+});
+window.addEventListener('pagehide', flushSaveImmediately);
+window.addEventListener('beforeunload', flushSaveImmediately);
+
 function saveAllData() {
   // 1) localStorage 즉시 백업 (네트워크 끊겨도 잃지 않게)
   localStorage.setItem('yudit_calendar', JSON.stringify(calendarData));
@@ -1929,7 +1968,7 @@ function renderContentForm(content) {
                   <td class="px-2 md:px-4 py-2 md:py-3 bg-botanical-cream/30 font-medium w-36 md:w-1/3 text-[10px] md:text-sm leading-tight md:leading-normal break-keep align-top">${label}</td>
                   <td class="px-2 md:px-4 py-2 md:py-3 text-xs md:text-sm">${
                     type === 'textarea'
-                      ? `<textarea rows="1" oninput="autoResize(this);updateReference(${content.id}, '${field}', this.value)" placeholder="${ph}" class="auto-grow w-full bg-transparent focus:outline-none resize-none overflow-hidden leading-relaxed break-words" style="min-height: 24px; word-break: break-word;">${content.reference?.[field] ?? ''}</textarea>`
+                      ? `<textarea rows="1" oninput="autoResize(this);updateReference(${content.id}, '${field}', this.value)" placeholder="${ph}" class="auto-grow unified-text w-full bg-transparent focus:outline-none resize-none overflow-hidden break-words" style="min-height: 24px; word-break: break-word;">${content.reference?.[field] ?? ''}</textarea>`
                       : type === 'url'
                       ? `<div class="flex items-center gap-2">
                           <input type="text" value="${content.reference?.[field] ?? ''}" placeholder="${ph}" oninput="updateReference(${content.id}, '${field}', this.value)" class="flex-1 bg-transparent focus:outline-none">
@@ -2073,7 +2112,7 @@ function renderContentForm(content) {
             <button onclick="saveCheckpoint(${content.id}, '캡션', this)" title="체크포인트 저장" class="px-3 py-1 bg-botanical-fg text-white rounded-lg text-xs font-medium hover:bg-botanical-fg/90 transition-all">저장</button>
           </div>
         </div>
-        <textarea id="caption-${content.id}" rows="3" oninput="autoResize(this);updateContentField(${content.id}, 'caption', this.value)" placeholder="인스타그램 캡션 입력..." class="auto-grow w-full px-3 py-2 rounded-lg border border-botanical-stone text-xs md:text-sm leading-relaxed focus:outline-none focus:border-botanical-sage resize-none overflow-hidden">${content.caption || ''}</textarea>
+        <textarea id="caption-${content.id}" rows="3" oninput="autoResize(this);updateContentField(${content.id}, 'caption', this.value)" placeholder="인스타그램 캡션 입력..." class="auto-grow unified-text w-full px-3 py-2 rounded-lg border border-botanical-stone focus:outline-none focus:border-botanical-sage resize-none overflow-hidden">${content.caption || ''}</textarea>
       </div>
 
       <!-- 4. 공유 링크 + DM 자동 답변 -->
@@ -2095,7 +2134,7 @@ function renderContentForm(content) {
         </div>
         <div>
           <label class="text-xs text-botanical-sage mb-2 block">DM 자동 답변</label>
-          <textarea id="dm-${content.id}" rows="4" oninput="autoResize(this);updateContentField(${content.id}, 'dm', this.value)" class="auto-grow w-full px-3 py-2 rounded-lg border border-botanical-stone text-xs md:text-sm leading-relaxed focus:outline-none focus:border-botanical-sage resize-none overflow-hidden">${content.dm || '안녕하세요 🙋‍♀️\n버튼 누르시면 👇🏻\n[ ]\n자료 확인하실 수 있어요'}</textarea>
+          <textarea id="dm-${content.id}" rows="4" oninput="autoResize(this);updateContentField(${content.id}, 'dm', this.value)" class="auto-grow unified-text w-full px-3 py-2 rounded-lg border border-botanical-stone focus:outline-none focus:border-botanical-sage resize-none overflow-hidden">${content.dm || '안녕하세요 🙋‍♀️\n버튼 누르시면 👇🏻\n[ ]\n자료 확인하실 수 있어요'}</textarea>
         </div>
       </div>
 
@@ -3022,14 +3061,13 @@ function renderTemplateSection() {
             <input type="text" data-template-item-input value="${escapeHtml(it.title || '')}" maxlength="4"
                    oninput="updateTemplateItem(${it.id}, 'title', this.value)"
                    placeholder="제목"
-                   class="shrink-0 bg-white border border-botanical-stone rounded px-1 py-0.5 text-center text-xs md:text-sm focus:outline-none focus:border-botanical-sage"
-                   style="font-size: 16px; width: 4.75rem; min-width: 4.75rem; max-width: 4.75rem;">
+                   class="unified-text shrink-0 bg-white border border-botanical-stone rounded px-1 py-0.5 text-center focus:outline-none focus:border-botanical-sage"
+                   style="width: 4.75rem; min-width: 4.75rem; max-width: 4.75rem;">
           ` : ''}
           <input type="text" ${isTitled ? '' : 'data-template-item-input'} value="${escapeHtml(it.text || '')}"
                  oninput="updateTemplateItem(${it.id}, 'text', this.value)"
                  placeholder="${isTitled ? '링크 또는 내용' : '내용 입력'}"
-                 class="flex-1 min-w-0 bg-transparent focus:outline-none text-xs md:text-sm leading-relaxed"
-                 style="font-size: 16px;">
+                 class="unified-text flex-1 min-w-0 bg-transparent focus:outline-none">
           <button onclick="copyTemplateItem(${it.id})" class="shrink-0 px-2 py-1 text-[11px] md:text-xs rounded border border-botanical-stone text-botanical-sage hover:bg-botanical-cream hover:text-botanical-fg transition-all">복사</button>
           <button onclick="deleteTemplateItem(${it.id})" title="삭제" class="shrink-0 p-1 rounded text-botanical-sage/60 hover:text-red-500 transition-all">
             ${trashIcon}
@@ -3043,14 +3081,9 @@ function renderTemplateSection() {
         <span class="text-sm font-semibold text-botanical-fg flex items-center gap-2">
           📌 자주 쓰는 내용 <span class="text-xs text-botanical-sage font-normal">(${active.items.length})</span>
         </span>
-        <span class="flex items-center gap-2">
-          <button onclick="event.preventDefault(); event.stopPropagation(); manualSaveTemplates();" title="지금 저장 (백업용)" class="w-7 h-7 rounded-full border border-botanical-stone text-botanical-sage hover:text-botanical-fg hover:border-botanical-sage flex items-center justify-center transition-all">
-            ${saveIcon}
-          </button>
-          <span class="w-7 h-7 rounded-full border border-botanical-stone text-botanical-sage flex items-center justify-center transition-transform group-open:rotate-90">
-            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
-          </span>
-        </span>
+        <button onclick="event.preventDefault(); event.stopPropagation(); manualSaveTemplates();" title="지금 저장 (백업용)" class="w-7 h-7 rounded-full border border-botanical-stone text-botanical-sage hover:text-botanical-fg hover:border-botanical-sage flex items-center justify-center transition-all">
+          ${saveIcon}
+        </button>
       </summary>
       <div class="p-3">
         <div class="flex flex-wrap items-center gap-1.5 mb-3 pb-3 border-b border-botanical-stone">
@@ -4453,7 +4486,7 @@ function renderMemos() {
                  style="font-size: 16px;">
           <textarea placeholder="내용"
                     oninput="autoResize(this); onMemoInlineInput(${memo.id}, 'content', this.value)"
-                    class="auto-grow w-full text-xs bg-transparent focus:outline-none resize-none overflow-hidden leading-relaxed"
+                    class="auto-grow unified-text w-full bg-transparent focus:outline-none resize-none overflow-hidden"
                     style="min-height: 160px;">${escapeHtml(memo.content || '')}</textarea>
           <p class="text-[10px] text-botanical-sage/70 mt-1">입력 중 자동 저장돼요</p>
         </div>
@@ -4584,7 +4617,7 @@ function renderMemos() {
           </div>
           <div class="flex-1 overflow-y-auto px-6 py-5">
             <input type="text" value="${escapeHtml(selected.title || '')}" placeholder="제목" oninput="updateMemo(${selected.id}, 'title', this.value); updateMemoListItem(${selected.id})" class="w-full font-sans text-2xl font-semibold bg-transparent focus:outline-none mb-3">
-            <textarea oninput="updateMemo(${selected.id}, 'content', this.value); updateMemoListItem(${selected.id})" placeholder="내용" class="w-full text-sm bg-transparent focus:outline-none resize-none leading-relaxed" style="min-height: 400px;">${escapeHtml(selected.content || '')}</textarea>
+            <textarea oninput="updateMemo(${selected.id}, 'content', this.value); updateMemoListItem(${selected.id})" placeholder="내용" class="unified-text w-full bg-transparent focus:outline-none resize-none" style="min-height: 400px;">${escapeHtml(selected.content || '')}</textarea>
           </div>
         `}
       </main>

@@ -73,8 +73,16 @@
     .script-table .col-resize-handle:active::before { background: #8C9A84; }
     .script-table td { vertical-align: top; }
     .script-table textarea.script-cell {
-      min-height: 24px; line-height: 1.625;
+      min-height: 24px; font-size: 13px; line-height: 1.5;
       word-break: break-word; white-space: pre-wrap;
+    }
+    @media (min-width: 768px) {
+      .script-table textarea.script-cell { font-size: 14px; }
+    }
+    /* 본문 입력 통일 (레퍼런스/캡션/DM/대본/메모/자주쓰는내용) — 모바일 13px, PC 14px, 줄간격 1.5 */
+    .unified-text { font-size: 13px !important; line-height: 1.5 !important; }
+    @media (min-width: 768px) {
+      .unified-text { font-size: 14px !important; }
     }
     /* 모바일에서 한글 단어 단위 wrap (글자 중간에 세로로 쪼개지지 않도록) */
     @media (max-width: 767px) {
@@ -124,7 +132,7 @@
       <button onclick="switchTab('dashboard')" id="tab-dashboard" class="tab-btn px-3 md:px-4 py-2 text-xs md:text-sm font-medium transition-all duration-300 text-botanical-sage border-b-2 border-transparent hover:text-botanical-fg">대시보드</button>
       <button onclick="switchTab('content')" id="tab-content" class="tab-btn px-3 md:px-4 py-2 text-xs md:text-sm font-medium transition-all duration-300 text-botanical-sage border-b-2 border-transparent hover:text-botanical-fg">콘텐츠</button>
       <button onclick="switchTab('performance')" id="tab-performance" class="tab-btn px-3 md:px-4 py-2 text-xs md:text-sm font-medium transition-all duration-300 text-botanical-sage border-b-2 border-transparent hover:text-botanical-fg">성과분석</button>
-      <button onclick="switchTab('revenue')" id="tab-revenue" class="tab-btn px-3 md:px-4 py-2 text-xs md:text-sm font-medium transition-all duration-300 text-botanical-sage border-b-2 border-transparent hover:text-botanical-fg">수익리포트</button>
+      <button onclick="switchTab('revenue')" id="tab-revenue" class="tab-btn px-3 md:px-4 py-2 text-xs md:text-sm font-medium transition-all duration-300 text-botanical-sage border-b-2 border-transparent hover:text-botanical-fg"><span class="md:hidden">수익</span><span class="hidden md:inline">수익리포트</span></button>
       <button onclick="switchTab('memos')" id="tab-memos" class="tab-btn px-3 md:px-4 py-2 text-xs md:text-sm font-medium transition-all duration-300 text-botanical-sage border-b-2 border-transparent hover:text-botanical-fg">메모</button>
     </div>
 
@@ -187,6 +195,6 @@
     </div>
   </div>
 
-  <script src="app.js?v=60"></script>
+  <script src="app.js?v=61"></script>
 </body>
 </html>
