@@ -3933,8 +3933,8 @@ function renderMemos() {
                  class="w-full font-semibold bg-transparent border-b border-botanical-stone focus:border-botanical-sage focus:outline-none pb-1 mb-2"
                  style="font-size: 16px;">
           <textarea placeholder="내용"
-                    oninput="onMemoInlineInput(${memo.id}, 'content', this.value)"
-                    class="w-full bg-transparent focus:outline-none resize-none leading-relaxed"
+                    oninput="autoResize(this); onMemoInlineInput(${memo.id}, 'content', this.value)"
+                    class="auto-grow w-full bg-transparent focus:outline-none resize-none overflow-hidden leading-relaxed"
                     style="min-height: 160px; font-size: 16px;">${escapeHtml(memo.content || '')}</textarea>
           <p class="text-[10px] text-botanical-sage/70 mt-1">입력 중 자동 저장돼요</p>
         </div>
@@ -4083,7 +4083,11 @@ function mobileStartEditMemo(id) {
   renderMemos();
   requestAnimationFrame(() => {
     const container = document.querySelector(`.md\\:hidden [data-memo-id="${id}"]`);
-    container?.querySelector('textarea')?.focus();
+    const ta = container?.querySelector('textarea');
+    if (ta) {
+      autoResize(ta); // 진입 즉시 전체 내용 보이도록 높이 맞춤
+      ta.focus();
+    }
   });
 }
 
