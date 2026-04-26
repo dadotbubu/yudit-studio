@@ -406,6 +406,7 @@ function switchTab(tabName) {
 
   // 메모탭 진입 시 '자주 쓰는 내용' 항상 접기
   if (tabName === 'memos') {
+    templateSectionOpen = false;
     document.querySelectorAll('#memos-content > details').forEach(d => d.removeAttribute('open'));
   }
 }
@@ -2612,8 +2613,11 @@ function copyMyInstaLink() {
 
 // ========== 자주 쓰는 내용 (템플릿 그룹) ==========
 let activeTemplateGroupId = null;
-let draggedTemplateTabId = null;
 let draggedTemplateItemId = null;
+let _tabLongpressTimer = null;
+let _suppressTabClick = false;
+let draggedReorderTabId = null;
+let templateSectionOpen = false; // 리렌더 시 펼침 상태 보존
 
 // 백업용 수동 저장
 function manualSaveTemplates() {
@@ -2621,38 +2625,191 @@ function manualSaveTemplates() {
   showMemoSaveToast('자주 쓰는 내용 저장됨');
 }
 
-// === 탭 드래그 ===
-function onTabDragStart(e, id) {
-  draggedTemplateTabId = id;
-  e.dataTransfer.effectAllowed = 'move';
-  try { e.dataTransfer.setData('text/plain', String(id)); } catch(_) {}
-  const pill = e.currentTarget.closest('[data-template-tab]');
-  if (pill) setTimeout(() => pill.classList.add('opacity-40'), 0);
-  e.stopPropagation();
+// === 탭 longpress (모바일) / 우클릭 (PC) → 액션 메뉴 ===
+function startTabLongpress(id) {
+  cancelTabLongpress();
+  _tabLongpressTimer = setTimeout(() => {
+    _tabLongpressTimer = null;
+    _suppressTabClick = true;
+    showTabActionMenu(id);
+  }, 500);
 }
-function onTabDragOver(e, id) {
-  if (draggedTemplateTabId == null || draggedTemplateTabId === id) return;
-  e.preventDefault();
-  e.dataTransfer.dropEffect = 'move';
+function cancelTabLongpress() {
+  if (_tabLongpressTimer) {
+    clearTimeout(_tabLongpressTimer);
+    _tabLongpressTimer = null;
+  }
 }
-function onTabDrop(e, targetId) {
-  e.preventDefault();
-  if (draggedTemplateTabId == null || draggedTemplateTabId === targetId) return;
-  const arr = memosData.templateGroups;
-  const fromIdx = arr.findIndex(g => g.id === draggedTemplateTabId);
-  const toIdx = arr.findIndex(g => g.id === targetId);
-  if (fromIdx === -1 || toIdx === -1) return;
-  const [moved] = arr.splice(fromIdx, 1);
-  // toIdx 보정 (앞에서 빼냈으면 인덱스 -1)
-  const insertAt = fromIdx < toIdx ? toIdx : toIdx;
-  arr.splice(insertAt, 0, moved);
-  draggedTemplateTabId = null;
+
+function showTabActionMenu(id) {
+  document.getElementById('tab-action-menu')?.remove();
+  const tabEl = document.querySelector(`[data-template-tab="${id}"]`);
+  const rect = tabEl?.getBoundingClientRect() || { left: 50, bottom: 50 };
+  const popover = document.createElement('div');
+  popover.id = 'tab-action-menu';
+  popover.style.cssText = `position:fixed;top:${rect.bottom + 6}px;left:${rect.left}px;background:white;border:1px solid #E6E2DA;border-radius:10px;box-shadow:0 6px 18px rgba(0,0,0,0.18);z-index:200;display:flex;flex-direction:column;min-width:170px;overflow:hidden;`;
+  popover.innerHTML = `
+    <button onclick="document.getElementById('tab-action-menu')?.remove(); openRenameTabModal(${id});" style="padding:10px 14px;text-align:left;font-size:13px;background:white;border:none;cursor:pointer;">✏️ 이름 변경</button>
+    <button onclick="document.getElementById('tab-action-menu')?.remove(); openReorderTabModal();" style="padding:10px 14px;text-align:left;font-size:13px;background:white;border:none;border-top:1px solid #E6E2DA;cursor:pointer;">↕️ 순서 변경</button>
+    <button onclick="document.getElementById('tab-action-menu')?.remove(); deleteTemplateGroup(${id});" style="padding:10px 14px;text-align:left;font-size:13px;background:white;border:none;border-top:1px solid #E6E2DA;color:#DC2626;cursor:pointer;">🗑 이 탭 삭제</button>
+  `;
+  document.body.appendChild(popover);
+  setTimeout(() => {
+    const closer = (e) => {
+      if (!popover.contains(e.target)) {
+        popover.remove();
+        document.removeEventListener('pointerdown', closer);
+      }
+    };
+    document.addEventListener('pointerdown', closer);
+  }, 50);
+}
+
+// === 이름 변경 모달 ===
+function openRenameTabModal(id) {
+  const g = memosData.templateGroups.find(x => x.id === id);
+  if (!g) return;
+  closeTabModal();
+  const modal = document.createElement('div');
+  modal.id = 'tab-modal';
+  modal.className = 'fixed inset-0 z-[80] flex items-end md:items-center justify-center';
+  modal.innerHTML = `
+    <div class="absolute inset-0 bg-black/30" onclick="closeTabModal()"></div>
+    <div class="relative bg-white rounded-t-2xl md:rounded-2xl shadow-xl w-full md:max-w-sm md:mx-4 p-5">
+      <h3 class="text-base font-semibold mb-4">탭 이름 변경</h3>
+      <input id="rename-tab-input" type="text" value="${escapeHtml(g.name)}" maxlength="20"
+             class="w-full px-3 py-2 rounded-lg border border-botanical-stone focus:outline-none focus:border-botanical-sage mb-4"
+             style="font-size: 16px;">
+      <div class="flex justify-end gap-2">
+        <button onclick="closeTabModal()" class="px-4 py-2 rounded-lg border border-botanical-stone text-sm text-botanical-sage hover:bg-botanical-cream/50">취소</button>
+        <button onclick="confirmRenameTab(${id})" class="px-4 py-2 rounded-lg bg-botanical-fg text-white text-sm hover:opacity-90">저장</button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(modal);
+  requestAnimationFrame(() => {
+    const input = document.getElementById('rename-tab-input');
+    input?.focus();
+    input?.select();
+  });
+}
+
+function confirmRenameTab(id) {
+  const input = document.getElementById('rename-tab-input');
+  const name = input?.value?.trim();
+  if (!name) { alert('이름을 입력해 주세요.'); return; }
+  const g = memosData.templateGroups.find(x => x.id === id);
+  if (!g) { closeTabModal(); return; }
+  g.name = name;
   saveAllData();
+  closeTabModal();
   renderMemos();
 }
-function onTabDragEnd(e) {
-  draggedTemplateTabId = null;
-  document.querySelectorAll('[data-template-tab]').forEach(el => el.classList.remove('opacity-40'));
+
+function closeTabModal() {
+  document.getElementById('tab-modal')?.remove();
+}
+
+// === 순서 변경 모달 (세로 드래그앤드롭) ===
+let _reorderSnapshot = null;
+function openReorderTabModal() {
+  closeTabModal();
+  _reorderSnapshot = JSON.parse(JSON.stringify(memosData.templateGroups));
+  const modal = document.createElement('div');
+  modal.id = 'tab-modal';
+  modal.className = 'fixed inset-0 z-[80] flex items-end md:items-center justify-center';
+  modal.innerHTML = `
+    <div class="absolute inset-0 bg-black/30" onclick="cancelReorderTabs()"></div>
+    <div class="relative bg-white rounded-t-2xl md:rounded-2xl shadow-xl w-full md:max-w-sm md:mx-4 p-5 max-h-[80vh] flex flex-col">
+      <h3 class="text-base font-semibold mb-1">탭 순서 변경</h3>
+      <p class="text-xs text-botanical-sage mb-3">≡ 잡고 위/아래로 드래그</p>
+      <div id="reorder-tab-list" class="flex-1 overflow-y-auto -mx-1 px-1 space-y-2 mb-4"></div>
+      <div class="flex justify-end gap-2">
+        <button onclick="cancelReorderTabs()" class="px-4 py-2 rounded-lg border border-botanical-stone text-sm text-botanical-sage hover:bg-botanical-cream/50">취소</button>
+        <button onclick="saveReorderTabs()" class="px-4 py-2 rounded-lg bg-botanical-fg text-white text-sm hover:opacity-90">저장</button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(modal);
+  renderReorderTabList();
+}
+
+function renderReorderTabList() {
+  const listEl = document.getElementById('reorder-tab-list');
+  if (!listEl) return;
+  const gripIconV = `<svg width="12" height="16" viewBox="0 0 10 14" fill="currentColor"><circle cx="3" cy="3" r="1.1"/><circle cx="7" cy="3" r="1.1"/><circle cx="3" cy="7" r="1.1"/><circle cx="7" cy="7" r="1.1"/><circle cx="3" cy="11" r="1.1"/><circle cx="7" cy="11" r="1.1"/></svg>`;
+  listEl.innerHTML = memosData.templateGroups.map(g => `
+    <div data-reorder-tab="${g.id}"
+         draggable="true"
+         ondragstart="onReorderTabDragStart(event, ${g.id})"
+         ondragend="onReorderTabDragEnd(event)"
+         ondragover="onReorderTabDragOver(event, ${g.id})"
+         ondragleave="onReorderTabDragLeave(event)"
+         ondrop="onReorderTabDrop(event, ${g.id})"
+         class="memo-item flex items-center gap-3 px-3 py-3 rounded-lg border border-botanical-stone bg-white cursor-grab active:cursor-grabbing select-none transition-opacity">
+      <span class="text-botanical-sage/60">${gripIconV}</span>
+      <span class="font-medium">${escapeHtml(g.name)}</span>
+      <span class="ml-auto text-[10px] text-botanical-sage/70">${g.items.length}개</span>
+    </div>
+  `).join('');
+}
+
+function onReorderTabDragStart(e, id) {
+  draggedReorderTabId = id;
+  e.dataTransfer.effectAllowed = 'move';
+  try { e.dataTransfer.setData('text/plain', String(id)); } catch(_) {}
+  const item = e.currentTarget;
+  setTimeout(() => item.classList.add('opacity-40'), 0);
+}
+function onReorderTabDragOver(e, id) {
+  if (draggedReorderTabId == null || draggedReorderTabId === id) return;
+  e.preventDefault();
+  e.dataTransfer.dropEffect = 'move';
+  const rect = e.currentTarget.getBoundingClientRect();
+  const isAfter = (e.clientY - rect.top) > rect.height / 2;
+  e.currentTarget.classList.remove('drop-before', 'drop-after');
+  e.currentTarget.classList.add(isAfter ? 'drop-after' : 'drop-before');
+}
+function onReorderTabDragLeave(e) {
+  e.currentTarget.classList.remove('drop-before', 'drop-after');
+}
+function onReorderTabDrop(e, targetId) {
+  e.preventDefault();
+  const wasAfter = e.currentTarget.classList.contains('drop-after');
+  e.currentTarget.classList.remove('drop-before', 'drop-after');
+  if (draggedReorderTabId == null || draggedReorderTabId === targetId) return;
+  const arr = memosData.templateGroups;
+  const fromIdx = arr.findIndex(g => g.id === draggedReorderTabId);
+  if (fromIdx === -1) return;
+  const [moved] = arr.splice(fromIdx, 1);
+  let toIdx = arr.findIndex(g => g.id === targetId);
+  if (toIdx === -1) { arr.splice(fromIdx, 0, moved); return; }
+  if (wasAfter) toIdx += 1;
+  arr.splice(toIdx, 0, moved);
+  draggedReorderTabId = null;
+  renderReorderTabList();
+}
+function onReorderTabDragEnd(e) {
+  draggedReorderTabId = null;
+  document.querySelectorAll('[data-reorder-tab]').forEach(el => {
+    el.classList.remove('drop-before', 'drop-after', 'opacity-40');
+  });
+}
+
+function cancelReorderTabs() {
+  if (_reorderSnapshot) {
+    memosData.templateGroups = _reorderSnapshot;
+    _reorderSnapshot = null;
+  }
+  closeTabModal();
+  renderMemos();
+}
+
+function saveReorderTabs() {
+  _reorderSnapshot = null;
+  saveAllData();
+  closeTabModal();
+  renderMemos();
 }
 
 // === 항목 드래그 ===
@@ -2728,6 +2885,7 @@ function nextTemplateItemId() {
 }
 
 function selectTemplateGroup(id) {
+  if (_suppressTabClick) { _suppressTabClick = false; return; }
   activeTemplateGroupId = id;
   renderMemos();
 }
@@ -2822,27 +2980,25 @@ function renderTemplateSection() {
   const groups = memosData.templateGroups;
   const active = groups.find(g => g.id === activeTemplateGroupId) || groups[0];
 
-  // SVG 핸들들
+  // SVG 핸들 (항목용)
   const gripIconV = `<svg width="10" height="14" viewBox="0 0 10 14" fill="currentColor"><circle cx="3" cy="3" r="1.1"/><circle cx="7" cy="3" r="1.1"/><circle cx="3" cy="7" r="1.1"/><circle cx="7" cy="7" r="1.1"/><circle cx="3" cy="11" r="1.1"/><circle cx="7" cy="11" r="1.1"/></svg>`;
-  const gripIconH = `<svg width="14" height="10" viewBox="0 0 14 10" fill="currentColor"><rect x="1" y="1.5" width="12" height="1.4" rx="0.7"/><rect x="1" y="4.3" width="12" height="1.4" rx="0.7"/><rect x="1" y="7.1" width="12" height="1.4" rx="0.7"/></svg>`;
   const saveIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>`;
   const trashIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6h14z"/></svg>`;
 
-  // 탭 (드래그 핸들 = 3선 아이콘)
+  // 탭 (클릭=선택, 우클릭/꾹누르기=메뉴 — 이름/순서/삭제)
   const tabsHtml = groups.map(g => {
     const isActive = g.id === active.id;
     return `
       <span data-template-tab="${g.id}"
-            ondragover="onTabDragOver(event, ${g.id})"
-            ondrop="onTabDrop(event, ${g.id})"
-            class="inline-flex items-center rounded-full overflow-hidden text-xs md:text-sm transition-opacity ${isActive ? 'bg-botanical-fg text-white' : 'bg-botanical-cream/50 text-botanical-sage'}">
-        <span draggable="true"
-              ondragstart="onTabDragStart(event, ${g.id})"
-              ondragend="onTabDragEnd(event)"
-              title="드래그로 순서 변경"
-              class="pl-2 pr-0.5 py-1.5 cursor-grab active:cursor-grabbing ${isActive ? 'opacity-70 hover:opacity-100' : 'opacity-50 hover:opacity-100'}">${gripIconH}</span>
-        <button onclick="selectTemplateGroup(${g.id})" class="pl-1 pr-1 py-1.5 ${isActive ? 'hover:opacity-90' : 'hover:text-botanical-fg'}">${escapeHtml(g.name)}</button>
-        <button onclick="event.stopPropagation(); deleteTemplateGroup(${g.id})" title="이 탭 삭제" class="pr-2 pl-1 py-1.5 ${isActive ? 'opacity-70 hover:opacity-100 hover:text-red-200' : 'opacity-60 hover:opacity-100 hover:text-red-500'}">×</button>
+            onclick="selectTemplateGroup(${g.id})"
+            oncontextmenu="event.preventDefault(); showTabActionMenu(${g.id});"
+            onpointerdown="startTabLongpress(${g.id})"
+            onpointerup="cancelTabLongpress()"
+            onpointerleave="cancelTabLongpress()"
+            onpointermove="cancelTabLongpress()"
+            title="클릭=선택 / 우클릭(PC)·꾹누르기(모바일)=이름·순서·삭제"
+            class="inline-flex items-center px-3 py-1.5 rounded-full text-xs md:text-sm cursor-pointer select-none ${isActive ? 'bg-botanical-fg text-white' : 'bg-botanical-cream/50 text-botanical-sage hover:text-botanical-fg'}">
+        ${escapeHtml(g.name)}
       </span>
     `;
   }).join('');
@@ -2882,7 +3038,7 @@ function renderTemplateSection() {
       `).join('');
 
   return `
-    <details class="mb-4 bg-white rounded-2xl shadow-sm border border-botanical-stone">
+    <details class="mb-4 bg-white rounded-2xl shadow-sm border border-botanical-stone" ${templateSectionOpen ? 'open' : ''} ontoggle="templateSectionOpen = this.open">
       <summary class="list-none cursor-pointer flex items-center justify-between px-4 py-3 group">
         <span class="text-sm font-semibold text-botanical-fg flex items-center gap-2">
           📌 자주 쓰는 내용 <span class="text-xs text-botanical-sage font-normal">(${active.items.length})</span>
@@ -2891,7 +3047,9 @@ function renderTemplateSection() {
           <button onclick="event.preventDefault(); event.stopPropagation(); manualSaveTemplates();" title="지금 저장 (백업용)" class="w-7 h-7 rounded-full border border-botanical-stone text-botanical-sage hover:text-botanical-fg hover:border-botanical-sage flex items-center justify-center transition-all">
             ${saveIcon}
           </button>
-          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-botanical-sage transition-transform group-open:rotate-90"><path d="m9 18 6-6-6-6"/></svg>
+          <span class="w-7 h-7 rounded-full border border-botanical-stone text-botanical-sage flex items-center justify-center transition-transform group-open:rotate-90">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+          </span>
         </span>
       </summary>
       <div class="p-3">
@@ -4290,6 +4448,7 @@ function renderMemos() {
           </div>
           <input type="text" value="${escapeHtml(memo.title || '')}" placeholder="제목"
                  oninput="onMemoInlineInput(${memo.id}, 'title', this.value)"
+                 onpointerdown="onMobileMemoTitleTap(this, event)"
                  class="w-full font-semibold bg-transparent border-b border-botanical-stone focus:border-botanical-sage focus:outline-none pb-1 mb-2"
                  style="font-size: 16px;">
           <textarea placeholder="내용"
@@ -4459,6 +4618,17 @@ function mobileFinishEditMemo() {
     saveAllData();
   }
   renderMemos();
+}
+
+// 펼친 메모의 제목을 두번째로 탭하면 접기 (첫 탭은 input 포커스)
+function onMobileMemoTitleTap(input, e) {
+  if (document.activeElement === input) {
+    // 이미 포커스 → 접기
+    e.preventDefault();
+    input.blur();
+    mobileFinishEditMemo();
+  }
+  // 첫 탭은 그냥 포커스 받게 둠
 }
 
 function onMemoInlineInput(id, field, value) {
