@@ -107,6 +107,7 @@ const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZ
 const SUPABASE_TABLE = 'studio_data';
 const DEFAULT_CLIENT_NOTION = 'https://www.notion.so/34a066f53222807e9fc9e625d5edee26';
 const DEFAULT_TRANSCRIPT_LINK = 'https://getthescript.app/instagram-transcript';
+const MY_INSTA_URL = 'https://www.instagram.com/yudit_life/';
 const fmt = (n) => (Number(n) || 0).toLocaleString();
 
 // 상태 표시 전용 짧은 레이블 (데이터 값은 기존 그대로 유지)
@@ -2540,6 +2541,14 @@ function openShareLink(contentId) {
   window.open(safeUrl, '_blank', 'noopener,noreferrer');
 }
 
+function copyMyInstaLink() {
+  navigator.clipboard.writeText(MY_INSTA_URL).then(() => {
+    showMemoSaveToast('내 인스타 링크 복사됨');
+  }).catch(() => {
+    alert('복사 실패. 직접 복사: ' + MY_INSTA_URL);
+  });
+}
+
 function updateContentField(contentId, field, value) {
   const content = contentsData.contents.find(c => c.id === contentId);
   if (!content) return;
@@ -4116,7 +4125,7 @@ function manualSaveMemos() {
   showMemoSaveToast();
 }
 
-function showMemoSaveToast() {
+function showMemoSaveToast(msg = '저장 완료') {
   let toast = document.getElementById('memo-save-toast');
   if (!toast) {
     toast = document.createElement('div');
@@ -4124,7 +4133,7 @@ function showMemoSaveToast() {
     toast.className = 'fixed bottom-6 left-1/2 -translate-x-1/2 z-[60] px-4 py-2 rounded-full bg-botanical-fg text-white text-sm shadow-lg transition-opacity';
     document.body.appendChild(toast);
   }
-  toast.textContent = '저장 완료';
+  toast.textContent = msg;
   toast.style.opacity = '1';
   clearTimeout(showMemoSaveToast._t);
   showMemoSaveToast._t = setTimeout(() => { toast.style.opacity = '0'; }, 1500);
