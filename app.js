@@ -180,17 +180,41 @@ function updateSaveStatus(status) {
 }
 
 async function loadFromSupabase() {
-  const res = await fetch(`${SUPABASE_URL}/rest/v1/${SUPABASE_TABLE}?select=key,data`, {
-    headers: {
-      'apikey': SUPABASE_KEY,
-      'Authorization': `Bearer ${SUPABASE_KEY}`
+  // 일시적 네트워크 흔들림 대응: 최대 3번 시도 (즉시, 600ms, 1800ms)
+  const delays = [0, 600, 1800];
+  let lastErr;
+  for (let i = 0; i < delays.length; i++) {
+    if (delays[i] > 0) await new Promise(r => setTimeout(r, delays[i]));
+    try {
+      const res = await fetch(`${SUPABASE_URL}/rest/v1/${SUPABASE_TABLE}?select=key,data`, {
+        headers: {
+          'apikey': SUPABASE_KEY,
+          'Authorization': `Bearer ${SUPABASE_KEY}`
+        }
+      });
+      if (!res.ok) throw new Error('Supabase 로드 실패: ' + res.status);
+      const rows = await res.json();
+      const map = {};
+      rows.forEach(r => map[r.key] = r.data);
+      return map;
+    } catch (e) {
+      lastErr = e;
+      console.warn(`Supabase 로드 시도 ${i + 1}/${delays.length} 실패:`, e.message);
     }
-  });
-  if (!res.ok) throw new Error('Supabase 로드 실패: ' + res.status);
-  const rows = await res.json();
-  const map = {};
-  rows.forEach(r => map[r.key] = r.data);
-  return map;
+  }
+  throw lastErr;
+}
+
+// 비차단 상단 배너 (alert 대체)
+function showOfflineBanner(msg) {
+  let bar = document.getElementById('offline-banner');
+  if (!bar) {
+    bar = document.createElement('div');
+    bar.id = 'offline-banner';
+    bar.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:60;background:#FEF3C7;color:#92400E;padding:8px 14px;font-size:13px;display:flex;align-items:center;justify-content:space-between;gap:8px;box-shadow:0 1px 3px rgba(0,0,0,0.08);';
+    document.body.appendChild(bar);
+  }
+  bar.innerHTML = `<span>⚠️ ${msg}</span><button onclick="document.getElementById('offline-banner').remove()" style="background:transparent;border:none;color:#92400E;font-size:16px;cursor:pointer;padding:0 4px;">×</button>`;
 }
 
 async function upsertToSupabase(key, data) {
@@ -273,7 +297,7 @@ async function loadData() {
       revenueData = JSON.parse(localStorage.getItem('yudit_revenue') || '{}');
       memosData = JSON.parse(localStorage.getItem('yudit_memos') || '{"memos":[]}');
       updateSaveStatus('offline');
-      alert('⚠️ Supabase 연결 실패 — 로컬 백업 데이터로 실행합니다.\n인터넷 확인 후 새로고침하세요.');
+      showOfflineBanner('서버 연결이 일시적으로 끊겨 로컬 백업 데이터로 작동 중. 새로고침하면 다시 시도.');
       initApp();
     } else {
       alert('데이터 로드 실패. 인터넷 연결을 확인하세요.\n\n' + e.message);
