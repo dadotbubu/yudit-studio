@@ -217,6 +217,9 @@ function updateSaveStatus(status) {
   }
 }
 
+// 마지막으로 Supabase에서 로드한 시점의 max updated_at — 다른 기기 충돌 감지용
+let lastLoadedAt = null;
+
 async function loadFromSupabase() {
   // 일시적 네트워크 흔들림 대응: 최대 3번 시도 (즉시, 600ms, 1800ms)
   const delays = [0, 600, 1800];
@@ -224,7 +227,7 @@ async function loadFromSupabase() {
   for (let i = 0; i < delays.length; i++) {
     if (delays[i] > 0) await new Promise(r => setTimeout(r, delays[i]));
     try {
-      const res = await fetch(`${SUPABASE_URL}/rest/v1/${SUPABASE_TABLE}?select=key,data`, {
+      const res = await fetch(`${SUPABASE_URL}/rest/v1/${SUPABASE_TABLE}?select=key,data,updated_at`, {
         headers: {
           'apikey': SUPABASE_KEY,
           'Authorization': `Bearer ${SUPABASE_KEY}`
@@ -233,7 +236,12 @@ async function loadFromSupabase() {
       if (!res.ok) throw new Error('Supabase 로드 실패: ' + res.status);
       const rows = await res.json();
       const map = {};
-      rows.forEach(r => map[r.key] = r.data);
+      let maxAt = null;
+      rows.forEach(r => {
+        map[r.key] = r.data;
+        if (r.updated_at && (!maxAt || r.updated_at > maxAt)) maxAt = r.updated_at;
+      });
+      lastLoadedAt = maxAt;
       return map;
     } catch (e) {
       lastErr = e;
@@ -241,6 +249,39 @@ async function loadFromSupabase() {
     }
   }
   throw lastErr;
+}
+
+// 원격에 더 새로운 데이터가 있는지 확인 (다른 기기에서 변경된 경우)
+async function getRemoteLatestUpdatedAt() {
+  try {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/${SUPABASE_TABLE}?select=updated_at&order=updated_at.desc&limit=1`, {
+      headers: {
+        'apikey': SUPABASE_KEY,
+        'Authorization': `Bearer ${SUPABASE_KEY}`
+      }
+    });
+    if (!res.ok) return null;
+    const rows = await res.json();
+    return rows[0]?.updated_at || null;
+  } catch (e) { return null; }
+}
+
+async function checkForRemoteUpdates() {
+  if (!lastLoadedAt) return;
+  const latest = await getRemoteLatestUpdatedAt();
+  if (latest && latest > lastLoadedAt) {
+    showRemoteUpdatedBanner();
+  }
+}
+
+function showRemoteUpdatedBanner() {
+  let bar = document.getElementById('remote-updated-banner');
+  if (bar) return; // 이미 떠 있음
+  bar = document.createElement('div');
+  bar.id = 'remote-updated-banner';
+  bar.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:60;background:#FEF3C7;color:#92400E;padding:10px 14px;font-size:13px;display:flex;align-items:center;justify-content:space-between;gap:8px;box-shadow:0 1px 3px rgba(0,0,0,0.08);';
+  bar.innerHTML = `<span>⚠️ 다른 기기에서 변경된 데이터가 있어요. 지금 화면 그대로 저장하면 그 변경이 사라질 수 있어요.</span><div class="flex gap-2 shrink-0"><button onclick="forceRefresh()" style="background:#92400E;color:white;padding:4px 10px;border:none;border-radius:6px;font-size:12px;cursor:pointer;">다시 불러오기</button><button onclick="document.getElementById('remote-updated-banner').remove()" style="background:transparent;border:none;color:#92400E;font-size:18px;cursor:pointer;padding:0 4px;">×</button></div>`;
+  document.body.appendChild(bar);
 }
 
 // 비차단 상단 배너 (alert 대체)
@@ -379,10 +420,16 @@ function flushSaveImmediately() {
 }
 
 document.addEventListener('visibilitychange', () => {
-  if (document.hidden) flushSaveImmediately();
+  if (document.hidden) {
+    flushSaveImmediately();
+  } else {
+    // 다시 보일 때 — 다른 기기 변경 있는지 체크
+    checkForRemoteUpdates();
+  }
 });
 window.addEventListener('pagehide', flushSaveImmediately);
 window.addEventListener('beforeunload', flushSaveImmediately);
+window.addEventListener('focus', checkForRemoteUpdates);
 
 function saveAllData() {
   // 1) localStorage 즉시 백업 (네트워크 끊겨도 잃지 않게)
@@ -396,6 +443,17 @@ function saveAllData() {
   updateSaveStatus('saving');
   clearTimeout(saveTimer);
   saveTimer = setTimeout(async () => {
+    // 저장 직전 원격 충돌 검사: 다른 기기에서 더 새 데이터 있으면 덮어쓰기 중단
+    try {
+      const remoteLatest = await getRemoteLatestUpdatedAt();
+      if (lastLoadedAt && remoteLatest && remoteLatest > lastLoadedAt) {
+        updateSaveStatus('error');
+        showRemoteUpdatedBanner();
+        console.warn('저장 중단 — 원격이 더 최신:', remoteLatest, 'vs 내가 로드한 시점:', lastLoadedAt);
+        return; // 저장하지 않음
+      }
+    } catch (_) { /* 검사 실패해도 저장은 시도 */ }
+
     try {
       await Promise.all([
         upsertToSupabase('calendar', calendarData),
@@ -404,6 +462,8 @@ function saveAllData() {
         upsertToSupabase('revenue', revenueData),
         upsertToSupabase('memos', memosData)
       ]);
+      // 내 저장이 곧 새 max updated_at — 다음 충돌 검사를 위해 갱신
+      lastLoadedAt = new Date().toISOString();
       updateSaveStatus('saved');
       console.log('Supabase 저장 완료:', new Date().toLocaleTimeString());
     } catch (e) {
@@ -2004,29 +2064,14 @@ function renderContentForm(content) {
 
       <!-- 2. 촬영 및 대본 -->
       <div class="md:border md:border-botanical-stone md:rounded-xl p-0 md:p-5">
-        <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-2 md:gap-0 mb-4">
-          <h3 class="font-medium flex items-center gap-2">
-            <span class="w-6 h-6 rounded-full bg-botanical-sage/20 text-botanical-sage text-xs flex items-center justify-center">2</span>
-            촬영 및 대본 (20초 미만~최대 30초)
-          </h3>
-          <div class="flex gap-2 items-center flex-wrap">
-            <button onclick="saveCheckpoint(${content.id}, '촬영및대본', this)" title="체크포인트 저장" class="px-3 py-1 bg-botanical-fg text-white rounded-lg text-xs font-medium hover:bg-botanical-fg/90 transition-all">저장</button>
-            ${scriptVersions.map((_, i) => {
-              const isActive = i === currentVer;
-              const canDelete = scriptVersions.length > 1;
-              return `
-                <span class="inline-flex items-center rounded-full overflow-hidden border ${isActive ? 'border-botanical-sage' : 'border-botanical-stone'}">
-                  <button onclick="switchScriptVersion(${content.id}, ${i})" class="px-3 py-1 text-xs ${isActive ? 'bg-botanical-sage text-white' : 'hover:bg-botanical-cream transition-all'}">V${i+1}</button>
-                  ${canDelete ? `<button onclick="deleteScriptVersion(${content.id}, ${i})" title="V${i+1} 삭제" class="px-1.5 py-1 text-xs border-l ${isActive ? 'border-white/30 bg-botanical-sage text-white/70 hover:text-red-200' : 'border-botanical-stone text-botanical-sage/50 hover:text-red-500 hover:bg-red-50'}">×</button>` : ''}
-                </span>
-              `;
-            }).join('')}
-            <button onclick="addScriptVersion(${content.id})" class="px-3 py-1 rounded-full text-xs border border-botanical-stone hover:bg-botanical-cream transition-all">+ 버전</button>
-          </div>
-        </div>
+        <h3 class="font-medium flex items-center gap-2 mb-4">
+          <span class="w-6 h-6 rounded-full bg-botanical-sage/20 text-botanical-sage text-xs flex items-center justify-center">2</span>
+          촬영 및 대본 (20초 미만~최대 30초)
+        </h3>
 
+        <!-- 기획 체크리스트 (모든 버전 공통) -->
         <div class="mb-5 p-4 bg-botanical-cream/50 rounded-lg">
-          <p class="text-sm font-medium text-botanical-terracotta mb-3">기획 체크리스트</p>
+          <p class="text-sm font-medium text-botanical-terracotta mb-3">기획 체크리스트 <span class="text-xs text-botanical-sage font-normal">(모든 버전 공통)</span></p>
           <div class="space-y-2">
             ${[
               '이 영상을 봐야할 타겟이 명확한가요?',
@@ -2043,6 +2088,22 @@ function renderContentForm(content) {
               </label>
             `).join('')}
           </div>
+        </div>
+
+        <!-- 저장 + 버전 선택 (썸네일/대본 바로 위) -->
+        <div class="flex flex-wrap gap-2 items-center mb-4 pb-3 border-b border-botanical-stone">
+          <button onclick="saveCheckpoint(${content.id}, '촬영및대본', this)" title="체크포인트 저장 (체크리스트 포함)" class="px-3 py-1 bg-botanical-fg text-white rounded-lg text-xs font-medium hover:bg-botanical-fg/90 transition-all">저장</button>
+          ${scriptVersions.map((_, i) => {
+            const isActive = i === currentVer;
+            const canDelete = scriptVersions.length > 1;
+            return `
+              <span class="inline-flex items-center rounded-full overflow-hidden border ${isActive ? 'border-botanical-sage' : 'border-botanical-stone'}">
+                <button onclick="switchScriptVersion(${content.id}, ${i})" class="px-3 py-1 text-xs ${isActive ? 'bg-botanical-sage text-white' : 'hover:bg-botanical-cream transition-all'}">V${i+1}</button>
+                ${canDelete ? `<button onclick="deleteScriptVersion(${content.id}, ${i})" title="V${i+1} 삭제" class="px-1.5 py-1 text-xs border-l ${isActive ? 'border-white/30 bg-botanical-sage text-white/70 hover:text-red-200' : 'border-botanical-stone text-botanical-sage/50 hover:text-red-500 hover:bg-red-50'}">×</button>` : ''}
+              </span>
+            `;
+          }).join('')}
+          <button onclick="addScriptVersion(${content.id})" class="px-3 py-1 rounded-full text-xs border border-botanical-stone hover:bg-botanical-cream transition-all">+ 버전</button>
         </div>
 
         <div class="mb-4">
