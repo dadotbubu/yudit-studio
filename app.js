@@ -219,6 +219,16 @@ function updateSaveStatus(status) {
 
 // 마지막으로 Supabase에서 로드한 시점의 max updated_at — 다른 기기 충돌 감지용
 let lastLoadedAt = null;
+let lastOwnSaveAt = 0; // 내가 마지막으로 성공 저장한 wallclock (ms) — 자기 저장 grace period
+const REMOTE_DRIFT_TOLERANCE_MS = 15000; // 서버/클라 시계 오차 허용 ±15초
+const OWN_SAVE_GRACE_MS = 30000; // 자기 저장 후 30초간은 충돌 검사 스킵
+
+function isRemoteSignificantlyNewer(remoteAt, localAt) {
+  if (!remoteAt || !localAt) return false;
+  const remoteMs = new Date(remoteAt).getTime();
+  const localMs = new Date(localAt).getTime();
+  return remoteMs - localMs > REMOTE_DRIFT_TOLERANCE_MS;
+}
 
 async function loadFromSupabase() {
   // 일시적 네트워크 흔들림 대응: 최대 3번 시도 (즉시, 600ms, 1800ms)
@@ -268,8 +278,10 @@ async function getRemoteLatestUpdatedAt() {
 
 async function checkForRemoteUpdates() {
   if (!lastLoadedAt) return;
+  // 내가 방금 저장했으면 검사 스킵 (서버 시계 - 클라 시계 차로 false positive)
+  if (Date.now() - lastOwnSaveAt < OWN_SAVE_GRACE_MS) return;
   const latest = await getRemoteLatestUpdatedAt();
-  if (latest && latest > lastLoadedAt) {
+  if (isRemoteSignificantlyNewer(latest, lastLoadedAt)) {
     showRemoteUpdatedBanner();
   }
 }
@@ -443,16 +455,19 @@ function saveAllData() {
   updateSaveStatus('saving');
   clearTimeout(saveTimer);
   saveTimer = setTimeout(async () => {
-    // 저장 직전 원격 충돌 검사: 다른 기기에서 더 새 데이터 있으면 덮어쓰기 중단
-    try {
-      const remoteLatest = await getRemoteLatestUpdatedAt();
-      if (lastLoadedAt && remoteLatest && remoteLatest > lastLoadedAt) {
-        updateSaveStatus('error');
-        showRemoteUpdatedBanner();
-        console.warn('저장 중단 — 원격이 더 최신:', remoteLatest, 'vs 내가 로드한 시점:', lastLoadedAt);
-        return; // 저장하지 않음
-      }
-    } catch (_) { /* 검사 실패해도 저장은 시도 */ }
+    // 저장 직전 원격 충돌 검사: 다른 기기에서 의미있게 더 새 데이터 있으면 덮어쓰기 중단
+    // 자기 저장 grace 안에서는 검사 스킵 (서버/클라 시계 오차 false positive 방지)
+    if (Date.now() - lastOwnSaveAt >= OWN_SAVE_GRACE_MS) {
+      try {
+        const remoteLatest = await getRemoteLatestUpdatedAt();
+        if (isRemoteSignificantlyNewer(remoteLatest, lastLoadedAt)) {
+          updateSaveStatus('error');
+          showRemoteUpdatedBanner();
+          console.warn('저장 중단 — 원격이 더 최신:', remoteLatest, 'vs 내가 로드한 시점:', lastLoadedAt);
+          return;
+        }
+      } catch (_) { /* 검사 실패해도 저장은 시도 */ }
+    }
 
     try {
       await Promise.all([
@@ -462,8 +477,14 @@ function saveAllData() {
         upsertToSupabase('revenue', revenueData),
         upsertToSupabase('memos', memosData)
       ]);
-      // 내 저장이 곧 새 max updated_at — 다음 충돌 검사를 위해 갱신
-      lastLoadedAt = new Date().toISOString();
+      // 저장 직후 서버 측 실제 updated_at 다시 fetch (클라 시계 의존 X)
+      try {
+        const serverLatest = await getRemoteLatestUpdatedAt();
+        if (serverLatest) lastLoadedAt = serverLatest;
+      } catch (_) {
+        lastLoadedAt = new Date().toISOString(); // fallback
+      }
+      lastOwnSaveAt = Date.now();
       updateSaveStatus('saved');
       console.log('Supabase 저장 완료:', new Date().toLocaleTimeString());
     } catch (e) {
@@ -1124,8 +1145,12 @@ function openDateItemDetail(itemId, dateStr) {
             <span class="text-sm">${linkedContent.type}</span>
           </div>
           <div class="flex items-center gap-2">
-            <span class="text-sm text-botanical-sage w-16">상태</span>
-            <span class="text-sm">${statusText(linkedContent.status)}</span>
+            <span class="text-sm text-botanical-sage w-16">이 날 일정</span>
+            <span class="text-sm font-medium text-botanical-terracotta">${statusText(item.status) || '-'}</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <span class="text-sm text-botanical-sage w-16">현재 상태</span>
+            <span class="text-sm text-botanical-sage">${statusText(linkedContent.status)}</span>
           </div>
           <div class="flex items-center gap-2">
             <span class="text-sm text-botanical-sage w-16">업로드</span>
