@@ -276,24 +276,79 @@ async function getRemoteLatestUpdatedAt() {
   } catch (e) { return null; }
 }
 
-async function checkForRemoteUpdates() {
-  if (!lastLoadedAt) return;
-  // 내가 방금 저장했으면 검사 스킵 (서버 시계 - 클라 시계 차로 false positive)
+// 자동 동기화: 원격이 더 새 거면 silent하게 다시 로드 (충돌 배너 X)
+async function autoReloadFromRemote() {
   if (Date.now() - lastOwnSaveAt < OWN_SAVE_GRACE_MS) return;
-  const latest = await getRemoteLatestUpdatedAt();
-  if (isRemoteSignificantlyNewer(latest, lastLoadedAt)) {
-    showRemoteUpdatedBanner();
+  // 사용자가 입력 중이면 보류 (입력 텍스트 사라지지 않게)
+  const ae = document.activeElement;
+  if (ae && (ae.tagName === 'INPUT' || ae.tagName === 'TEXTAREA' || ae.isContentEditable)) return;
+  if (!lastLoadedAt) return;
+  try {
+    const latest = await getRemoteLatestUpdatedAt();
+    if (!isRemoteSignificantlyNewer(latest, lastLoadedAt)) return;
+    const remote = await loadFromSupabase(); // 내부에서 lastLoadedAt 갱신
+    if (!remote) return;
+    if (remote.calendar) calendarData = remote.calendar;
+    if (remote.contents) contentsData = remote.contents;
+    if (remote.performance) performanceData = remote.performance;
+    if (remote.revenue) revenueData = remote.revenue;
+    if (remote.memos) memosData = remote.memos;
+    reconcileCalendarMilestones();
+    renderCalendar();
+    renderDashboard();
+    renderContentList();
+    if (typeof renderPerformance === 'function') renderPerformance();
+    renderRevenue();
+    renderMemos();
+    showMemoSaveToast('최신 데이터로 동기화됨');
+    console.log('Auto-reload 완료:', new Date().toLocaleTimeString());
+  } catch (e) {
+    console.warn('Auto-reload 실패:', e);
   }
 }
 
-function showRemoteUpdatedBanner() {
-  let bar = document.getElementById('remote-updated-banner');
-  if (bar) return; // 이미 떠 있음
-  bar = document.createElement('div');
-  bar.id = 'remote-updated-banner';
-  bar.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:60;background:#FEF3C7;color:#92400E;padding:10px 14px;font-size:13px;display:flex;align-items:center;justify-content:space-between;gap:8px;box-shadow:0 1px 3px rgba(0,0,0,0.08);';
-  bar.innerHTML = `<span>⚠️ 다른 기기에서 변경된 데이터가 있어요. 지금 화면 그대로 저장하면 그 변경이 사라질 수 있어요.</span><div class="flex gap-2 shrink-0"><button onclick="forceRefresh()" style="background:#92400E;color:white;padding:4px 10px;border:none;border-radius:6px;font-size:12px;cursor:pointer;">다시 불러오기</button><button onclick="document.getElementById('remote-updated-banner').remove()" style="background:transparent;border:none;color:#92400E;font-size:18px;cursor:pointer;padding:0 4px;">×</button></div>`;
-  document.body.appendChild(bar);
+// 콘텐츠 마일스톤 ↔ 캘린더 항목 정합성 재구성
+// - (isMilestone+contentId) 캘린더 항목 중 콘텐츠 마일스톤과 status+date 매칭 안되면 제거
+// - 콘텐츠 마일스톤 중 캘린더에 없는 (status+date) 추가
+function reconcileCalendarMilestones() {
+  if (!Array.isArray(calendarData?.items) || !Array.isArray(contentsData?.contents)) return;
+  const beforeLen = calendarData.items.length;
+
+  calendarData.items = calendarData.items.filter(it => {
+    if (!it.isMilestone || !it.contentId) return true;
+    const content = contentsData.contents.find(c => c.id === it.contentId);
+    if (!content) return true;
+    return (content.milestones || []).some(m => m.status === it.status && m.date === it.date);
+  });
+
+  let nextId = Date.now();
+  contentsData.contents.forEach(content => {
+    (content.milestones || []).forEach(m => {
+      if (!m.date) return;
+      const exists = calendarData.items.some(it =>
+        it.isMilestone && it.contentId === content.id && it.status === m.status && it.date === m.date
+      );
+      if (!exists) {
+        calendarData.items.push({
+          id: ++nextId,
+          date: m.date,
+          title: content.title || '',
+          category: content.category,
+          type: content.type,
+          status: m.status,
+          contentId: content.id,
+          isRevenue: content.isRevenue,
+          revenueType: content.isRevenue ? content.category : null,
+          isMilestone: true
+        });
+      }
+    });
+  });
+
+  if (calendarData.items.length !== beforeLen) {
+    console.log(`Calendar reconciled: ${beforeLen} → ${calendarData.items.length}`);
+    saveAllData();
+  }
 }
 
 // 비차단 상단 배너 (alert 대체)
@@ -435,13 +490,13 @@ document.addEventListener('visibilitychange', () => {
   if (document.hidden) {
     flushSaveImmediately();
   } else {
-    // 다시 보일 때 — 다른 기기 변경 있는지 체크
-    checkForRemoteUpdates();
+    // 다시 보일 때 — 자동 동기화 (충돌 배너 X, 항상 원격 최신으로)
+    autoReloadFromRemote();
   }
 });
 window.addEventListener('pagehide', flushSaveImmediately);
 window.addEventListener('beforeunload', flushSaveImmediately);
-window.addEventListener('focus', checkForRemoteUpdates);
+window.addEventListener('focus', autoReloadFromRemote);
 
 function saveAllData() {
   // 1) localStorage 즉시 백업 (네트워크 끊겨도 잃지 않게)
@@ -455,20 +510,6 @@ function saveAllData() {
   updateSaveStatus('saving');
   clearTimeout(saveTimer);
   saveTimer = setTimeout(async () => {
-    // 저장 직전 원격 충돌 검사: 다른 기기에서 의미있게 더 새 데이터 있으면 덮어쓰기 중단
-    // 자기 저장 grace 안에서는 검사 스킵 (서버/클라 시계 오차 false positive 방지)
-    if (Date.now() - lastOwnSaveAt >= OWN_SAVE_GRACE_MS) {
-      try {
-        const remoteLatest = await getRemoteLatestUpdatedAt();
-        if (isRemoteSignificantlyNewer(remoteLatest, lastLoadedAt)) {
-          updateSaveStatus('error');
-          showRemoteUpdatedBanner();
-          console.warn('저장 중단 — 원격이 더 최신:', remoteLatest, 'vs 내가 로드한 시점:', lastLoadedAt);
-          return;
-        }
-      } catch (_) { /* 검사 실패해도 저장은 시도 */ }
-    }
-
     try {
       await Promise.all([
         upsertToSupabase('calendar', calendarData),
@@ -497,6 +538,8 @@ function saveAllData() {
 // ========== Initialize ==========
 function initApp() {
   setTodayDate();
+  // 초기 로드 후 캘린더 ↔ 마일스톤 정합성 한 번 정리 (stale orphan 제거 + 누락 추가)
+  reconcileCalendarMilestones();
   renderCalendar();
   renderDashboard();
   renderContentList();
