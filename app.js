@@ -2980,7 +2980,57 @@ function saveReorderTabs() {
   renderMemos();
 }
 
-// === 항목 드래그 ===
+// === 항목 터치 드래그 (iOS Safari가 native HTML5 drag 미지원) ===
+let _touchDrag = null;
+function onTemplateItemTouchStart(e, id) {
+  if (!e.touches?.length) return;
+  e.preventDefault();
+  const itemEl = e.currentTarget.closest('[data-template-item]');
+  if (!itemEl) return;
+  _touchDrag = { id, itemEl, targetEl: null, isAfter: false };
+  itemEl.classList.add('opacity-40');
+}
+function onTemplateItemTouchMove(e) {
+  if (!_touchDrag || !e.touches?.length) return;
+  e.preventDefault();
+  const t = e.touches[0];
+  const elBelow = document.elementFromPoint(t.clientX, t.clientY);
+  const target = elBelow?.closest('[data-template-item]');
+  document.querySelectorAll('[data-template-item]').forEach(el => el.classList.remove('drop-before', 'drop-after'));
+  if (target && target !== _touchDrag.itemEl) {
+    const rect = target.getBoundingClientRect();
+    const isAfter = (t.clientY - rect.top) > rect.height / 2;
+    target.classList.add(isAfter ? 'drop-after' : 'drop-before');
+    _touchDrag.targetEl = target;
+    _touchDrag.isAfter = isAfter;
+  } else {
+    _touchDrag.targetEl = null;
+  }
+}
+function onTemplateItemTouchEnd(e) {
+  if (!_touchDrag) return;
+  const { id, itemEl, targetEl, isAfter } = _touchDrag;
+  itemEl.classList.remove('opacity-40');
+  document.querySelectorAll('[data-template-item]').forEach(el => el.classList.remove('drop-before', 'drop-after'));
+  _touchDrag = null;
+  if (!targetEl) return;
+  const targetId = parseInt(targetEl.dataset.templateItem);
+  if (!targetId || targetId === id) return;
+  const g = memosData.templateGroups.find(x => x.id === activeTemplateGroupId);
+  if (!g) return;
+  const arr = g.items;
+  const fromIdx = arr.findIndex(i => i.id === id);
+  if (fromIdx === -1) return;
+  const [moved] = arr.splice(fromIdx, 1);
+  let toIdx = arr.findIndex(i => i.id === targetId);
+  if (toIdx === -1) { arr.splice(fromIdx, 0, moved); return; }
+  if (isAfter) toIdx += 1;
+  arr.splice(toIdx, 0, moved);
+  saveAllData();
+  renderMemos();
+}
+
+// === 항목 드래그 (PC HTML5) ===
 function onTemplateItemDragStart(e, id) {
   draggedTemplateItemId = id;
   e.dataTransfer.effectAllowed = 'move';
@@ -3184,8 +3234,12 @@ function renderTemplateSection() {
           <span draggable="true"
                 ondragstart="onTemplateItemDragStart(event, ${it.id})"
                 ondragend="onTemplateItemDragEnd(event)"
+                ontouchstart="onTemplateItemTouchStart(event, ${it.id})"
+                ontouchmove="onTemplateItemTouchMove(event)"
+                ontouchend="onTemplateItemTouchEnd(event)"
+                ontouchcancel="onTemplateItemTouchEnd(event)"
                 title="드래그로 순서 변경"
-                class="shrink-0 self-center text-botanical-sage/50 hover:text-botanical-sage cursor-grab active:cursor-grabbing px-0.5">${gripIconV}</span>
+                class="shrink-0 self-center text-botanical-sage/50 hover:text-botanical-sage cursor-grab active:cursor-grabbing px-0.5" style="touch-action: none;">${gripIconV}</span>
           ${isTitled ? `
             <input type="text" data-template-item-input value="${escapeHtml(it.title || '')}" maxlength="4"
                    oninput="updateTemplateItem(${it.id}, 'title', this.value)"
@@ -4568,6 +4622,54 @@ function renderRevenueList(title, items, color) {
 let draggedMemoId = null;
 let mobileEditingMemoId = null; // 모바일 인라인 편집 대상
 
+// === 메모 터치 드래그 (iOS Safari가 native HTML5 drag 미지원) ===
+let _memoTouchDrag = null;
+function onMemoTouchStart(e, id) {
+  if (!e.touches?.length) return;
+  e.preventDefault();
+  const itemEl = e.currentTarget.closest('[data-memo-id]');
+  if (!itemEl) return;
+  _memoTouchDrag = { id, itemEl, targetEl: null, isAfter: false };
+  itemEl.classList.add('opacity-40');
+}
+function onMemoTouchMove(e) {
+  if (!_memoTouchDrag || !e.touches?.length) return;
+  e.preventDefault();
+  const t = e.touches[0];
+  const elBelow = document.elementFromPoint(t.clientX, t.clientY);
+  const target = elBelow?.closest('[data-memo-id]');
+  document.querySelectorAll('[data-memo-id]').forEach(el => el.classList.remove('drop-before', 'drop-after'));
+  if (target && target !== _memoTouchDrag.itemEl) {
+    const rect = target.getBoundingClientRect();
+    const isAfter = (t.clientY - rect.top) > rect.height / 2;
+    target.classList.add(isAfter ? 'drop-after' : 'drop-before');
+    _memoTouchDrag.targetEl = target;
+    _memoTouchDrag.isAfter = isAfter;
+  } else {
+    _memoTouchDrag.targetEl = null;
+  }
+}
+function onMemoTouchEnd(e) {
+  if (!_memoTouchDrag) return;
+  const { id, itemEl, targetEl, isAfter } = _memoTouchDrag;
+  itemEl.classList.remove('opacity-40');
+  document.querySelectorAll('[data-memo-id]').forEach(el => el.classList.remove('drop-before', 'drop-after'));
+  _memoTouchDrag = null;
+  if (!targetEl) return;
+  const targetId = parseInt(targetEl.dataset.memoId);
+  if (!targetId || targetId === id) return;
+  const arr = memosData.memos;
+  const fromIdx = arr.findIndex(m => m.id === id);
+  if (fromIdx === -1) return;
+  const [moved] = arr.splice(fromIdx, 1);
+  let toIdx = arr.findIndex(m => m.id === targetId);
+  if (toIdx === -1) { arr.splice(fromIdx, 0, moved); return; }
+  if (isAfter) toIdx += 1;
+  arr.splice(toIdx, 0, moved);
+  saveAllData();
+  renderMemos();
+}
+
 function isMobileViewport() {
   return window.matchMedia('(max-width: 767px)').matches;
 }
@@ -4623,10 +4725,15 @@ function renderMemos() {
       `;
     }
     return `
-      <div class="memo-item relative p-3 rounded-lg transition-colors cursor-pointer hover:bg-botanical-cream/40" data-memo-id="${memo.id}" onclick="mobileStartEditMemo(${memo.id})">
+      <div class="memo-item relative p-3 rounded-lg transition-colors hover:bg-botanical-cream/40" data-memo-id="${memo.id}">
         <div class="flex items-start gap-2">
+          <span ondragstart="onMemoDragStart(event, ${memo.id})" ondragend="onMemoDragEnd(event)" draggable="true"
+                ontouchstart="onMemoTouchStart(event, ${memo.id})" ontouchmove="onMemoTouchMove(event)" ontouchend="onMemoTouchEnd(event)" ontouchcancel="onMemoTouchEnd(event)"
+                title="드래그로 순서 변경"
+                class="shrink-0 self-center text-botanical-sage/40 cursor-grab active:cursor-grabbing px-0.5"
+                style="touch-action: none;">${gripIcon}</span>
           <button onclick="event.stopPropagation(); toggleMemoPin(${memo.id})" title="${memo.pinned ? '고정 해제' : '상단 고정'}" class="shrink-0 py-0.5 ${memo.pinned ? 'text-botanical-terracotta' : 'text-botanical-sage/40'} transition-colors">${memo.pinned ? pinIconSolid : pinIconOutline}</button>
-          <div class="flex-1 min-w-0">
+          <div class="flex-1 min-w-0 cursor-pointer" onclick="mobileStartEditMemo(${memo.id})">
             <p class="memo-title font-sans font-semibold text-sm truncate ${memo.title?.trim() ? 'text-botanical-fg' : 'text-botanical-sage/60'}">${escapeHtml(title)}</p>
             <p class="memo-preview text-xs text-botanical-sage truncate mt-0.5">${escapeHtml(preview)}</p>
           </div>
@@ -4654,7 +4761,12 @@ function renderMemos() {
                 onclick="event.stopPropagation()"
                 ondragstart="onMemoDragStart(event, ${memo.id})"
                 ondragend="onMemoDragEnd(event)"
-                title="드래그로 순서 변경">${gripIcon}</span>
+                ontouchstart="onMemoTouchStart(event, ${memo.id})"
+                ontouchmove="onMemoTouchMove(event)"
+                ontouchend="onMemoTouchEnd(event)"
+                ontouchcancel="onMemoTouchEnd(event)"
+                title="드래그로 순서 변경"
+                style="touch-action: none;">${gripIcon}</span>
           <button onclick="event.stopPropagation(); toggleMemoPin(${memo.id})" title="${memo.pinned ? '고정 해제' : '상단 고정'}" class="shrink-0 py-0.5 ${memo.pinned ? 'text-botanical-terracotta' : 'text-botanical-sage/40 hover:text-botanical-sage'} transition-colors">
             ${memo.pinned ? pinIconSolid : pinIconOutline}
           </button>
