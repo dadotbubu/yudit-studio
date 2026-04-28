@@ -2914,7 +2914,12 @@ function renderReorderTabList() {
          ondragover="onReorderTabDragOver(event, ${g.id})"
          ondragleave="onReorderTabDragLeave(event)"
          ondrop="onReorderTabDrop(event, ${g.id})"
-         class="memo-item flex items-center gap-3 px-3 py-3 rounded-lg border border-botanical-stone bg-white cursor-grab active:cursor-grabbing select-none transition-opacity">
+         ontouchstart="onReorderTabTouchStart(event, ${g.id})"
+         ontouchmove="onReorderTabTouchMove(event)"
+         ontouchend="onReorderTabTouchEnd(event)"
+         ontouchcancel="onReorderTabTouchEnd(event)"
+         class="memo-item flex items-center gap-3 px-3 py-3 rounded-lg border border-botanical-stone bg-white cursor-grab active:cursor-grabbing select-none transition-opacity"
+         style="touch-action: none;">
       <span class="text-botanical-sage/60">${gripIconV}</span>
       <span class="font-medium">${escapeHtml(g.name)}</span>
       <span class="ml-auto text-[10px] text-botanical-sage/70">${g.items.length}개</span>
@@ -2962,6 +2967,53 @@ function onReorderTabDragEnd(e) {
   document.querySelectorAll('[data-reorder-tab]').forEach(el => {
     el.classList.remove('drop-before', 'drop-after', 'opacity-40');
   });
+}
+
+// === 모달 탭 순서 변경 — 터치 드래그 (iOS Safari 대응) ===
+let _reorderTabTouchDrag = null;
+function onReorderTabTouchStart(e, id) {
+  if (!e.touches?.length) return;
+  e.preventDefault();
+  const itemEl = e.currentTarget.closest('[data-reorder-tab]');
+  if (!itemEl) return;
+  _reorderTabTouchDrag = { id, itemEl, targetEl: null, isAfter: false };
+  itemEl.classList.add('opacity-40');
+}
+function onReorderTabTouchMove(e) {
+  if (!_reorderTabTouchDrag || !e.touches?.length) return;
+  e.preventDefault();
+  const t = e.touches[0];
+  const elBelow = document.elementFromPoint(t.clientX, t.clientY);
+  const target = elBelow?.closest('[data-reorder-tab]');
+  document.querySelectorAll('[data-reorder-tab]').forEach(el => el.classList.remove('drop-before', 'drop-after'));
+  if (target && target !== _reorderTabTouchDrag.itemEl) {
+    const rect = target.getBoundingClientRect();
+    const isAfter = (t.clientY - rect.top) > rect.height / 2;
+    target.classList.add(isAfter ? 'drop-after' : 'drop-before');
+    _reorderTabTouchDrag.targetEl = target;
+    _reorderTabTouchDrag.isAfter = isAfter;
+  } else {
+    _reorderTabTouchDrag.targetEl = null;
+  }
+}
+function onReorderTabTouchEnd(e) {
+  if (!_reorderTabTouchDrag) return;
+  const { id, itemEl, targetEl, isAfter } = _reorderTabTouchDrag;
+  itemEl.classList.remove('opacity-40');
+  document.querySelectorAll('[data-reorder-tab]').forEach(el => el.classList.remove('drop-before', 'drop-after'));
+  _reorderTabTouchDrag = null;
+  if (!targetEl) return;
+  const targetId = parseInt(targetEl.dataset.reorderTab);
+  if (!targetId || targetId === id) return;
+  const arr = memosData.templateGroups;
+  const fromIdx = arr.findIndex(g => g.id === id);
+  if (fromIdx === -1) return;
+  const [moved] = arr.splice(fromIdx, 1);
+  let toIdx = arr.findIndex(g => g.id === targetId);
+  if (toIdx === -1) { arr.splice(fromIdx, 0, moved); return; }
+  if (isAfter) toIdx += 1;
+  arr.splice(toIdx, 0, moved);
+  renderReorderTabList(); // 모달만 갱신, 저장은 [저장] 버튼 클릭 시
 }
 
 function cancelReorderTabs() {
