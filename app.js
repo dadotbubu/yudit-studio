@@ -3194,9 +3194,10 @@ function renderTemplateSection() {
                    style="width: 4.75rem; min-width: 4.75rem; max-width: 4.75rem;">
           ` : ''}
           <textarea ${isTitled ? '' : 'data-template-item-input'} rows="1"
-                 oninput="autoResize(this); updateTemplateItem(${it.id}, 'text', this.value)"
+                 oninput="updateTemplateItem(${it.id}, 'text', this.value)"
                  placeholder="${isTitled ? '링크 또는 내용' : '내용 입력'}"
-                 class="auto-grow unified-text flex-1 min-w-0 bg-transparent focus:outline-none resize-none overflow-hidden">${escapeHtml(it.text || '')}</textarea>
+                 class="unified-text flex-1 min-w-0 bg-transparent focus:outline-none resize-none overflow-hidden whitespace-nowrap"
+                 style="height: 1.6em;">${escapeHtml(it.text || '')}</textarea>
           <button onclick="copyTemplateItem(${it.id})" class="shrink-0 px-2 py-1 text-[11px] md:text-xs rounded border border-botanical-stone text-botanical-sage hover:bg-botanical-cream hover:text-botanical-fg transition-all">복사</button>
           <button onclick="deleteTemplateItem(${it.id})" title="삭제" class="shrink-0 p-1 rounded text-botanical-sage/60 hover:text-red-500 transition-all">
             ${trashIcon}
@@ -3205,7 +3206,7 @@ function renderTemplateSection() {
       `).join('');
 
   return `
-    <details class="mb-4 bg-white rounded-2xl shadow-sm border border-botanical-stone" ${templateSectionOpen ? 'open' : ''} ontoggle="templateSectionOpen = this.open">
+    <details class="mb-4 bg-white rounded-2xl shadow-sm border border-botanical-stone" ${templateSectionOpen ? 'open' : ''} ontoggle="templateSectionOpen = this.open; if (this.open) requestAnimationFrame(() => this.querySelectorAll('textarea.auto-grow').forEach(autoResize));">
       <summary class="list-none cursor-pointer flex items-center justify-between px-4 py-3 group">
         <span class="text-sm font-semibold text-botanical-fg flex items-center gap-2">
           📌 자주 쓰는 내용 <span class="text-xs text-botanical-sage font-normal">(${active.items.length})</span>
