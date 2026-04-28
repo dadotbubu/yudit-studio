@@ -3193,10 +3193,10 @@ function renderTemplateSection() {
                    class="unified-text shrink-0 bg-white border border-botanical-stone rounded px-1 py-0.5 text-center focus:outline-none focus:border-botanical-sage"
                    style="width: 4.75rem; min-width: 4.75rem; max-width: 4.75rem;">
           ` : ''}
-          <input type="text" ${isTitled ? '' : 'data-template-item-input'} value="${escapeHtml(it.text || '')}"
-                 oninput="updateTemplateItem(${it.id}, 'text', this.value)"
+          <textarea ${isTitled ? '' : 'data-template-item-input'} rows="1"
+                 oninput="autoResize(this); updateTemplateItem(${it.id}, 'text', this.value)"
                  placeholder="${isTitled ? '링크 또는 내용' : '내용 입력'}"
-                 class="unified-text flex-1 min-w-0 bg-transparent focus:outline-none">
+                 class="auto-grow unified-text flex-1 min-w-0 bg-transparent focus:outline-none resize-none overflow-hidden">${escapeHtml(it.text || '')}</textarea>
           <button onclick="copyTemplateItem(${it.id})" class="shrink-0 px-2 py-1 text-[11px] md:text-xs rounded border border-botanical-stone text-botanical-sage hover:bg-botanical-cream hover:text-botanical-fg transition-all">복사</button>
           <button onclick="deleteTemplateItem(${it.id})" title="삭제" class="shrink-0 p-1 rounded text-botanical-sage/60 hover:text-red-500 transition-all">
             ${trashIcon}
@@ -4754,6 +4754,10 @@ function renderMemos() {
   `;
 
   document.getElementById('memos-content').innerHTML = renderTemplateSection() + mobileHTML + pcHTML;
+  // 자주 쓰는 내용 textarea 자동 높이 (멀티라인 내용도 처음부터 전체 노출)
+  requestAnimationFrame(() => {
+    document.querySelectorAll('#memos-content textarea.auto-grow').forEach(autoResize);
+  });
 }
 
 // === 모바일 인라인 편집 ===
