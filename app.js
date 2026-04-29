@@ -1578,24 +1578,24 @@ function renderDashboard() {
     </div>
 
     <!-- 콘텐츠 현황 -->
-    <div class="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
-      <div class="bg-white rounded-2xl p-4 shadow-sm border border-botanical-stone">
+    <div class="grid grid-cols-6 md:grid-cols-5 gap-3 md:gap-4 mb-6">
+      <div class="col-span-3 md:col-span-1 bg-white rounded-2xl p-4 shadow-sm border border-botanical-stone">
         <p class="text-xs text-botanical-sage font-medium tracking-wide uppercase mb-1">일반 콘텐츠</p>
         <p class="font-serif text-2xl font-semibold">${generalContents}<span class="text-botanical-clay text-base">/8</span></p>
       </div>
-      <div class="bg-white rounded-2xl p-4 shadow-sm border border-botanical-stone">
+      <div class="col-span-3 md:col-span-1 bg-white rounded-2xl p-4 shadow-sm border border-botanical-stone">
         <p class="text-xs text-botanical-sage font-medium tracking-wide uppercase mb-1">광고 콘텐츠</p>
         <p class="font-serif text-2xl font-semibold">${adContents}<span class="text-botanical-clay text-base">/2</span></p>
       </div>
-      <div class="bg-white rounded-2xl p-4 shadow-sm border border-botanical-stone">
+      <div class="col-span-2 md:col-span-1 bg-white rounded-2xl p-4 shadow-sm border border-botanical-stone">
         <p class="text-xs text-botanical-sage font-medium tracking-wide uppercase mb-1">기획 필요</p>
         <p class="font-serif text-2xl font-semibold text-botanical-terracotta">${needPlanning}</p>
       </div>
-      <div class="bg-white rounded-2xl p-4 shadow-sm border border-botanical-stone">
+      <div class="col-span-2 md:col-span-1 bg-white rounded-2xl p-4 shadow-sm border border-botanical-stone">
         <p class="text-xs text-botanical-sage font-medium tracking-wide uppercase mb-1">제작 필요</p>
         <p class="font-serif text-2xl font-semibold text-botanical-terracotta">${needProduction}</p>
       </div>
-      <div class="bg-white rounded-2xl p-4 shadow-sm border border-botanical-stone">
+      <div class="col-span-2 md:col-span-1 bg-white rounded-2xl p-4 shadow-sm border border-botanical-stone">
         <p class="text-xs text-botanical-sage font-medium tracking-wide uppercase mb-1">업로드 필요</p>
         <p class="font-serif text-2xl font-semibold text-botanical-terracotta">${needUpload}</p>
       </div>
@@ -1607,8 +1607,8 @@ function renderDashboard() {
         <h4 class="text-base font-semibold">카테고리 <span class="font-serif italic">Balance</span></h4>
         <span class="text-xs text-botanical-sage bg-botanical-cream px-2 py-0.5 rounded-full">월 8개 기준</span>
       </div>
-      <div class="grid grid-cols-3 gap-3">
-        <div class="p-3 rounded-xl text-center border border-botanical-stone" style="background-color: #F9F8F4;">
+      <div class="grid grid-cols-2 md:grid-cols-5 gap-3">
+        <div class="col-span-2 md:col-span-1 p-3 rounded-xl text-center border border-botanical-stone" style="background-color: #F9F8F4;">
           <p class="text-sm text-botanical-fg font-medium mb-1">전체</p>
           <p class="text-2xl font-semibold text-botanical-fg font-serif">${totalCount}<span class="text-botanical-clay">/8</span></p>
         </div>
@@ -1985,32 +1985,53 @@ function renderContentForm(content) {
                 </td>
               </tr>
               <tr class="border-b border-botanical-stone">
-                <td class="px-4 py-3 bg-botanical-cream/40 font-medium align-middle">광고비 (원)</td>
-                <td class="px-4 py-2">
-                  <div class="grid grid-cols-2 md:grid-cols-4 gap-2 items-center">
-                    <input type="number" id="adfee-reels-${content.id}" value="${content.adInfo?.reelsFee || ''}" oninput="updateAdFee(${content.id})" placeholder="0" class="w-full px-3 rounded-lg border border-botanical-stone text-sm focus:outline-none" style="height:38px;">
-                    <input type="number" id="adfee-content-${content.id}" value="${content.adInfo?.contentFee || ''}" oninput="updateAdFee(${content.id})" placeholder="0" class="w-full px-3 rounded-lg border border-botanical-stone text-sm focus:outline-none" style="height:38px;">
-                    <input type="number" id="adfee-secondary-${content.id}" value="${content.adInfo?.secondaryFee || ''}" oninput="updateAdFee(${content.id})" placeholder="0" class="w-full px-3 rounded-lg border border-botanical-stone text-sm focus:outline-none" style="height:38px;">
-                    <div class="text-right text-sm"><span class="text-botanical-sage text-xs">합계 </span><span class="font-serif font-semibold" id="adfee-total-${content.id}">${fmt((content.adInfo?.reelsFee || 0) + (content.adInfo?.contentFee || 0) + (content.adInfo?.secondaryFee || 0))}</span></div>
+                <td class="px-2 md:px-4 py-2 md:py-3 bg-botanical-cream/40 font-medium w-24 md:w-40 text-xs md:text-sm break-keep align-middle">광고비 (원)</td>
+                <td class="px-2 md:px-4 py-2">
+                  <!-- 모바일: 항목 1줄씩, PC: 4컬럼 -->
+                  <div class="space-y-1.5 md:space-y-0 md:grid md:grid-cols-4 md:gap-2 md:items-center">
+                    <label class="flex items-center gap-2 md:block">
+                      <span class="md:hidden text-[11px] text-botanical-sage w-20 shrink-0">릴스업로드비</span>
+                      <input type="number" id="adfee-reels-${content.id}" value="${content.adInfo?.reelsFee || ''}" oninput="updateAdFee(${content.id})" placeholder="0" class="flex-1 min-w-0 md:w-full px-3 rounded-lg border border-botanical-stone text-sm focus:outline-none" style="height:38px;">
+                      <span class="md:hidden text-[10px] text-botanical-sage/70 shrink-0">원</span>
+                    </label>
+                    <label class="flex items-center gap-2 md:block">
+                      <span class="md:hidden text-[11px] text-botanical-sage w-20 shrink-0">컨텐츠제작비</span>
+                      <input type="number" id="adfee-content-${content.id}" value="${content.adInfo?.contentFee || ''}" oninput="updateAdFee(${content.id})" placeholder="0" class="flex-1 min-w-0 md:w-full px-3 rounded-lg border border-botanical-stone text-sm focus:outline-none" style="height:38px;">
+                      <span class="md:hidden text-[10px] text-botanical-sage/70 shrink-0">원</span>
+                    </label>
+                    <label class="flex items-center gap-2 md:block">
+                      <span class="md:hidden text-[11px] text-botanical-sage w-20 shrink-0">2차활용비(월)</span>
+                      <input type="number" id="adfee-secondary-${content.id}" value="${content.adInfo?.secondaryFee || ''}" oninput="updateAdFee(${content.id})" placeholder="0" class="flex-1 min-w-0 md:w-full px-3 rounded-lg border border-botanical-stone text-sm focus:outline-none" style="height:38px;">
+                      <span class="md:hidden text-[10px] text-botanical-sage/70 shrink-0">원</span>
+                    </label>
+                    <div class="flex items-center justify-between md:justify-end pt-1.5 md:pt-0 border-t md:border-0 border-botanical-stone/50">
+                      <span class="md:hidden text-xs text-botanical-fg font-medium">합계</span>
+                      <span class="hidden md:inline text-botanical-sage text-xs">합계 </span>
+                      <span class="font-serif font-semibold text-base md:text-sm" id="adfee-total-${content.id}">${fmt((content.adInfo?.reelsFee || 0) + (content.adInfo?.contentFee || 0) + (content.adInfo?.secondaryFee || 0))}</span><span class="md:hidden text-xs text-botanical-sage ml-0.5">원</span>
+                    </div>
                   </div>
-                  <div class="grid grid-cols-2 md:grid-cols-4 gap-2 mt-1 text-[10px] text-botanical-sage text-center">
+                  <!-- PC 라벨 (모바일은 각 줄에 라벨이 이미 있음) -->
+                  <div class="hidden md:grid md:grid-cols-4 gap-2 mt-1 text-[10px] text-botanical-sage text-center">
                     <span>릴스업로드비</span><span>컨텐츠제작비</span><span>2차활용비(월)</span><span></span>
                   </div>
                 </td>
               </tr>
               <tr class="border-b border-botanical-stone">
-                <td class="px-4 py-3 bg-botanical-cream/40 font-medium align-middle">제작 가이드</td>
-                <td class="px-4 py-2">
-                  <div class="flex gap-2">
-                    <input type="text" value="${content.adInfo?.guideLink || ''}" oninput="updateAdInfo(${content.id}, 'guideLink', this.value)" placeholder="https://..." class="flex-1 px-3 rounded-lg border border-botanical-stone text-sm focus:outline-none" style="height:38px;">
+                <td class="px-2 md:px-4 py-2 md:py-3 bg-botanical-cream/40 font-medium w-24 md:w-40 text-xs md:text-sm break-keep align-middle">제작 가이드</td>
+                <td class="px-2 md:px-4 py-2">
+                  <div class="flex gap-1.5 md:gap-2">
+                    <input type="text" value="${content.adInfo?.guideLink || ''}" oninput="updateAdInfo(${content.id}, 'guideLink', this.value)" placeholder="https://..." class="flex-1 min-w-0 px-3 rounded-lg border border-botanical-stone text-sm focus:outline-none" style="height:38px;">
                     ${openLinkBtn(content.adInfo?.guideLink)}
                   </div>
                 </td>
               </tr>
               <tr class="border-b border-botanical-stone">
-                <td class="px-4 py-3 bg-botanical-cream/40 font-medium align-middle">계약서</td>
-                <td class="px-4 py-2">
-                  <input type="text" value="${content.adInfo?.contractLink || ''}" oninput="updateAdInfo(${content.id}, 'contractLink', this.value)" placeholder="https://... 또는 이미지 URL" class="w-full px-3 rounded-lg border border-botanical-stone text-sm focus:outline-none" style="height:38px;">
+                <td class="px-2 md:px-4 py-2 md:py-3 bg-botanical-cream/40 font-medium w-24 md:w-40 text-xs md:text-sm break-keep align-middle">계약서</td>
+                <td class="px-2 md:px-4 py-2">
+                  <div class="flex gap-1.5 md:gap-2">
+                    <input type="text" value="${content.adInfo?.contractLink || ''}" oninput="updateAdInfo(${content.id}, 'contractLink', this.value)" placeholder="https://... 또는 이미지 URL" class="flex-1 min-w-0 px-3 rounded-lg border border-botanical-stone text-sm focus:outline-none" style="height:38px;">
+                    ${openLinkBtn(content.adInfo?.contractLink)}
+                  </div>
                 </td>
               </tr>
               ` : content.category === '판매' ? `
@@ -2039,20 +2060,20 @@ function renderContentForm(content) {
               `}
 
               <tr class="border-b border-botanical-stone">
-                <td class="px-4 py-3 bg-botanical-cream/40 font-medium align-top">메모</td>
-                <td class="px-4 py-2">
+                <td class="px-2 md:px-4 py-2 md:py-3 bg-botanical-cream/40 font-medium w-24 md:w-40 text-xs md:text-sm break-keep align-top">메모</td>
+                <td class="px-2 md:px-4 py-2">
                   <textarea rows="2" oninput="autoResize(this);updateAdInfo(${content.id}, 'note', this.value)" placeholder="제작 시 참고사항..." class="auto-grow w-full px-3 py-2 rounded-lg border border-botanical-stone text-sm focus:outline-none resize-none overflow-hidden">${content.adInfo?.note || ''}</textarea>
                 </td>
               </tr>
 
               <tr ${content.category === '광고' ? 'class="border-b border-botanical-stone"' : ''}>
-                <td class="px-4 py-3 bg-botanical-cream/40 font-medium align-middle">참고 링크</td>
-                <td class="px-4 py-2">
-                  <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <td class="px-2 md:px-4 py-2 md:py-3 bg-botanical-cream/40 font-medium w-24 md:w-40 text-xs md:text-sm break-keep align-middle">참고 링크</td>
+                <td class="px-2 md:px-4 py-2">
+                  <div class="grid grid-cols-1 md:grid-cols-2 gap-2 md:gap-3">
                     ${[0, 1].map(idx => {
                       const link = content.adInfo?.refLinks?.[idx] || '';
                       return `
-                      <div class="flex gap-2">
+                      <div class="flex gap-1.5 md:gap-2">
                         <input type="text" value="${link}" oninput="updateAdRefLink(${content.id}, ${idx}, this.value)" placeholder="https://..." class="flex-1 min-w-0 px-3 rounded-lg border border-botanical-stone text-sm focus:outline-none" style="height:38px;">
                         ${openLinkBtn(link)}
                       </div>`;
@@ -2063,10 +2084,10 @@ function renderContentForm(content) {
 
               ${content.category === '광고' ? `
               <tr>
-                <td class="px-4 py-3 bg-botanical-terracotta/10 font-medium text-botanical-terracotta align-middle">광고주 전달 기획안</td>
-                <td class="px-4 py-2">
-                  <div class="flex gap-2">
-                    <input type="text" value="${content.adInfo?.clientNotion ?? DEFAULT_CLIENT_NOTION}" oninput="updateClientNotion(${content.id}, this.value)" placeholder="노션 링크" class="flex-1 px-3 rounded-lg border border-botanical-stone text-sm focus:outline-none" style="height:38px;">
+                <td class="px-2 md:px-4 py-2 md:py-3 bg-botanical-terracotta/10 font-medium text-botanical-terracotta w-24 md:w-40 text-xs md:text-sm break-keep align-middle">광고주 전달 기획안</td>
+                <td class="px-2 md:px-4 py-2">
+                  <div class="flex gap-1.5 md:gap-2">
+                    <input type="text" value="${content.adInfo?.clientNotion ?? DEFAULT_CLIENT_NOTION}" oninput="updateClientNotion(${content.id}, this.value)" placeholder="노션 링크" class="flex-1 min-w-0 px-3 rounded-lg border border-botanical-stone text-sm focus:outline-none" style="height:38px;">
                     ${openLinkBtn(content.adInfo?.clientNotion ?? DEFAULT_CLIENT_NOTION)}
                   </div>
                 </td>
