@@ -97,16 +97,45 @@ function getContentRefDate(content) {
 
 const categoryColors = {
   // 일반 카테고리
-  '취업/이직': '#879483',
-  'AI활용': '#5C6B5A',
-  '재테크': '#C1725D',
-  '대기업라이프': '#D4A574',
-  '쇼핑/여행': '#7BA3A8',
+  'Career Guide': '#879483',
+  'AI Work': '#5C6B5A',
+  'Money Log': '#C1725D',
+  'Life Style': '#7BA3A8',
   // 수익 카테고리
   '광고': '#9B6B8C',
   '판매': '#6B8E8E',
   '협찬': '#C8B6A6'
 };
+
+// 한글 → 영어 카테고리 일회성 마이그레이션 매핑 (대기업라이프+쇼핑/여행 → Life Style)
+const CATEGORY_MIGRATION = {
+  '취업/이직': 'Career Guide',
+  'AI활용': 'AI Work',
+  '재테크': 'Money Log',
+  '대기업라이프': 'Life Style',
+  '쇼핑/여행': 'Life Style'
+};
+
+function migrateCategoryNames() {
+  let changed = false;
+  if (Array.isArray(contentsData?.contents)) {
+    contentsData.contents.forEach(c => {
+      if (CATEGORY_MIGRATION[c.category]) {
+        c.category = CATEGORY_MIGRATION[c.category];
+        changed = true;
+      }
+    });
+  }
+  if (Array.isArray(calendarData?.items)) {
+    calendarData.items.forEach(it => {
+      if (CATEGORY_MIGRATION[it.category]) {
+        it.category = CATEGORY_MIGRATION[it.category];
+        changed = true;
+      }
+    });
+  }
+  return changed;
+}
 
 const monthNames = ['January', 'February', 'March', 'April', 'May', 'June',
                     'July', 'August', 'September', 'October', 'November', 'December'];
@@ -538,6 +567,10 @@ function saveAllData() {
 // ========== Initialize ==========
 function initApp() {
   setTodayDate();
+  // 한글 카테고리 → 영어 일회성 마이그레이션
+  if (migrateCategoryNames()) {
+    saveAllData();
+  }
   // 초기 로드 후 캘린더 ↔ 마일스톤 정합성 한 번 정리 (stale orphan 제거 + 누락 추가)
   reconcileCalendarMilestones();
   renderCalendar();
@@ -754,11 +787,10 @@ function renderMonthlyView() {
   // Legend
   html += `
     <div class="flex flex-wrap gap-4 mt-4 pt-3 border-t border-botanical-stone text-xs">
-      <div class="flex items-center gap-1.5"><div class="w-3 h-3 rounded-full" style="background-color: #879483;"></div><span class="text-botanical-sage">취업/이직</span></div>
-      <div class="flex items-center gap-1.5"><div class="w-3 h-3 rounded-full" style="background-color: #5C6B5A;"></div><span class="text-botanical-sage">AI활용</span></div>
-      <div class="flex items-center gap-1.5"><div class="w-3 h-3 rounded-full" style="background-color: #C1725D;"></div><span class="text-botanical-sage">재테크</span></div>
-      <div class="flex items-center gap-1.5"><div class="w-3 h-3 rounded-full" style="background-color: #D4A574;"></div><span class="text-botanical-sage">대기업라이프</span></div>
-      <div class="flex items-center gap-1.5"><div class="w-3 h-3 rounded-full" style="background-color: #7BA3A8;"></div><span class="text-botanical-sage">쇼핑/여행</span></div>
+      <div class="flex items-center gap-1.5"><div class="w-3 h-3 rounded-full" style="background-color: #879483;"></div><span class="text-botanical-sage">Career Guide</span></div>
+      <div class="flex items-center gap-1.5"><div class="w-3 h-3 rounded-full" style="background-color: #5C6B5A;"></div><span class="text-botanical-sage">AI Work</span></div>
+      <div class="flex items-center gap-1.5"><div class="w-3 h-3 rounded-full" style="background-color: #C1725D;"></div><span class="text-botanical-sage">Money Log</span></div>
+      <div class="flex items-center gap-1.5"><div class="w-3 h-3 rounded-full" style="background-color: #7BA3A8;"></div><span class="text-botanical-sage">Life Style</span></div>
       <div class="flex items-center gap-1.5"><div class="w-3 h-3 rounded-full" style="background-color: #9B6B8C;"></div><span class="text-botanical-sage">광고</span></div>
       <div class="flex items-center gap-1.5"><div class="w-3 h-3 rounded-full" style="background-color: #6B8E8E;"></div><span class="text-botanical-sage">판매</span></div>
       <div class="flex items-center gap-1.5"><div class="w-3 h-3 rounded-full" style="background-color: #C8B6A6;"></div><span class="text-botanical-sage">협찬</span></div>
@@ -1305,11 +1337,10 @@ function getRegistrationFormHTML(dateStr) {
       <div>
         <label class="text-sm font-medium block mb-1">카테고리</label>
         <select id="new-category" class="w-full px-3 py-2 rounded-xl border border-botanical-stone focus:outline-none">
-          <option value="취업/이직">취업/이직</option>
-          <option value="AI활용">AI활용</option>
-          <option value="재테크">재테크</option>
-          <option value="대기업라이프">대기업라이프</option>
-          <option value="쇼핑/여행">쇼핑/여행</option>
+          <option value="Career Guide">Career Guide</option>
+          <option value="AI Work">AI Work</option>
+          <option value="Money Log">Money Log</option>
+          <option value="Life Style">Life Style</option>
         </select>
       </div>
       <div>
@@ -1511,14 +1542,13 @@ function renderDashboard() {
 
   // Category balance with goals (업로드완료 기준)
   const categoryGoals = {
-    '취업/이직': 2, 'AI활용': 2, '재테크': 2, '대기업라이프': 1, '쇼핑/여행': 1
+    'Career Guide': 2, 'AI Work': 2, 'Money Log': 2, 'Life Style': 2
   };
   const categoryCounts = {
-    '취업/이직': uploadedThisMonth.filter(c => c.category === '취업/이직').length,
-    'AI활용': uploadedThisMonth.filter(c => c.category === 'AI활용').length,
-    '재테크': uploadedThisMonth.filter(c => c.category === '재테크').length,
-    '대기업라이프': uploadedThisMonth.filter(c => c.category === '대기업라이프').length,
-    '쇼핑/여행': uploadedThisMonth.filter(c => c.category === '쇼핑/여행').length
+    'Career Guide': uploadedThisMonth.filter(c => c.category === 'Career Guide').length,
+    'AI Work': uploadedThisMonth.filter(c => c.category === 'AI Work').length,
+    'Money Log': uploadedThisMonth.filter(c => c.category === 'Money Log').length,
+    'Life Style': uploadedThisMonth.filter(c => c.category === 'Life Style').length
   };
   const totalGoal = 8;
   const totalCount = Object.values(categoryCounts).reduce((a, b) => a + b, 0);
@@ -1821,11 +1851,10 @@ function renderContentForm(content) {
             <label class="text-xs text-botanical-sage mb-1 block">카테고리</label>
             <select data-field="category" class="w-full px-3 py-2 rounded-lg border border-botanical-stone bg-white text-sm focus:outline-none">
               <optgroup label="일반">
-                <option value="취업/이직" ${content.category === '취업/이직' ? 'selected' : ''}>취업/이직</option>
-                <option value="AI활용" ${content.category === 'AI활용' ? 'selected' : ''}>AI활용</option>
-                <option value="재테크" ${content.category === '재테크' ? 'selected' : ''}>재테크</option>
-                <option value="대기업라이프" ${content.category === '대기업라이프' ? 'selected' : ''}>대기업라이프</option>
-                <option value="쇼핑/여행" ${content.category === '쇼핑/여행' ? 'selected' : ''}>쇼핑/여행</option>
+                <option value="Career Guide" ${content.category === 'Career Guide' ? 'selected' : ''}>Career Guide</option>
+                <option value="AI Work" ${content.category === 'AI Work' ? 'selected' : ''}>AI Work</option>
+                <option value="Money Log" ${content.category === 'Money Log' ? 'selected' : ''}>Money Log</option>
+                <option value="Life Style" ${content.category === 'Life Style' ? 'selected' : ''}>Life Style</option>
               </optgroup>
               <optgroup label="수익">
                 <option value="광고" ${content.category === '광고' ? 'selected' : ''}>광고</option>
@@ -3740,11 +3769,10 @@ function showNewContentModal() {
         <div>
           <label class="text-sm font-medium block mb-1">카테고리</label>
           <select id="new-content-category" class="w-full px-3 py-2 rounded-xl border border-botanical-stone focus:outline-none">
-            <option value="취업/이직">취업/이직</option>
-            <option value="AI활용">AI활용</option>
-            <option value="재테크">재테크</option>
-            <option value="대기업라이프">대기업라이프</option>
-            <option value="쇼핑/여행">쇼핑/여행</option>
+            <option value="Career Guide">Career Guide</option>
+            <option value="AI Work">AI Work</option>
+            <option value="Money Log">Money Log</option>
+            <option value="Life Style">Life Style</option>
           </select>
         </div>
         <div>
