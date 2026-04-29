@@ -1625,7 +1625,7 @@ function renderDashboard() {
     <!-- 콘텐츠 Trend -->
     <div class="bg-white rounded-2xl p-5 shadow-sm">
       <h4 class="text-base font-semibold mb-4">콘텐츠 <span class="font-serif italic">Trend</span></h4>
-      <div class="flex items-end justify-between gap-1" style="height: 120px;">
+      <div class="flex items-end justify-between gap-1" style="height: 140px;">
         ${monthlyContents.map((count, idx) => {
           const month = idx + 1;
           const isSelectedMonth = month === dashM;
@@ -1636,14 +1636,14 @@ function renderDashboard() {
           const textColor = isFuture ? 'text-botanical-clay' : (isSelectedMonth ? 'text-botanical-fg font-semibold' : 'text-botanical-sage');
           return `
             <div class="flex-1 flex flex-col items-center gap-1">
+              ${count > 0 ? `<span class="text-[9px] text-botanical-sage font-medium mb-0.5">${count}</span>` : '<span class="text-[9px] invisible mb-0.5">0</span>'}
               <div class="w-full rounded-t" style="height: ${height}px; background-color: ${bgColor};"></div>
               <span class="text-[10px] ${textColor}">${month}</span>
             </div>
           `;
         }).join('')}
       </div>
-      <div class="mt-3 pt-3 border-t border-botanical-stone flex justify-between text-xs">
-        <span class="text-botanical-fg font-medium">${dashM}월 평균 ${monthlyContents[dashM - 1]}개</span>
+      <div class="mt-3 pt-3 border-t border-botanical-stone text-xs text-right">
         <span class="text-botanical-sage">총 ${totalUploaded}개 업로드</span>
       </div>
     </div>
