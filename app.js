@@ -1122,25 +1122,21 @@ function switchCalendarView(view) {
 }
 
 function prevMonth() {
-  if (currentView === 'monthly') {
-    currentMonth--;
-    if (currentMonth < 1) {
-      currentMonth = 12;
-      currentYear--;
-    }
-    renderCalendar();
+  currentMonth--;
+  if (currentMonth < 1) {
+    currentMonth = 12;
+    currentYear--;
   }
+  renderCalendar();
 }
 
 function nextMonth() {
-  if (currentView === 'monthly') {
-    currentMonth++;
-    if (currentMonth > 12) {
-      currentMonth = 1;
-      currentYear++;
-    }
-    renderCalendar();
+  currentMonth++;
+  if (currentMonth > 12) {
+    currentMonth = 1;
+    currentYear++;
   }
+  renderCalendar();
 }
 
 function openDateDetail(dateStr) {
@@ -1542,7 +1538,7 @@ function renderDashboard() {
 
   // Category balance with goals (업로드완료 기준)
   const categoryGoals = {
-    'Career Guide': 2, 'AI Work': 2, 'Money Log': 2, 'Life Style': 2
+    'Career Guide': 3, 'AI Work': 2, 'Money Log': 2, 'Life Style': 1
   };
   const categoryCounts = {
     'Career Guide': uploadedThisMonth.filter(c => c.category === 'Career Guide').length,
@@ -1578,24 +1574,24 @@ function renderDashboard() {
     </div>
 
     <!-- 콘텐츠 현황 -->
-    <div class="grid grid-cols-6 md:grid-cols-5 gap-3 md:gap-4 mb-6">
-      <div class="col-span-3 md:col-span-1 bg-white rounded-2xl p-4 shadow-sm border border-botanical-stone">
+    <div class="grid grid-cols-2 md:grid-cols-5 gap-3 md:gap-4 mb-6">
+      <div class="bg-white rounded-2xl p-4 shadow-sm border border-botanical-stone">
         <p class="text-xs text-botanical-sage font-medium tracking-wide uppercase mb-1">일반 콘텐츠</p>
         <p class="font-serif text-2xl font-semibold">${generalContents}<span class="text-botanical-clay text-base">/8</span></p>
       </div>
-      <div class="col-span-3 md:col-span-1 bg-white rounded-2xl p-4 shadow-sm border border-botanical-stone">
+      <div class="bg-white rounded-2xl p-4 shadow-sm border border-botanical-stone">
         <p class="text-xs text-botanical-sage font-medium tracking-wide uppercase mb-1">광고 콘텐츠</p>
         <p class="font-serif text-2xl font-semibold">${adContents}<span class="text-botanical-clay text-base">/2</span></p>
       </div>
-      <div class="col-span-2 md:col-span-1 bg-white rounded-2xl p-4 shadow-sm border border-botanical-stone">
+      <div class="bg-white rounded-2xl p-4 shadow-sm border border-botanical-stone">
         <p class="text-xs text-botanical-sage font-medium tracking-wide uppercase mb-1">기획 필요</p>
         <p class="font-serif text-2xl font-semibold text-botanical-terracotta">${needPlanning}</p>
       </div>
-      <div class="col-span-2 md:col-span-1 bg-white rounded-2xl p-4 shadow-sm border border-botanical-stone">
+      <div class="bg-white rounded-2xl p-4 shadow-sm border border-botanical-stone">
         <p class="text-xs text-botanical-sage font-medium tracking-wide uppercase mb-1">제작 필요</p>
         <p class="font-serif text-2xl font-semibold text-botanical-terracotta">${needProduction}</p>
       </div>
-      <div class="col-span-2 md:col-span-1 bg-white rounded-2xl p-4 shadow-sm border border-botanical-stone">
+      <div class="bg-white rounded-2xl p-4 shadow-sm border border-botanical-stone">
         <p class="text-xs text-botanical-sage font-medium tracking-wide uppercase mb-1">업로드 필요</p>
         <p class="font-serif text-2xl font-semibold text-botanical-terracotta">${needUpload}</p>
       </div>
@@ -1647,8 +1643,8 @@ function renderDashboard() {
         }).join('')}
       </div>
       <div class="mt-3 pt-3 border-t border-botanical-stone flex justify-between text-xs">
+        <span class="text-botanical-fg font-medium">${dashM}월 평균 ${monthlyContents[dashM - 1]}개</span>
         <span class="text-botanical-sage">총 ${totalUploaded}개 업로드</span>
-        <span class="text-botanical-fg font-medium">월 평균 ${monthlyAvg}개</span>
       </div>
     </div>
   `;
@@ -1971,7 +1967,7 @@ function renderContentForm(content) {
           <span class="text-xs text-botanical-sage">${content.category === '광고' ? '수익 리포트 자동 반영' : '수익 연동 없음'}</span>
         </div>
 
-        <div class="border border-botanical-stone rounded-lg overflow-hidden">
+        <div class="border border-botanical-stone rounded-lg overflow-x-auto">
           <table class="w-full text-sm">
             <tbody>
               ${content.category === '광고' ? `
@@ -1989,20 +1985,20 @@ function renderContentForm(content) {
                 <td class="px-2 md:px-4 py-2">
                   <!-- 모바일: 항목 1줄씩, PC: 4컬럼 -->
                   <div class="space-y-1.5 md:space-y-0 md:grid md:grid-cols-4 md:gap-2 md:items-center">
-                    <label class="flex items-center gap-2 md:block">
-                      <span class="md:hidden text-[11px] text-botanical-sage w-20 shrink-0">릴스업로드비</span>
-                      <input type="number" id="adfee-reels-${content.id}" value="${content.adInfo?.reelsFee || ''}" oninput="updateAdFee(${content.id})" placeholder="0" class="flex-1 min-w-0 md:w-full px-3 rounded-lg border border-botanical-stone text-sm focus:outline-none" style="height:38px;">
-                      <span class="md:hidden text-[10px] text-botanical-sage/70 shrink-0">원</span>
+                    <label class="flex items-center gap-1.5 md:block">
+                      <span class="md:hidden text-[10px] text-botanical-sage w-[4.2rem] shrink-0">릴스업로드비</span>
+                      <input type="number" id="adfee-reels-${content.id}" value="${content.adInfo?.reelsFee || ''}" oninput="updateAdFee(${content.id})" placeholder="0" class="flex-1 min-w-0 md:w-full px-2 md:px-3 text-sm rounded-lg border border-botanical-stone focus:outline-none" style="height:38px;">
+                      <span class="md:hidden text-[9px] text-botanical-sage/70 w-5 shrink-0 text-right">원</span>
                     </label>
-                    <label class="flex items-center gap-2 md:block">
-                      <span class="md:hidden text-[11px] text-botanical-sage w-20 shrink-0">컨텐츠제작비</span>
-                      <input type="number" id="adfee-content-${content.id}" value="${content.adInfo?.contentFee || ''}" oninput="updateAdFee(${content.id})" placeholder="0" class="flex-1 min-w-0 md:w-full px-3 rounded-lg border border-botanical-stone text-sm focus:outline-none" style="height:38px;">
-                      <span class="md:hidden text-[10px] text-botanical-sage/70 shrink-0">원</span>
+                    <label class="flex items-center gap-1.5 md:block">
+                      <span class="md:hidden text-[10px] text-botanical-sage w-[4.2rem] shrink-0">컨텐츠제작비</span>
+                      <input type="number" id="adfee-content-${content.id}" value="${content.adInfo?.contentFee || ''}" oninput="updateAdFee(${content.id})" placeholder="0" class="flex-1 min-w-0 md:w-full px-2 md:px-3 text-sm rounded-lg border border-botanical-stone focus:outline-none" style="height:38px;">
+                      <span class="md:hidden text-[9px] text-botanical-sage/70 w-5 shrink-0 text-right">원</span>
                     </label>
-                    <label class="flex items-center gap-2 md:block">
-                      <span class="md:hidden text-[11px] text-botanical-sage w-20 shrink-0">2차활용비(월)</span>
-                      <input type="number" id="adfee-secondary-${content.id}" value="${content.adInfo?.secondaryFee || ''}" oninput="updateAdFee(${content.id})" placeholder="0" class="flex-1 min-w-0 md:w-full px-3 rounded-lg border border-botanical-stone text-sm focus:outline-none" style="height:38px;">
-                      <span class="md:hidden text-[10px] text-botanical-sage/70 shrink-0">원</span>
+                    <label class="flex items-center gap-1.5 md:block">
+                      <span class="md:hidden text-[10px] text-botanical-sage w-[4.2rem] shrink-0">2차활용비(월)</span>
+                      <input type="number" id="adfee-secondary-${content.id}" value="${content.adInfo?.secondaryFee || ''}" oninput="updateAdFee(${content.id})" placeholder="0" class="flex-1 min-w-0 md:w-full px-2 md:px-3 text-sm rounded-lg border border-botanical-stone focus:outline-none" style="height:38px;">
+                      <span class="md:hidden text-[9px] text-botanical-sage/70 w-5 shrink-0 text-right">원</span>
                     </label>
                     <div class="flex items-center justify-between md:justify-end pt-1.5 md:pt-0 border-t md:border-0 border-botanical-stone/50">
                       <span class="md:hidden text-xs text-botanical-fg font-medium">합계</span>
