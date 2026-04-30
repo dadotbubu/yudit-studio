@@ -416,7 +416,7 @@ async function loadData() {
     const hasRemote = remote.calendar || remote.contents || remote.performance || remote.revenue;
 
     if (hasRemote) {
-      calendarData = remote.calendar || { currentMonth: "2026-04", items: [] };
+      calendarData = remote.calendar || { currentMonth: "2026-04", items: [], plans: [] };
       contentsData = remote.contents || { contents: [] };
       performanceData = remote.performance || { follower: { current: 0, history: { daily: [], monthly: [] } }, monthly: {} };
       revenueData = remote.revenue || { summary: { thisMonth: 0, thisYear: 0 }, byType: { ad: {}, sales: {}, sponsor: {} }, tax: {}, monthly: [], items: { ad: [], sales: [], sponsor: [] } };
@@ -429,7 +429,7 @@ async function loadData() {
       // Supabase에 아직 데이터 없음 → localStorage에 있으면 마이그레이션
       const savedContents = localStorage.getItem('yudit_contents');
       if (savedContents) {
-        calendarData = JSON.parse(localStorage.getItem('yudit_calendar') || '{"currentMonth":"2026-04","items":[]}');
+        calendarData = JSON.parse(localStorage.getItem('yudit_calendar') || '{"currentMonth":"2026-04","items":[],"plans":[]}');
         contentsData = JSON.parse(savedContents);
         performanceData = JSON.parse(localStorage.getItem('yudit_performance') || '{"follower":{"current":0,"history":{"daily":[],"monthly":[]}},"monthly":{}}');
         revenueData = JSON.parse(localStorage.getItem('yudit_revenue') || '{"summary":{"thisMonth":0,"thisYear":0},"byType":{"ad":{},"sales":{},"sponsor":{}},"tax":{},"monthly":[],"items":{"ad":[],"sales":[],"sponsor":[]}}');
@@ -1629,32 +1629,7 @@ function renderDashboard() {
 
       <!-- 이번 달 계획 리스트 -->
       <div class="border-t border-botanical-stone pt-5">
-        <div class="flex items-center justify-between mb-3">
-          <h4 class="text-base font-semibold">이번 달 계획 (${totalPlan}건)</h4>
-        </div>
-        <div class="space-y-2 mb-3" id="dashboard-plan-list">
-          ${thisMonthContents.length === 0 ? `
-            <p class="text-sm text-botanical-sage text-center py-4">등록된 계획이 없습니다</p>
-          ` : thisMonthContents.sort((a, b) => {
-            const dateA = getContentRefDate(a) || '9999-99-99';
-            const dateB = getContentRefDate(b) || '9999-99-99';
-            return dateA.localeCompare(dateB);
-          }).map(c => {
-            const refDate = getContentRefDate(c);
-            const dateStr = refDate ? refDate.slice(5).replace('-', '/') : '-';
-            const icon = c.status === '업로드완료' ? '✓' : (inProgressStatuses.includes(c.status) ? '⏳' : '📝');
-            const color = categoryColors[c.category] || '#8C9A84';
-            return `
-              <div onclick="openContentFromDashboard(${c.id})" class="flex items-center gap-2 p-2 rounded-lg hover:bg-botanical-cream/40 cursor-pointer transition-all">
-                <span class="text-sm">${icon}</span>
-                <span class="text-xs text-botanical-sage w-10 shrink-0">${dateStr}</span>
-                <span class="w-2 h-2 rounded-full shrink-0" style="background-color: ${color};"></span>
-                <span class="text-xs text-botanical-sage w-20 shrink-0 truncate">${c.category}</span>
-                <span class="text-sm flex-1 min-w-0 truncate">${c.title || '무제'}</span>
-              </div>
-            `;
-          }).join('')}
-        </div>
+        ${renderDashboardPlans(dashMonthStr)}
         <button onclick="toggleDashboardPlanForm()" class="w-full py-2 border border-dashed border-botanical-stone rounded-lg text-botanical-sage hover:bg-botanical-cream/40 transition-all text-sm">
           + 새 콘텐츠 계획 추가
         </button>
@@ -5231,6 +5206,56 @@ function deleteMemo(id) {
 }
 
 // ========== Dashboard Plan Functions ==========
+function renderDashboardPlans(monthStr) {
+  // calendarData.plans 초기화
+  if (!calendarData.plans) calendarData.plans = [];
+
+  // 이번 달 계획 필터링
+  const thisMonthPlans = calendarData.plans.filter(p => p.date && p.date.startsWith(monthStr));
+
+  return `
+    <div class="flex items-center justify-between mb-3">
+      <h4 class="text-base font-semibold">이번 달 계획 (${thisMonthPlans.length}건)</h4>
+    </div>
+    <div class="space-y-2 mb-3" id="dashboard-plan-list">
+      ${thisMonthPlans.length === 0 ? `
+        <p class="text-sm text-botanical-sage text-center py-4">등록된 계획이 없습니다</p>
+      ` : thisMonthPlans.sort((a, b) => a.date.localeCompare(b.date)).map(plan => {
+        const dateStr = plan.date.slice(5).replace('-', '/');
+        const color = categoryColors[plan.category] || '#8C9A84';
+        return `
+          <div class="flex items-center gap-2 p-2 rounded-lg hover:bg-botanical-cream/40 group transition-all">
+            <span class="text-sm">📝</span>
+            <span class="text-xs text-botanical-sage w-10 shrink-0">${dateStr}</span>
+            <span class="w-2 h-2 rounded-full shrink-0" style="background-color: ${color};"></span>
+            <span class="text-xs text-botanical-sage w-20 shrink-0 truncate">${plan.category}</span>
+            <span class="text-sm flex-1 min-w-0 truncate">${plan.keyword}</span>
+            <button onclick="deleteDashboardPlan(${plan.id})" class="opacity-0 group-hover:opacity-100 text-xs text-botanical-terracotta hover:text-red-600 transition-all">삭제</button>
+          </div>
+        `;
+      }).join('')}
+    </div>
+    <button onclick="toggleDashboardPlanForm()" class="w-full py-2 border border-dashed border-botanical-stone rounded-lg text-botanical-sage hover:bg-botanical-cream/40 transition-all text-sm">
+      + 새 콘텐츠 계획 추가
+    </button>
+    <div id="dashboard-plan-form" class="hidden mt-3 p-3 bg-botanical-cream/30 rounded-lg">
+      <div class="grid grid-cols-1 md:grid-cols-12 gap-2">
+        <input type="date" id="new-plan-date" class="md:col-span-3 px-3 py-2 rounded-lg border border-botanical-stone text-sm focus:outline-none">
+        <select id="new-plan-category" class="md:col-span-3 px-3 py-2 rounded-lg border border-botanical-stone text-sm focus:outline-none bg-white">
+          <option value="">카테고리 선택</option>
+          <option value="Career Guide">Career Guide</option>
+          <option value="AI Work">AI Work</option>
+          <option value="Money Log">Money Log</option>
+          <option value="Life Style">Life Style</option>
+          <option value="광고">광고</option>
+        </select>
+        <input type="text" id="new-plan-keyword" placeholder="키워드 입력..." class="md:col-span-4 px-3 py-2 rounded-lg border border-botanical-stone text-sm focus:outline-none">
+        <button onclick="saveDashboardPlan()" class="md:col-span-2 px-4 py-2 bg-botanical-fg text-white rounded-lg text-sm font-medium hover:bg-botanical-fg/90 transition-all">저장</button>
+      </div>
+    </div>
+  `;
+}
+
 function toggleDashboardPlanForm() {
   const form = document.getElementById('dashboard-plan-form');
   form.classList.toggle('hidden');
@@ -5253,33 +5278,19 @@ function saveDashboardPlan() {
     return;
   }
 
-  // 새 콘텐츠 생성
-  const newId = Math.max(...contentsData.contents.map(c => c.id), 0) + 1;
-  const newContent = {
+  // calendarData.plans 초기화
+  if (!calendarData.plans) calendarData.plans = [];
+
+  // 새 계획 생성
+  const newId = Math.max(...calendarData.plans.map(p => p.id), 0) + 1;
+  const newPlan = {
     id: newId,
-    title: keyword,
+    date: date,
     category: category,
-    status: '아이디어',
-    type: 'Reels',
-    isRevenue: ['광고', '판매', '협찬'].includes(category),
-    uploadDate: date,
-    milestones: [],
-    script: { versions: [], currentVersion: 0 },
-    reference: { analysis: '', insights: '', hook: '', structure: '' },
-    checklist: {},
-    performanceGoal: { views: '', saves: '', comments: '' }
+    keyword: keyword
   };
 
-  if (newContent.isRevenue) {
-    newContent.adInfo = {
-      incomeType: 'etc',
-      reelsFee: 0,
-      contentFee: 0,
-      secondaryFee: 0
-    };
-  }
-
-  contentsData.contents.push(newContent);
+  calendarData.plans.push(newPlan);
   saveAllData();
 
   // 폼 초기화 및 닫기
@@ -5291,30 +5302,11 @@ function saveDashboardPlan() {
   renderDashboard();
 }
 
-function openContentFromDashboard(contentId) {
-  // 콘텐츠 탭으로 전환
-  switchTab('content');
-  // 약간의 딜레이 후 해당 콘텐츠 폼 열기
-  setTimeout(() => {
-    const formId = `form-${contentId}`;
-    const formEl = document.getElementById(formId);
-    if (formEl && formEl.classList.contains('production-form')) {
-      // 다른 폼들 닫기
-      document.querySelectorAll('.production-form').forEach(f => {
-        if (f.id !== formId) {
-          f.style.display = 'none';
-          const arrow = document.getElementById('arrow-' + f.id.replace('form-', ''));
-          if (arrow) arrow.style.transform = 'rotate(0deg)';
-        }
-      });
-      // 해당 폼 열기
-      formEl.style.display = 'block';
-      const arrow = document.getElementById(`arrow-${contentId}`);
-      if (arrow) arrow.style.transform = 'rotate(180deg)';
-      // 스크롤
-      formEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-    }
-  }, 100);
+function deleteDashboardPlan(planId) {
+  if (!confirm('이 계획을 삭제할까요?')) return;
+  calendarData.plans = calendarData.plans.filter(p => p.id !== planId);
+  saveAllData();
+  renderDashboard();
 }
 
 // ========== Init ==========
