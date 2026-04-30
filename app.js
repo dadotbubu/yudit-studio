@@ -1519,32 +1519,43 @@ function changeDashMonth(monthStr) {
 }
 
 function renderDashboard() {
-  // 대시보드는 dashSelectedMonth 기준으로 업로드완료 콘텐츠 카운트 (독립 월 상태)
+  // 대시보드는 dashSelectedMonth 기준
   const dashMonthStr = dashSelectedMonth;
   const dashY = parseInt(dashMonthStr.slice(0, 4));
   const dashM = parseInt(dashMonthStr.slice(5));
 
-  const uploadedThisMonth = contentsData.contents.filter(c => {
-    const d = getUploadDate(c);
-    return c.status === '업로드완료' && d && d.startsWith(dashMonthStr);
+  // 이번 달 콘텐츠: uploadDate 또는 업로드완료 마일스톤 기준
+  const thisMonthContents = contentsData.contents.filter(c => {
+    const refDate = getContentRefDate(c);
+    return refDate && refDate.startsWith(dashMonthStr);
   });
 
-  const generalContents = uploadedThisMonth.filter(c => !['광고', '판매', '협찬'].includes(c.category)).length;
-  const adContents = uploadedThisMonth.filter(c => ['광고', '판매', '협찬'].includes(c.category)).length;
-  // 단계별 진행 상태: 기획 → 제작 → 업로드 (월과 무관한 전체 현황)
-  const needPlanning = contentsData.contents.filter(c => ['아이디어', '계약완료'].includes(c.status)).length;
-  const needProduction = contentsData.contents.filter(c => ['기획중', '기획안1차공유', '기획안최종컨펌'].includes(c.status)).length;
-  const needUpload = contentsData.contents.filter(c => ['제작중', '영상1차공유', '영상최종컨펌'].includes(c.status)).length;
+  // 완료: 업로드완료 상태
+  const completedContents = thisMonthContents.filter(c => c.status === '업로드완료');
+  const completedGeneral = completedContents.filter(c => !['광고', '판매', '협찬'].includes(c.category)).length;
+  const completedAd = completedContents.filter(c => ['광고', '판매', '협찬'].includes(c.category)).length;
+  const completedTotal = completedContents.length;
+
+  // 진행중: 아이디어 제외한 모든 작업 상태
+  const inProgressStatuses = ['기획중', '제작중', '계약완료', '기획안1차공유', '기획안최종컨펌', '영상1차공유', '영상최종컨펌'];
+  const inProgressTotal = thisMonthContents.filter(c => inProgressStatuses.includes(c.status)).length;
+
+  // 계획중: 아이디어만
+  const planningTotal = thisMonthContents.filter(c => c.status === '아이디어').length;
+
+  // 전체 계획 개수
+  const totalPlan = thisMonthContents.length;
+  const progressPercent = totalPlan > 0 ? Math.round((completedTotal / totalPlan) * 100) : 0;
 
   // Category balance with goals (업로드완료 기준)
   const categoryGoals = {
     'Career Guide': 3, 'AI Work': 2, 'Money Log': 2, 'Life Style': 1
   };
   const categoryCounts = {
-    'Career Guide': uploadedThisMonth.filter(c => c.category === 'Career Guide').length,
-    'AI Work': uploadedThisMonth.filter(c => c.category === 'AI Work').length,
-    'Money Log': uploadedThisMonth.filter(c => c.category === 'Money Log').length,
-    'Life Style': uploadedThisMonth.filter(c => c.category === 'Life Style').length
+    'Career Guide': completedContents.filter(c => c.category === 'Career Guide').length,
+    'AI Work': completedContents.filter(c => c.category === 'AI Work').length,
+    'Money Log': completedContents.filter(c => c.category === 'Money Log').length,
+    'Life Style': completedContents.filter(c => c.category === 'Life Style').length
   };
   const totalGoal = 8;
   const totalCount = Object.values(categoryCounts).reduce((a, b) => a + b, 0);
@@ -1570,55 +1581,98 @@ function renderDashboard() {
     <!-- 월 선택기 -->
     <div class="flex items-center gap-3 mb-6">
       ${renderMonthSelect('dashboard-month-select', dashSelectedMonth, 'changeDashMonth')}
-      <span class="text-xs text-botanical-sage">${dashM}월 업로드완료 콘텐츠 기준</span>
+      <span class="text-xs text-botanical-sage">${dashM}월 콘텐츠 계획</span>
     </div>
 
-    <!-- 콘텐츠 현황 -->
-    <div class="grid grid-cols-2 md:grid-cols-5 gap-3 md:gap-4 mb-6">
-      <div class="bg-white rounded-2xl p-4 shadow-sm border border-botanical-stone">
-        <p class="text-xs text-botanical-sage font-medium tracking-wide uppercase mb-1">일반 콘텐츠</p>
-        <p class="font-serif text-2xl font-semibold">${generalContents}<span class="text-botanical-clay text-base">/8</span></p>
-      </div>
-      <div class="bg-white rounded-2xl p-4 shadow-sm border border-botanical-stone">
-        <p class="text-xs text-botanical-sage font-medium tracking-wide uppercase mb-1">광고 콘텐츠</p>
-        <p class="font-serif text-2xl font-semibold">${adContents}<span class="text-botanical-clay text-base">/2</span></p>
-      </div>
-      <div class="bg-white rounded-2xl p-4 shadow-sm border border-botanical-stone">
-        <p class="text-xs text-botanical-sage font-medium tracking-wide uppercase mb-1">기획 필요</p>
-        <p class="font-serif text-2xl font-semibold text-botanical-terracotta">${needPlanning}</p>
-      </div>
-      <div class="bg-white rounded-2xl p-4 shadow-sm border border-botanical-stone">
-        <p class="text-xs text-botanical-sage font-medium tracking-wide uppercase mb-1">제작 필요</p>
-        <p class="font-serif text-2xl font-semibold text-botanical-terracotta">${needProduction}</p>
-      </div>
-      <div class="bg-white rounded-2xl p-4 shadow-sm border border-botanical-stone">
-        <p class="text-xs text-botanical-sage font-medium tracking-wide uppercase mb-1">업로드 필요</p>
-        <p class="font-serif text-2xl font-semibold text-botanical-terracotta">${needUpload}</p>
-      </div>
-    </div>
-
-    <!-- 카테고리 Balance -->
+    <!-- 월간 콘텐츠 계획 통합 판넬 -->
     <div class="bg-white rounded-2xl p-5 shadow-sm mb-6">
-      <div class="flex items-center justify-between mb-4">
-        <h4 class="text-base font-semibold">카테고리 <span class="font-serif italic">Balance</span></h4>
-        <span class="text-xs text-botanical-sage bg-botanical-cream px-2 py-0.5 rounded-full">월 8개 기준</span>
-      </div>
-      <div class="grid grid-cols-2 md:grid-cols-5 gap-3">
-        <div class="col-span-2 md:col-span-1 p-3 rounded-xl text-center border border-botanical-stone" style="background-color: #F9F8F4;">
-          <p class="text-sm text-botanical-fg font-medium mb-1">전체</p>
-          <p class="text-2xl font-semibold text-botanical-fg font-serif">${totalCount}<span class="text-botanical-clay">/8</span></p>
+      <!-- 진행률 -->
+      <div class="mb-5">
+        <div class="flex items-center justify-between mb-2">
+          <h3 class="text-lg font-semibold">📋 ${dashM}월 콘텐츠 계획</h3>
+          <span class="text-sm font-semibold text-botanical-fg">${progressPercent}%</span>
         </div>
-        ${Object.entries(categoryGoals).map(([cat, goal]) => {
-          const count = categoryCounts[cat] || 0;
-          const isComplete = count >= goal;
-          const isZero = count === 0;
-          return `
-            <div class="p-2.5 bg-white rounded-xl text-center border border-botanical-stone">
-              <p class="text-xs ${isComplete ? 'text-botanical-sage' : (isZero ? 'text-botanical-terracotta' : 'text-botanical-sage')} mb-1">${cat}${isComplete ? ' ✓' : ''}</p>
-              <p class="text-xl font-semibold ${isZero ? 'text-botanical-terracotta' : ''} font-serif">${count}<span class="text-botanical-clay">/${goal}</span></p>
-            </div>
-          `;
-        }).join('')}
+        <div class="w-full h-2 bg-botanical-stone rounded-full overflow-hidden mb-3">
+          <div class="h-full bg-botanical-fg rounded-full transition-all" style="width: ${progressPercent}%;"></div>
+        </div>
+        <div class="flex items-center gap-4 text-sm">
+          <span class="text-botanical-fg font-medium">완료 ${completedTotal}개 (일반 ${completedGeneral} • 광고 ${completedAd})</span>
+          <span class="text-botanical-sage">진행중 ${inProgressTotal}개</span>
+          <span class="text-botanical-sage">계획중 ${planningTotal}개</span>
+        </div>
+      </div>
+
+      <!-- 카테고리 Balance -->
+      <div class="border-t border-botanical-stone pt-5 mb-5">
+        <div class="flex items-center justify-between mb-3">
+          <h4 class="text-base font-semibold">카테고리 <span class="font-serif italic">Balance</span></h4>
+          <span class="text-xs text-botanical-sage bg-botanical-cream px-2 py-0.5 rounded-full">월 8개 기준</span>
+        </div>
+        <div class="grid grid-cols-2 md:grid-cols-5 gap-3">
+          <div class="col-span-2 md:col-span-1 p-3 rounded-xl text-center border border-botanical-stone" style="background-color: #F9F8F4;">
+            <p class="text-sm text-botanical-fg font-medium mb-1">전체</p>
+            <p class="text-2xl font-semibold text-botanical-fg font-serif">${totalCount}<span class="text-botanical-clay">/8</span></p>
+          </div>
+          ${Object.entries(categoryGoals).map(([cat, goal]) => {
+            const count = categoryCounts[cat] || 0;
+            const isComplete = count >= goal;
+            const isZero = count === 0;
+            return `
+              <div class="p-2.5 bg-white rounded-xl text-center border border-botanical-stone">
+                <p class="text-xs ${isComplete ? 'text-botanical-sage' : (isZero ? 'text-botanical-terracotta' : 'text-botanical-sage')} mb-1">${cat}${isComplete ? ' ✓' : ''}</p>
+                <p class="text-xl font-semibold ${isZero ? 'text-botanical-terracotta' : ''} font-serif">${count}<span class="text-botanical-clay">/${goal}</span></p>
+              </div>
+            `;
+          }).join('')}
+        </div>
+      </div>
+
+      <!-- 이번 달 계획 리스트 -->
+      <div class="border-t border-botanical-stone pt-5">
+        <div class="flex items-center justify-between mb-3">
+          <h4 class="text-base font-semibold">이번 달 계획 (${totalPlan}건)</h4>
+        </div>
+        <div class="space-y-2 mb-3" id="dashboard-plan-list">
+          ${thisMonthContents.length === 0 ? `
+            <p class="text-sm text-botanical-sage text-center py-4">등록된 계획이 없습니다</p>
+          ` : thisMonthContents.sort((a, b) => {
+            const dateA = getContentRefDate(a) || '9999-99-99';
+            const dateB = getContentRefDate(b) || '9999-99-99';
+            return dateA.localeCompare(dateB);
+          }).map(c => {
+            const refDate = getContentRefDate(c);
+            const dateStr = refDate ? refDate.slice(5).replace('-', '/') : '-';
+            const icon = c.status === '업로드완료' ? '✓' : (inProgressStatuses.includes(c.status) ? '⏳' : '📝');
+            const color = categoryColors[c.category] || '#8C9A84';
+            return `
+              <div onclick="openContentFromDashboard(${c.id})" class="flex items-center gap-2 p-2 rounded-lg hover:bg-botanical-cream/40 cursor-pointer transition-all">
+                <span class="text-sm">${icon}</span>
+                <span class="text-xs text-botanical-sage w-10 shrink-0">${dateStr}</span>
+                <span class="w-2 h-2 rounded-full shrink-0" style="background-color: ${color};"></span>
+                <span class="text-xs text-botanical-sage w-20 shrink-0 truncate">${c.category}</span>
+                <span class="text-sm flex-1 min-w-0 truncate">${c.title || '무제'}</span>
+              </div>
+            `;
+          }).join('')}
+        </div>
+        <button onclick="toggleDashboardPlanForm()" class="w-full py-2 border border-dashed border-botanical-stone rounded-lg text-botanical-sage hover:bg-botanical-cream/40 transition-all text-sm">
+          + 새 콘텐츠 계획 추가
+        </button>
+        <div id="dashboard-plan-form" class="hidden mt-3 p-3 bg-botanical-cream/30 rounded-lg">
+          <div class="grid grid-cols-1 md:grid-cols-12 gap-2">
+            <input type="date" id="new-plan-date" class="md:col-span-3 px-3 py-2 rounded-lg border border-botanical-stone text-sm focus:outline-none">
+            <select id="new-plan-category" class="md:col-span-3 px-3 py-2 rounded-lg border border-botanical-stone text-sm focus:outline-none bg-white">
+              <option value="">카테고리 선택</option>
+              <option value="Career Guide">Career Guide</option>
+              <option value="AI Work">AI Work</option>
+              <option value="Money Log">Money Log</option>
+              <option value="Life Style">Life Style</option>
+              <option value="광고">광고</option>
+            </select>
+            <input type="text" id="new-plan-keyword" placeholder="키워드 입력..." class="md:col-span-4 px-3 py-2 rounded-lg border border-botanical-stone text-sm focus:outline-none">
+            <button onclick="saveDashboardPlan()" class="md:col-span-2 px-4 py-2 bg-botanical-fg text-white rounded-lg text-sm font-medium hover:bg-botanical-fg/90 transition-all">저장</button>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -5174,6 +5228,93 @@ function deleteMemo(id) {
   if (selectedMemoId === id) selectedMemoId = null;
   saveAllData();
   renderMemos();
+}
+
+// ========== Dashboard Plan Functions ==========
+function toggleDashboardPlanForm() {
+  const form = document.getElementById('dashboard-plan-form');
+  form.classList.toggle('hidden');
+  if (!form.classList.contains('hidden')) {
+    // 폼 열릴 때 날짜 기본값 설정
+    const dateInput = document.getElementById('new-plan-date');
+    if (!dateInput.value) {
+      dateInput.value = dashSelectedMonth + '-01';
+    }
+  }
+}
+
+function saveDashboardPlan() {
+  const date = document.getElementById('new-plan-date').value;
+  const category = document.getElementById('new-plan-category').value;
+  const keyword = document.getElementById('new-plan-keyword').value.trim();
+
+  if (!date || !category || !keyword) {
+    alert('날짜, 카테고리, 키워드를 모두 입력해주세요.');
+    return;
+  }
+
+  // 새 콘텐츠 생성
+  const newId = Math.max(...contentsData.contents.map(c => c.id), 0) + 1;
+  const newContent = {
+    id: newId,
+    title: keyword,
+    category: category,
+    status: '아이디어',
+    type: 'Reels',
+    isRevenue: ['광고', '판매', '협찬'].includes(category),
+    uploadDate: date,
+    milestones: [],
+    script: { versions: [], currentVersion: 0 },
+    reference: { analysis: '', insights: '', hook: '', structure: '' },
+    checklist: {},
+    performanceGoal: { views: '', saves: '', comments: '' }
+  };
+
+  if (newContent.isRevenue) {
+    newContent.adInfo = {
+      incomeType: 'etc',
+      reelsFee: 0,
+      contentFee: 0,
+      secondaryFee: 0
+    };
+  }
+
+  contentsData.contents.push(newContent);
+  saveAllData();
+
+  // 폼 초기화 및 닫기
+  document.getElementById('new-plan-date').value = '';
+  document.getElementById('new-plan-category').value = '';
+  document.getElementById('new-plan-keyword').value = '';
+  document.getElementById('dashboard-plan-form').classList.add('hidden');
+
+  renderDashboard();
+}
+
+function openContentFromDashboard(contentId) {
+  // 콘텐츠 탭으로 전환
+  switchTab('content');
+  // 약간의 딜레이 후 해당 콘텐츠 폼 열기
+  setTimeout(() => {
+    const formId = `form-${contentId}`;
+    const formEl = document.getElementById(formId);
+    if (formEl && formEl.classList.contains('production-form')) {
+      // 다른 폼들 닫기
+      document.querySelectorAll('.production-form').forEach(f => {
+        if (f.id !== formId) {
+          f.style.display = 'none';
+          const arrow = document.getElementById('arrow-' + f.id.replace('form-', ''));
+          if (arrow) arrow.style.transform = 'rotate(0deg)';
+        }
+      });
+      // 해당 폼 열기
+      formEl.style.display = 'block';
+      const arrow = document.getElementById(`arrow-${contentId}`);
+      if (arrow) arrow.style.transform = 'rotate(180deg)';
+      // 스크롤
+      formEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+  }, 100);
 }
 
 // ========== Init ==========
