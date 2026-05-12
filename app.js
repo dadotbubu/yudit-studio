@@ -2231,7 +2231,6 @@ function renderContentForm(content) {
           <p class="text-sm font-medium text-botanical-terracotta mb-3">기획 체크리스트 <span class="text-xs text-botanical-sage font-normal">(모든 버전 공통)</span></p>
           <div class="space-y-2">
             ${[
-              '이 영상을 봐야할 타겟이 명확한가요?',
               '나만의 스토리가 포함되었나요?',
               '공유 또는 저장할 이유가 있나요?',
               '첫 3~5초 안에 주제 / 미끼를 드러냈나요?',
@@ -4470,19 +4469,30 @@ function renderPerformance() {
                 <th class="px-4 py-3 text-center font-medium whitespace-nowrap">총 조회</th>
                 <th class="px-4 py-3 text-center font-medium whitespace-nowrap">총 저장</th>
                 <th class="px-4 py-3 text-center font-medium whitespace-nowrap">총 공유</th>
+                <th class="px-4 py-3 text-center font-medium whitespace-nowrap">저장율</th>
+                <th class="px-4 py-3 text-center font-medium whitespace-nowrap">공유율</th>
               </tr>
             </thead>
             <tbody>
               ${Object.keys(performanceData.monthly || {}).length > 0 ?
-                Object.entries(performanceData.monthly).filter(([m]) => m.startsWith(String(perfSelectedYear))).reverse().map(([month, data], idx) => `
+                Object.entries(performanceData.monthly).filter(([m]) => m.startsWith(String(perfSelectedYear))).reverse().map(([month, data], idx) => {
+                  const totalViews = data.totalViews || 0;
+                  const totalSaves = data.totalSaves || 0;
+                  const totalShares = data.totalShares || 0;
+                  const saveRate = totalViews > 0 ? ((totalSaves / totalViews) * 100).toFixed(1) : '-';
+                  const shareRate = totalViews > 0 ? ((totalShares / totalViews) * 100).toFixed(1) : '-';
+                  return `
                   <tr class="border-t border-botanical-stone ${idx === 0 ? 'bg-botanical-terracotta/5' : ''}">
                     <td class="px-4 py-4 font-semibold">${month.slice(5)}월</td>
-                    <td class="px-4 py-4 text-center font-medium">${toK(data.totalViews)}</td>
-                    <td class="px-4 py-4 text-center font-medium">${toK(data.totalSaves)}</td>
-                    <td class="px-4 py-4 text-center font-medium">${toK(data.totalShares)}</td>
+                    <td class="px-4 py-4 text-center font-medium">${toK(totalViews)}</td>
+                    <td class="px-4 py-4 text-center font-medium">${toK(totalSaves)}</td>
+                    <td class="px-4 py-4 text-center font-medium">${toK(totalShares)}</td>
+                    <td class="px-4 py-4 text-center font-medium">${saveRate}${saveRate !== '-' ? '%' : ''}</td>
+                    <td class="px-4 py-4 text-center font-medium">${shareRate}${shareRate !== '-' ? '%' : ''}</td>
                   </tr>
-                `).join('') :
-                `<tr><td colspan="4" class="px-4 py-4 text-center text-botanical-sage">데이터가 없습니다</td></tr>`
+                `;
+                }).join('') :
+                `<tr><td colspan="6" class="px-4 py-4 text-center text-botanical-sage">데이터가 없습니다</td></tr>`
               }
             </tbody>
           </table>
