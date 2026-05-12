@@ -105,6 +105,14 @@
   <!-- Paper Grain -->
   <div class="pointer-events-none fixed inset-0 z-50 opacity-[0.02]" style="background-image: url('data:image/svg+xml,%3Csvg viewBox=%270 0 400 400%27 xmlns=%27http://www.w3.org/2000/svg%27%3E%3Cfilter id=%27n%27%3E%3CfeTurbulence type=%27fractalNoise%27 baseFrequency=%270.9%27 numOctaves=%274%27 stitchTiles=%27stitch%27/%3E%3C/filter%3E%3Crect width=%27100%25%27 height=%27100%25%27 filter=%27url(%23n)%27/%3E%3C/svg%3E');"></div>
 
+  <!-- Loading Indicator -->
+  <div id="loading-spinner" class="fixed inset-0 z-50 flex items-center justify-center bg-[#F9F8F4]">
+    <div class="text-center">
+      <div class="inline-block w-8 h-8 border-3 border-botanical-sage border-t-transparent rounded-full animate-spin mb-2"></div>
+      <p class="text-sm text-botanical-sage">데이터 로딩중...</p>
+    </div>
+  </div>
+
   <div class="max-w-7xl mx-auto px-4 md:px-6 py-4 md:py-8">
 
     <!-- Header -->

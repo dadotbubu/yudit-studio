@@ -6,6 +6,16 @@ let revenueData = null;
 let memosData = null;
 let selectedMemoId = null;
 
+// Lazy Loading - 탭 렌더링 상태 추적
+const tabRendered = {
+  calendar: false,
+  dashboard: false,
+  content: false,
+  performance: false,
+  revenue: false,
+  memos: false
+};
+
 // 현재 날짜 기준으로 초기화
 const now = new Date();
 let currentYear = now.getFullYear();
@@ -573,12 +583,15 @@ function initApp() {
   }
   // 초기 로드 후 캘린더 ↔ 마일스톤 정합성 한 번 정리 (stale orphan 제거 + 누락 추가)
   reconcileCalendarMilestones();
+
+  // Lazy Loading: 초기에는 캘린더만 렌더링
   renderCalendar();
-  renderDashboard();
-  renderContentList();
-  renderPerformance();
-  renderRevenue();
-  renderMemos();
+  tabRendered.calendar = true;
+  // 다른 탭은 사용자가 클릭할 때 렌더링 (switchTab 참고)
+
+  // 로딩 완료 - 스피너 숨기기
+  const spinner = document.getElementById('loading-spinner');
+  if (spinner) spinner.style.display = 'none';
 }
 
 function setTodayDate() {
@@ -599,6 +612,16 @@ function switchTab(tabName) {
   const btn = document.getElementById('tab-' + tabName);
   btn.classList.remove('text-botanical-sage', 'border-transparent');
   btn.classList.add('text-botanical-fg', 'border-botanical-fg');
+
+  // Lazy Loading: 처음 클릭한 탭만 렌더링
+  if (!tabRendered[tabName]) {
+    if (tabName === 'dashboard') renderDashboard();
+    else if (tabName === 'content') renderContentList();
+    else if (tabName === 'performance') renderPerformance();
+    else if (tabName === 'revenue') renderRevenue();
+    else if (tabName === 'memos') renderMemos();
+    tabRendered[tabName] = true;
+  }
 
   // 메모탭 진입 시 '자주 쓰는 내용' 항상 접기
   if (tabName === 'memos') {
