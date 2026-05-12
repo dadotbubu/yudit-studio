@@ -343,6 +343,7 @@ async function autoReloadFromRemote() {
     if (remote.performance) performanceData = remote.performance;
     if (remote.revenue) revenueData = remote.revenue;
     if (remote.memos) memosData = remote.memos;
+    if (remote.plans) plansData = remote.plans;
     reconcileCalendarMilestones();
     renderCalendar();
     renderDashboard();
