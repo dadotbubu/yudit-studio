@@ -1726,8 +1726,40 @@ function renderDashboard() {
 
 // ========== Planner Functions ==========
 function addPlanToWeek(week) {
-  alert(`${week}주차 계획 추가 기능 구현 예정`);
-  // TODO: 모달 팝업으로 계획 추가
+  const popup = document.getElementById('calendar-popup');
+  const popupContent = document.getElementById('popup-content');
+
+  popupContent.innerHTML = `
+    <div class="flex items-center justify-between mb-4">
+      <h3 class="font-semibold text-lg">계획 추가 (${week}주차)</h3>
+      <button onclick="closeCalendarPopup()" class="text-botanical-sage hover:text-botanical-fg">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18M6 6l12 12"/></svg>
+      </button>
+    </div>
+
+    <div class="space-y-4">
+      <div>
+        <label class="text-sm font-medium block mb-1">카테고리</label>
+        <select id="new-plan-category" class="w-full px-3 py-2 rounded-xl border border-botanical-stone focus:outline-none">
+          <option value="Career Guide">Career Guide</option>
+          <option value="AI Work">AI Work</option>
+          <option value="Money Log">Money Log</option>
+          <option value="Life Style">Life Style</option>
+        </select>
+      </div>
+      <div>
+        <label class="text-sm font-medium block mb-1">제목</label>
+        <input type="text" id="new-plan-title" class="w-full px-3 py-2 rounded-xl border border-botanical-stone focus:outline-none" placeholder="계획 제목">
+      </div>
+      <div>
+        <label class="text-sm font-medium block mb-1">상세 내용</label>
+        <textarea id="new-plan-description" rows="4" class="w-full px-3 py-2 rounded-xl border border-botanical-stone focus:outline-none resize-none" placeholder="• 항목 1\n• 항목 2\n• 항목 3" onkeydown="handlePlanDescriptionEnter(event)"></textarea>
+      </div>
+      <button onclick="saveNewPlan(${week})" class="w-full py-2.5 bg-botanical-fg text-white rounded-xl hover:bg-botanical-fg/90 transition-all font-medium">추가</button>
+    </div>
+  `;
+
+  popup.classList.remove('hidden');
 }
 
 function editPlan(planId) {
@@ -1813,6 +1845,36 @@ function savePlan(planId) {
   renderDashboard();
 }
 
+function saveNewPlan(week) {
+  const category = document.getElementById('new-plan-category').value;
+  const title = document.getElementById('new-plan-title').value;
+  const description = document.getElementById('new-plan-description').value;
+
+  if (!title) {
+    alert('제목을 입력하세요');
+    return;
+  }
+
+  if (!plansData) plansData = {};
+  if (!plansData[dashSelectedMonth]) plansData[dashSelectedMonth] = { plans: [], ideas: [] };
+
+  const newPlan = {
+    id: `p_${dashSelectedMonth}_${String(plansData[dashSelectedMonth].plans.length + 1).padStart(3, '0')}`,
+    week: week,
+    category: category,
+    title: title,
+    description: description,
+    createdAt: new Date().toISOString(),
+    createdBy: 'user'
+  };
+
+  plansData[dashSelectedMonth].plans.push(newPlan);
+
+  saveAllData();
+  closeCalendarPopup();
+  renderDashboard();
+}
+
 function handlePlanDescriptionEnter(event) {
   if (event.key === 'Enter') {
     event.preventDefault();
@@ -1876,13 +1938,85 @@ function startContentFromPlan(planId) {
 }
 
 function addIdea() {
-  alert('아이디어 추가 기능 구현 예정');
-  // TODO: 모달 팝업으로 아이디어 추가
+  const popup = document.getElementById('calendar-popup');
+  const popupContent = document.getElementById('popup-content');
+
+  popupContent.innerHTML = `
+    <div class="flex items-center justify-between mb-4">
+      <h3 class="font-semibold text-lg">아이디어 추가</h3>
+      <button onclick="closeCalendarPopup()" class="text-botanical-sage hover:text-botanical-fg">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18M6 6l12 12"/></svg>
+      </button>
+    </div>
+
+    <div class="space-y-4">
+      <div>
+        <label class="text-sm font-medium block mb-1">카테고리</label>
+        <select id="new-idea-category" class="w-full px-3 py-2 rounded-xl border border-botanical-stone focus:outline-none">
+          <option value="Career Guide">Career Guide</option>
+          <option value="AI Work">AI Work</option>
+          <option value="Money Log">Money Log</option>
+          <option value="Life Style">Life Style</option>
+        </select>
+      </div>
+      <div>
+        <label class="text-sm font-medium block mb-1">제목</label>
+        <input type="text" id="new-idea-title" class="w-full px-3 py-2 rounded-xl border border-botanical-stone focus:outline-none" placeholder="아이디어 제목">
+      </div>
+      <div>
+        <label class="text-sm font-medium block mb-1">상세 내용 <span class="text-xs text-botanical-sage">(선택)</span></label>
+        <textarea id="new-idea-description" rows="3" class="w-full px-3 py-2 rounded-xl border border-botanical-stone focus:outline-none resize-none" placeholder="간단한 설명"></textarea>
+      </div>
+      <button onclick="saveNewIdea()" class="w-full py-2.5 bg-botanical-fg text-white rounded-xl hover:bg-botanical-fg/90 transition-all font-medium">추가</button>
+    </div>
+  `;
+
+  popup.classList.remove('hidden');
 }
 
 function editIdea(ideaId) {
-  alert(`아이디어 수정 기능 구현 예정: ${ideaId}`);
-  // TODO: 모달 팝업으로 아이디어 수정
+  if (!plansData || !plansData[dashSelectedMonth] || !plansData[dashSelectedMonth].ideas) return;
+
+  const idea = plansData[dashSelectedMonth].ideas.find(i => i.id === ideaId);
+  if (!idea) {
+    alert('아이디어를 찾을 수 없습니다');
+    return;
+  }
+
+  const popup = document.getElementById('calendar-popup');
+  const popupContent = document.getElementById('popup-content');
+
+  popupContent.innerHTML = `
+    <div class="flex items-center justify-between mb-4">
+      <h3 class="font-semibold text-lg">아이디어 수정</h3>
+      <button onclick="closeCalendarPopup()" class="text-botanical-sage hover:text-botanical-fg">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18M6 6l12 12"/></svg>
+      </button>
+    </div>
+
+    <div class="space-y-4">
+      <div>
+        <label class="text-sm font-medium block mb-1">카테고리</label>
+        <select id="edit-idea-category" class="w-full px-3 py-2 rounded-xl border border-botanical-stone focus:outline-none">
+          <option value="Career Guide" ${idea.category === 'Career Guide' ? 'selected' : ''}>Career Guide</option>
+          <option value="AI Work" ${idea.category === 'AI Work' ? 'selected' : ''}>AI Work</option>
+          <option value="Money Log" ${idea.category === 'Money Log' ? 'selected' : ''}>Money Log</option>
+          <option value="Life Style" ${idea.category === 'Life Style' ? 'selected' : ''}>Life Style</option>
+        </select>
+      </div>
+      <div>
+        <label class="text-sm font-medium block mb-1">제목</label>
+        <input type="text" id="edit-idea-title" value="${idea.title}" class="w-full px-3 py-2 rounded-xl border border-botanical-stone focus:outline-none" placeholder="아이디어 제목">
+      </div>
+      <div>
+        <label class="text-sm font-medium block mb-1">상세 내용 <span class="text-xs text-botanical-sage">(선택)</span></label>
+        <textarea id="edit-idea-description" rows="3" class="w-full px-3 py-2 rounded-xl border border-botanical-stone focus:outline-none resize-none" placeholder="간단한 설명">${idea.description || ''}</textarea>
+      </div>
+      <button onclick="saveIdea('${ideaId}')" class="w-full py-2.5 bg-botanical-fg text-white rounded-xl hover:bg-botanical-fg/90 transition-all font-medium">저장</button>
+    </div>
+  `;
+
+  popup.classList.remove('hidden');
 }
 
 function deleteIdea(ideaId) {
@@ -1894,6 +2028,60 @@ function deleteIdea(ideaId) {
     saveAllData();
     renderDashboard();
   }
+}
+
+function saveNewIdea() {
+  const category = document.getElementById('new-idea-category').value;
+  const title = document.getElementById('new-idea-title').value;
+  const description = document.getElementById('new-idea-description').value;
+
+  if (!title) {
+    alert('제목을 입력하세요');
+    return;
+  }
+
+  if (!plansData) plansData = {};
+  if (!plansData[dashSelectedMonth]) plansData[dashSelectedMonth] = { plans: [], ideas: [] };
+
+  const newIdea = {
+    id: `i_${dashSelectedMonth}_${String(plansData[dashSelectedMonth].ideas.length + 1).padStart(3, '0')}`,
+    category: category,
+    title: title,
+    description: description,
+    createdAt: new Date().toISOString(),
+    createdBy: 'user'
+  };
+
+  plansData[dashSelectedMonth].ideas.push(newIdea);
+
+  saveAllData();
+  closeCalendarPopup();
+  renderDashboard();
+}
+
+function saveIdea(ideaId) {
+  const category = document.getElementById('edit-idea-category').value;
+  const title = document.getElementById('edit-idea-title').value;
+  const description = document.getElementById('edit-idea-description').value;
+
+  if (!title) {
+    alert('제목을 입력하세요');
+    return;
+  }
+
+  const idea = plansData[dashSelectedMonth].ideas.find(i => i.id === ideaId);
+  if (!idea) {
+    alert('아이디어를 찾을 수 없습니다');
+    return;
+  }
+
+  idea.category = category;
+  idea.title = title;
+  idea.description = description;
+
+  saveAllData();
+  closeCalendarPopup();
+  renderDashboard();
 }
 
 // ========== Content List ==========
