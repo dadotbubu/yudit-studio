@@ -3523,15 +3523,18 @@ function recalcMonthPerf(monthStr) {
     return;
   }
 
-  // 총 조회수, 저장수 계산
+  // 총 조회수, 저장수, 공유수 계산
   let totalViews = 0;
   let totalSaves = 0;
+  let totalShares = 0;
 
   monthContents.forEach(c => {
     const views = c.performance?.views || 0;
     const saves = c.performance?.saves || 0;
+    const shares = c.performance?.shares || 0;
     totalViews += views;
     totalSaves += saves;
+    totalShares += shares;
   });
 
   // 평균 저장률 계산
@@ -3543,6 +3546,7 @@ function recalcMonthPerf(monthStr) {
     totalContents: monthContents.length,
     totalViews,
     totalSaves,
+    totalShares,
     avgSaveRate: parseFloat(avgSaveRate)
   };
 }
@@ -4422,10 +4426,6 @@ function renderPerformance() {
     </div>
 
     <div id="perf-compare" class="perf-section ${perfSubTab === 'compare' ? '' : 'hidden'}">
-      <div class="bg-white rounded-2xl p-6 shadow-sm text-center">
-        <p class="text-sm text-botanical-sage">📊 월간 비교 기능 준비 중입니다</p>
-      </div>
-
       <!-- Year Selector (시작월 2026-04 ~ 오늘 연도까지 동적 생성) -->
       <div class="flex items-center gap-3 mb-6">
         <select id="perf-year-select" onchange="changePerfYear(this.value)" class="px-4 py-2 pr-8 rounded-full border border-botanical-stone bg-white text-sm focus:outline-none appearance-none bg-no-repeat" style="background-image: url('data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%2712%27 height=%2712%27 viewBox=%270 0 24 24%27 fill=%27none%27 stroke=%27%238C9A84%27 stroke-width=%272%27%3E%3Cpath d=%27m6 9 6 6 6-6%27/%3E%3C/svg%3E'); background-position: right 12px center;">
@@ -4474,51 +4474,30 @@ function renderPerformance() {
       <div class="bg-white rounded-2xl p-6 shadow-sm mb-6">
         <h3 class="font-medium mb-4">월간 콘텐츠 성과 비교</h3>
         <div class="border border-botanical-stone rounded-xl overflow-x-auto">
-          <table class="w-full text-xs min-w-[640px] md:min-w-0">
+          <table class="w-full text-sm md:text-base">
             <thead>
               <tr class="bg-botanical-cream/50">
-                <th class="px-3 py-2 text-left font-medium whitespace-nowrap">월</th>
-                <th class="px-3 py-2 text-center font-medium whitespace-nowrap">콘텐츠</th>
-                <th class="px-3 py-2 text-center font-medium whitespace-nowrap">총 조회</th>
-                <th class="px-3 py-2 text-center font-medium whitespace-nowrap">총 저장</th>
-                <th class="px-3 py-2 text-center font-medium whitespace-nowrap">저장률</th>
-                <th class="px-3 py-2 text-center font-medium whitespace-nowrap">팔로워 증가</th>
-                <th class="px-3 py-2 text-center font-medium whitespace-nowrap">베스트</th>
+                <th class="px-4 py-3 text-left font-medium whitespace-nowrap">월</th>
+                <th class="px-4 py-3 text-center font-medium whitespace-nowrap">총 조회</th>
+                <th class="px-4 py-3 text-center font-medium whitespace-nowrap">총 저장</th>
+                <th class="px-4 py-3 text-center font-medium whitespace-nowrap">총 공유</th>
               </tr>
             </thead>
             <tbody>
               ${Object.keys(performanceData.monthly || {}).length > 0 ?
                 Object.entries(performanceData.monthly).filter(([m]) => m.startsWith(String(perfSelectedYear))).reverse().map(([month, data], idx) => `
                   <tr class="border-t border-botanical-stone ${idx === 0 ? 'bg-botanical-terracotta/5' : ''}">
-                    <td class="px-3 py-3 font-medium">${month.slice(5)}월</td>
-                    <td class="px-3 py-3 text-center">${(data.totalContents || 0).toLocaleString()}</td>
-                    <td class="px-3 py-3 text-center">${toK(data.totalViews)}</td>
-                    <td class="px-3 py-3 text-center">${data.totalSaves?.toLocaleString() || '-'}</td>
-                    <td class="px-3 py-3 text-center">${Math.round(data.avgSaveRate || 0)}%</td>
-                    <td class="px-3 py-3 text-center text-green-600">+${(data.followerGain || 0).toLocaleString()}</td>
-                    <td class="px-3 py-3 text-center ${idx === 0 ? 'text-botanical-terracotta' : ''}">${data.bestContent || '-'}</td>
+                    <td class="px-4 py-4 font-semibold">${month.slice(5)}월</td>
+                    <td class="px-4 py-4 text-center font-medium">${toK(data.totalViews)}</td>
+                    <td class="px-4 py-4 text-center font-medium">${toK(data.totalSaves)}</td>
+                    <td class="px-4 py-4 text-center font-medium">${toK(data.totalShares)}</td>
                   </tr>
                 `).join('') :
-                `<tr><td colspan="7" class="px-3 py-4 text-center text-botanical-sage">데이터가 없습니다</td></tr>`
+                `<tr><td colspan="4" class="px-4 py-4 text-center text-botanical-sage">데이터가 없습니다</td></tr>`
               }
             </tbody>
           </table>
         </div>
-      </div>
-
-      <!-- 인사이트 -->
-      <div class="bg-white rounded-2xl p-6 shadow-sm">
-        <h3 class="font-medium mb-4">📊 인사이트</h3>
-        ${Object.keys(performanceData.monthly || {}).length > 0 ? `
-        <div class="space-y-3 text-sm">
-          <div class="flex items-start gap-3 p-3 bg-botanical-cream/30 rounded-xl">
-            <span class="text-botanical-sage">💡</span>
-            <p>데이터를 입력하면 인사이트가 표시됩니다</p>
-          </div>
-        </div>
-        ` : `
-        <p class="text-sm text-botanical-sage text-center py-4">성과 데이터가 없습니다</p>
-        `}
       </div>
     </div>
   `;
