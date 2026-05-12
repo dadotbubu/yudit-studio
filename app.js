@@ -1696,19 +1696,20 @@ function renderDashboard() {
         ${monthIdeas.length > 0 ? `
           <div class="space-y-2">
             ${monthIdeas.map(idea => `
-              <div class="p-4 rounded-xl border border-botanical-stone hover:border-botanical-sage transition-all">
-                <div class="mb-2">
-                  <span class="inline-block px-2 py-0.5 rounded-md text-xs font-medium bg-botanical-cream text-botanical-sage">${idea.category}</span>
-                </div>
-                <h4 class="text-base font-semibold text-botanical-fg mb-2">${idea.title}</h4>
-                ${idea.description ? `<p class="text-xs text-botanical-sage leading-relaxed mb-4">${idea.description.split('\n').map(line => line.trim()).filter(line => line).join('<br>')}</p>` : ''}
-                <div class="flex items-center gap-1.5">
-                  <button onclick="editIdea('${idea.id}')" class="flex-1 px-2 py-1.5 rounded-lg text-xs font-medium border border-botanical-stone text-botanical-sage hover:bg-botanical-cream transition-all">
-                    수정
-                  </button>
-                  <button onclick="deleteIdea('${idea.id}')" class="flex-1 px-2 py-1.5 rounded-lg text-xs font-medium border border-botanical-stone text-botanical-terracotta hover:bg-red-50 transition-all">
-                    삭제
-                  </button>
+              <div class="p-3 rounded-lg border border-botanical-stone hover:border-botanical-sage transition-all">
+                <div class="flex items-start justify-between gap-3">
+                  <div class="flex-1 min-w-0">
+                    <div class="flex items-center gap-2 mb-1">
+                      <span class="inline-block px-2 py-0.5 rounded-md text-xs font-medium bg-botanical-cream text-botanical-sage">${idea.category}</span>
+                      <h4 class="text-sm font-medium text-botanical-fg truncate">${idea.title}</h4>
+                    </div>
+                    ${idea.description ? `<p class="text-xs text-botanical-sage line-clamp-2">${idea.description}</p>` : ''}
+                  </div>
+                  <div class="flex items-center gap-2 shrink-0">
+                    <button onclick="editIdea('${idea.id}')" class="text-xs text-botanical-sage hover:text-botanical-fg transition-all">수정</button>
+                    <span class="text-botanical-stone">|</span>
+                    <button onclick="deleteIdea('${idea.id}')" class="text-xs text-botanical-terracotta hover:text-red-600 transition-all">삭제</button>
+                  </div>
                 </div>
               </div>
             `).join('')}
