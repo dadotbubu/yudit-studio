@@ -4335,25 +4335,25 @@ function renderPerformance() {
           `;
         })()}
 
-        <!-- Daily Graph — 항상 오늘 포함 최근 7일 표시 -->
+        <!-- Daily Graph — 선택한 월의 일별 데이터 표시 -->
         <div id="follower-graph-daily" class="${followerViewMode === 'daily' ? '' : 'hidden'}">
-          <p class="text-xs text-botanical-sage mb-3">최근 7일 팔로워 추이</p>
+          <p class="text-xs text-botanical-sage mb-3">${monthNum}월 일별 팔로워 추이</p>
           ${(() => {
-            // 오늘 포함 7일 날짜 배열 (오늘이 맨 끝)
+            // 선택한 월의 일별 데이터만 필터링
+            const monthDailyData = dailyData.filter(d => d.date.startsWith(perfSelectedMonth));
             const dateMap = {};
-            dailyData.forEach(d => { dateMap[d.date] = d; });
-            const days = [];
-            const now = new Date();
-            for (let i = 6; i >= 0; i--) {
-              const d = new Date(now);
-              d.setDate(d.getDate() - i);
-              const dateStr = d.toISOString().slice(0, 10);
-              days.push({
-                date: dateStr,
-                count: dateMap[dateStr]?.count ?? null,
-                change: dateMap[dateStr]?.change ?? 0
-              });
-            }
+            monthDailyData.forEach(d => { dateMap[d.date] = d; });
+
+            // 입력된 날짜만 추출하고 최대 7개까지만 표시 (최신순)
+            const days = monthDailyData
+              .sort((a, b) => b.date.localeCompare(a.date))
+              .slice(0, 7)
+              .reverse()
+              .map(d => ({
+                date: d.date,
+                count: d.count ?? null,
+                change: d.change ?? 0
+              }));
             const maxCount = Math.max(0, ...days.map(d => d.count ?? 0));
             const minCount = Math.min(...days.filter(d => d.count != null).map(d => d.count), maxCount);
             const range = Math.max(1, maxCount - minCount);
