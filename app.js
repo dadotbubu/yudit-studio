@@ -1654,19 +1654,18 @@ function renderDashboard() {
         ${monthIdeas.length > 0 ? `
           <div class="space-y-2">
             ${monthIdeas.map(idea => `
-              <div class="flex items-start gap-3 p-3 rounded-xl border border-botanical-stone hover:border-botanical-sage transition-all">
-                <div class="flex-shrink-0 min-w-[100px]">
-                  <span class="inline-block px-2.5 py-1 rounded-md text-xs font-medium bg-botanical-cream text-botanical-sage">${idea.category}</span>
+              <div class="p-4 rounded-xl border border-botanical-stone hover:border-botanical-sage transition-all">
+                <div class="mb-2">
+                  <span class="inline-block px-2 py-0.5 rounded-md text-xs font-medium bg-botanical-cream text-botanical-sage">${idea.category}</span>
                 </div>
-                <div class="flex-1 min-w-0">
-                  <p class="text-sm font-medium">${idea.title}</p>
-                </div>
-                <div class="flex-shrink-0 flex items-center gap-2">
-                  <button onclick="editIdea('${idea.id}')" class="w-8 h-8 rounded-full hover:bg-botanical-cream flex items-center justify-center transition-all" title="수정">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-botanical-sage"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>
+                <h4 class="text-base font-semibold text-botanical-fg mb-2">${idea.title}</h4>
+                ${idea.description ? `<p class="text-xs text-botanical-sage leading-relaxed mb-4">${idea.description}</p>` : ''}
+                <div class="flex items-center gap-1.5">
+                  <button onclick="editIdea('${idea.id}')" class="flex-1 px-2 py-1.5 rounded-lg text-xs font-medium border border-botanical-stone text-botanical-sage hover:bg-botanical-cream transition-all">
+                    수정
                   </button>
-                  <button onclick="deleteIdea('${idea.id}')" class="w-8 h-8 rounded-full hover:bg-red-50 flex items-center justify-center transition-all" title="삭제">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-botanical-terracotta"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                  <button onclick="deleteIdea('${idea.id}')" class="flex-1 px-2 py-1.5 rounded-lg text-xs font-medium border border-botanical-stone text-botanical-terracotta hover:bg-red-50 transition-all">
+                    삭제
                   </button>
                 </div>
               </div>
@@ -1695,8 +1694,51 @@ function editPlan(planId) {
 }
 
 function startContentFromPlan(planId) {
-  alert(`제작 시작 기능 구현 예정: ${planId}`);
-  // TODO: 콘텐츠 탭으로 이동 + 데이터 연동
+  if (!plansData || !plansData[dashSelectedMonth] || !plansData[dashSelectedMonth].plans) return;
+
+  const plan = plansData[dashSelectedMonth].plans.find(p => p.id === planId);
+  if (!plan) {
+    alert('계획을 찾을 수 없습니다');
+    return;
+  }
+
+  const contentId = Date.now();
+  const newContent = {
+    id: contentId,
+    title: plan.title,
+    type: '릴스',
+    category: plan.category,
+    status: '기획중',
+    uploadDate: '',
+    isRevenue: false,
+    milestones: [],
+    url: '',
+    performance: { views: null, likes: null, shares: null, comments: null, saves: null },
+    reference: { links: [], analysis: plan.description || '' },
+    script: { versions: [], currentVersion: 0 },
+    caption: '',
+    dm: '',
+    shareLinks: [],
+    checklist: [
+      {item: '레퍼런스 분석', checked: false},
+      {item: '훅 확정', checked: false},
+      {item: '대본 작성', checked: false},
+      {item: '촬영', checked: false},
+      {item: '편집', checked: false},
+      {item: '자막 확인', checked: false},
+      {item: '업로드', checked: false}
+    ]
+  };
+
+  contentsData.contents.unshift(newContent);
+  saveAllData();
+
+  switchTab('content');
+  renderContentList();
+
+  setTimeout(() => {
+    toggleContentForm(contentId);
+  }, 100);
 }
 
 function addIdea() {
