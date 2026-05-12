@@ -1391,7 +1391,6 @@ function getRegistrationFormHTML(dateStr) {
       <div>
         <label class="text-sm font-medium block mb-1">상태</label>
         <select id="new-status" class="w-full px-3 py-2 rounded-xl border border-botanical-stone focus:outline-none">
-          <option value="아이디어">아이디어</option>
           <option value="기획중">기획중</option>
           <option value="제작중">제작중</option>
           <option value="업로드완료">업로드 완료</option>
@@ -2313,7 +2312,6 @@ function renderContentForm(content) {
             </select>
             ` : `
             <select data-field="status" class="w-full px-3 py-2 rounded-lg border border-botanical-stone bg-white text-sm focus:outline-none">
-              <option value="아이디어" ${content.status === '아이디어' ? 'selected' : ''}>아이디어</option>
               <option value="기획중" ${content.status === '기획중' ? 'selected' : ''}>기획중</option>
               <option value="제작중" ${content.status === '제작중' ? 'selected' : ''}>제작중</option>
               <option value="업로드완료" ${content.status === '업로드완료' ? 'selected' : ''}>업로드 완료</option>
