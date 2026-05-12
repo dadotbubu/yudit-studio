@@ -2179,34 +2179,65 @@ function renderContentForm(content) {
         <div class="border border-botanical-stone rounded-lg overflow-hidden">
           <table class="w-full text-sm">
             <tbody>
-              ${[
-                ['url', '링크', 'url', '인스타 URL'],
-                ['title', '썸네일 제목', 'text', ''],
-                ['hook', '첫 3초 훅킹 멘트, 장면 (1~2줄)', 'textarea', ''],
-                ['followers', '계정 팔로워 수', 'text', ''],
-                ['views', '조회수', 'text', ''],
-                ['likes', '좋아요', 'text', ''],
-                ['shares', '공유', 'text', ''],
-                ['saves', '저장', 'text', ''],
-                ['comments', '댓글', 'text', ''],
-                ['length', '영상 길이', 'text', ''],
-                ['reason', '잘 터진 이유 (정보 / 공감 / 유머 등)', 'textarea', ''],
-              ].map(([field, label, type, ph], i, arr) => `
-                <tr${i < arr.length - 1 ? ' class="border-b border-botanical-stone"' : ''}>
+              ${(() => {
+                const singleFields = [
+                  ['url', '링크', 'url', '인스타 URL'],
+                  ['title', '썸네일 제목', 'text', ''],
+                  ['hook', '첫 3초 훅킹 멘트, 장면 (1~2줄)', 'textarea', ''],
+                  ['followers', '계정 팔로워 수', 'text', ''],
+                ];
+                const doubleFields = [
+                  [['views', '조회수', 'text', ''], ['likes', '좋아요', 'text', '']],
+                  [['shares', '공유', 'text', ''], ['saves', '저장', 'text', '']],
+                  [['comments', '댓글', 'text', ''], ['length', '영상 길이', 'text', '']],
+                ];
+                const lastField = ['reason', '잘 터진 이유 (정보 / 공감 / 유머 등)', 'textarea', ''];
+
+                let html = '';
+
+                // Single-column fields
+                singleFields.forEach(([field, label, type, ph], i) => {
+                  html += `<tr class="border-b border-botanical-stone">
+                    <td class="px-2 md:px-4 py-2 md:py-3 bg-botanical-cream/30 font-medium w-36 md:w-1/3 text-[10px] md:text-sm leading-tight md:leading-normal break-keep align-top">${label}</td>
+                    <td class="px-2 md:px-4 py-2 md:py-3 text-xs md:text-sm" colspan="3">${
+                      type === 'textarea'
+                        ? `<textarea rows="1" oninput="autoResize(this);updateReference(${content.id}, '${field}', this.value)" placeholder="${ph}" class="auto-grow unified-text w-full bg-transparent focus:outline-none resize-none overflow-hidden break-words" style="min-height: 24px; word-break: break-word;">${content.reference?.[field] ?? ''}</textarea>`
+                        : type === 'url'
+                        ? `<div class="flex items-center gap-2">
+                            <input type="text" value="${content.reference?.[field] ?? ''}" placeholder="${ph}" oninput="updateReference(${content.id}, '${field}', this.value)" class="flex-1 bg-transparent focus:outline-none">
+                            ${openLinkBtn(content.reference?.[field])}
+                            <a href="${DEFAULT_TRANSCRIPT_LINK}" target="_blank" class="px-2 text-xs text-botanical-terracotta border border-botanical-terracotta/40 rounded-lg hover:bg-botanical-terracotta/10 flex items-center shrink-0">대본</a>
+                          </div>`
+                        : `<input type="${type}" value="${content.reference?.[field] ?? ''}" placeholder="${ph}" oninput="updateReference(${content.id}, '${field}', this.value)" class="w-full bg-transparent focus:outline-none">`
+                    }</td>
+                  </tr>`;
+                });
+
+                // Double-column fields
+                doubleFields.forEach(([[field1, label1, type1, ph1], [field2, label2, type2, ph2]], i) => {
+                  html += `<tr class="border-b border-botanical-stone">
+                    <td class="px-2 md:px-3 py-2 md:py-3 bg-botanical-cream/30 font-medium text-[10px] md:text-xs leading-tight md:leading-normal break-keep align-top">${label1}</td>
+                    <td class="px-2 md:px-3 py-2 md:py-3 text-xs md:text-sm">
+                      <input type="${type1}" value="${content.reference?.[field1] ?? ''}" placeholder="${ph1}" oninput="updateReference(${content.id}, '${field1}', this.value)" class="w-full bg-transparent focus:outline-none">
+                    </td>
+                    <td class="px-2 md:px-3 py-2 md:py-3 bg-botanical-cream/30 font-medium text-[10px] md:text-xs leading-tight md:leading-normal break-keep align-top">${label2}</td>
+                    <td class="px-2 md:px-3 py-2 md:py-3 text-xs md:text-sm">
+                      <input type="${type2}" value="${content.reference?.[field2] ?? ''}" placeholder="${ph2}" oninput="updateReference(${content.id}, '${field2}', this.value)" class="w-full bg-transparent focus:outline-none">
+                    </td>
+                  </tr>`;
+                });
+
+                // Last field
+                const [field, label, type, ph] = lastField;
+                html += `<tr>
                   <td class="px-2 md:px-4 py-2 md:py-3 bg-botanical-cream/30 font-medium w-36 md:w-1/3 text-[10px] md:text-sm leading-tight md:leading-normal break-keep align-top">${label}</td>
-                  <td class="px-2 md:px-4 py-2 md:py-3 text-xs md:text-sm">${
-                    type === 'textarea'
-                      ? `<textarea rows="1" oninput="autoResize(this);updateReference(${content.id}, '${field}', this.value)" placeholder="${ph}" class="auto-grow unified-text w-full bg-transparent focus:outline-none resize-none overflow-hidden break-words" style="min-height: 24px; word-break: break-word;">${content.reference?.[field] ?? ''}</textarea>`
-                      : type === 'url'
-                      ? `<div class="flex items-center gap-2">
-                          <input type="text" value="${content.reference?.[field] ?? ''}" placeholder="${ph}" oninput="updateReference(${content.id}, '${field}', this.value)" class="flex-1 bg-transparent focus:outline-none">
-                          ${openLinkBtn(content.reference?.[field])}
-                          <a href="${DEFAULT_TRANSCRIPT_LINK}" target="_blank" class="px-2 text-xs text-botanical-terracotta border border-botanical-terracotta/40 rounded-lg hover:bg-botanical-terracotta/10 flex items-center shrink-0">대본</a>
-                        </div>`
-                      : `<input type="${type}" value="${content.reference?.[field] ?? ''}" placeholder="${ph}" oninput="updateReference(${content.id}, '${field}', this.value)" class="w-full bg-transparent focus:outline-none">`
-                  }</td>
-                </tr>
-              `).join('')}
+                  <td class="px-2 md:px-4 py-2 md:py-3 text-xs md:text-sm" colspan="3">
+                    <textarea rows="1" oninput="autoResize(this);updateReference(${content.id}, '${field}', this.value)" placeholder="${ph}" class="auto-grow unified-text w-full bg-transparent focus:outline-none resize-none overflow-hidden break-words" style="min-height: 24px; word-break: break-word;">${content.reference?.[field] ?? ''}</textarea>
+                  </td>
+                </tr>`;
+
+                return html;
+              })()}
             </tbody>
           </table>
         </div>
