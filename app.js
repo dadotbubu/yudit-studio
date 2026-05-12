@@ -1591,13 +1591,18 @@ function renderDashboard() {
     }
   });
 
-  // 카테고리별 진행 상황 계산
+  // 카테고리별 진행 상황 계산 (실제 업로드된 콘텐츠 기준)
+  const monthContents = contentsData?.contents?.filter(c => {
+    if (!c.uploadDate) return false;
+    return c.uploadDate.startsWith(dashMonthStr);
+  }) || [];
+
   const categoryCount = {};
   const categories = ['Career Guide', 'Money Log', 'AI Work', 'Life Style'];
   categories.forEach(cat => {
-    categoryCount[cat] = monthPlans.filter(p => p.category === cat).length;
+    categoryCount[cat] = monthContents.filter(c => c.category === cat).length;
   });
-  const totalPlans = monthPlans.length;
+  const totalPlans = monthContents.length;
   const totalGoal = totalGoalConfig || 8;
 
   document.getElementById('dashboard-content').innerHTML = `
