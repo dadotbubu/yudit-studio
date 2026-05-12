@@ -7,6 +7,10 @@ let memosData = null;
 let selectedMemoId = null;
 let perfRecalculated = false; // 성과 데이터 재계산 완료 플래그
 
+// 카테고리 목표 설정 (localStorage에 저장)
+let categoryGoalsConfig = JSON.parse(localStorage.getItem('yudit_categoryGoals') || '{"Career Guide":2,"AI Work":2,"Money Log":2,"Life Style":2}');
+let totalGoalConfig = parseInt(localStorage.getItem('yudit_totalGoal') || '8');
+
 // Lazy Loading - 탭 렌더링 상태 추적
 const tabRendered = {
   calendar: false,
@@ -1567,21 +1571,19 @@ function renderDashboard() {
   // 계획중: 아이디어만
   const planningTotal = thisMonthContents.filter(c => c.status === '아이디어').length;
 
-  // 전체 계획 개수 (월 8개 기준 고정)
-  const totalPlan = 8;
+  // 전체 계획 개수 (월별 목표 기준)
+  const totalPlan = totalGoalConfig;
   const progressPercent = Math.round((completedTotal / totalPlan) * 100);
 
   // Category balance with goals (업로드완료 기준)
-  const categoryGoals = {
-    'Career Guide': 3, 'AI Work': 2, 'Money Log': 2, 'Life Style': 1
-  };
+  const categoryGoals = categoryGoalsConfig;
   const categoryCounts = {
     'Career Guide': completedContents.filter(c => c.category === 'Career Guide').length,
     'AI Work': completedContents.filter(c => c.category === 'AI Work').length,
     'Money Log': completedContents.filter(c => c.category === 'Money Log').length,
     'Life Style': completedContents.filter(c => c.category === 'Life Style').length
   };
-  const totalGoal = 8;
+  const totalGoal = totalGoalConfig;
   const totalCount = Object.values(categoryCounts).reduce((a, b) => a + b, 0);
 
   // Monthly trend (12 months) — 선택한 월의 연도 기준
@@ -1630,19 +1632,27 @@ function renderDashboard() {
       <div class="border-t border-botanical-stone pt-5 mb-5">
         <div class="flex items-center justify-between mb-3">
           <h4 class="text-base font-semibold">카테고리 <span class="font-serif italic">Balance</span></h4>
-          <span class="text-xs text-botanical-sage bg-botanical-cream px-2 py-0.5 rounded-full">월 8개 기준</span>
+          <div class="flex items-center gap-2">
+            <span class="text-xs text-botanical-sage bg-botanical-cream px-2 py-0.5 rounded-full">월 ${totalGoal}개 기준</span>
+            <button onclick="editTotalGoal()" class="w-6 h-6 rounded-full hover:bg-botanical-cream transition-all flex items-center justify-center" title="총 목표 개수 수정">
+              <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-botanical-sage"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>
+            </button>
+          </div>
         </div>
         <div class="grid grid-cols-2 md:grid-cols-5 gap-3">
           <div class="col-span-2 md:col-span-1 p-3 rounded-xl text-center border border-botanical-stone" style="background-color: #F9F8F4;">
             <p class="text-sm text-botanical-fg font-medium mb-1">전체</p>
-            <p class="text-2xl font-semibold text-botanical-fg font-serif">${totalCount}<span class="text-botanical-clay">/8</span></p>
+            <p class="text-2xl font-semibold text-botanical-fg font-serif">${totalCount}<span class="text-botanical-clay">/${totalGoal}</span></p>
           </div>
           ${Object.entries(categoryGoals).map(([cat, goal]) => {
             const count = categoryCounts[cat] || 0;
             const isComplete = count >= goal;
             const isZero = count === 0;
             return `
-              <div class="p-2.5 bg-white rounded-xl text-center border border-botanical-stone">
+              <div class="p-2.5 bg-white rounded-xl text-center border border-botanical-stone relative group">
+                <button onclick="editCategoryGoal('${cat}')" class="absolute top-1 right-1 w-5 h-5 rounded-full hover:bg-botanical-cream opacity-0 group-hover:opacity-100 transition-all flex items-center justify-center" title="${cat} 목표 수정">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-botanical-sage"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>
+                </button>
                 <p class="text-xs ${isComplete ? 'text-botanical-sage' : (isZero ? 'text-botanical-terracotta' : 'text-botanical-sage')} mb-1">${cat}${isComplete ? ' ✓' : ''}</p>
                 <p class="text-xl font-semibold ${isZero ? 'text-botanical-terracotta' : ''} font-serif">${count}<span class="text-botanical-clay">/${goal}</span></p>
               </div>
@@ -5416,6 +5426,34 @@ function deleteDashboardPlan(planId) {
   if (!confirm('이 계획을 삭제할까요?')) return;
   calendarData.plans = calendarData.plans.filter(p => p.id !== planId);
   saveAllData();
+  renderDashboard();
+}
+
+// ========== Category Goals Edit ==========
+function editTotalGoal() {
+  const newGoal = prompt('월 총 목표 개수를 입력하세요', totalGoalConfig);
+  if (newGoal === null) return;
+  const num = parseInt(newGoal);
+  if (isNaN(num) || num < 1 || num > 31) {
+    alert('1~31 사이의 숫자를 입력하세요');
+    return;
+  }
+  totalGoalConfig = num;
+  localStorage.setItem('yudit_totalGoal', num);
+  renderDashboard();
+}
+
+function editCategoryGoal(category) {
+  const currentGoal = categoryGoalsConfig[category] || 0;
+  const newGoal = prompt(`${category} 목표 개수를 입력하세요`, currentGoal);
+  if (newGoal === null) return;
+  const num = parseInt(newGoal);
+  if (isNaN(num) || num < 0 || num > 31) {
+    alert('0~31 사이의 숫자를 입력하세요');
+    return;
+  }
+  categoryGoalsConfig[category] = num;
+  localStorage.setItem('yudit_categoryGoals', JSON.stringify(categoryGoalsConfig));
   renderDashboard();
 }
 
