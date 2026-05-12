@@ -296,9 +296,14 @@ async function loadFromSupabase() {
       if (!res.ok) throw new Error('Supabase 로드 실패: ' + res.status);
       const rows = await res.json();
       const map = {};
+      const timestamps = {};
       let maxAt = null;
       rows.forEach(r => {
-        map[r.key] = r.data;
+        // 각 key별로 updated_at이 가장 최신인 데이터만 사용
+        if (!timestamps[r.key] || r.updated_at > timestamps[r.key]) {
+          map[r.key] = r.data;
+          timestamps[r.key] = r.updated_at;
+        }
         if (r.updated_at && (!maxAt || r.updated_at > maxAt)) maxAt = r.updated_at;
       });
       lastLoadedAt = maxAt;
