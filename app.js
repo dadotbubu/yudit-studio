@@ -1586,11 +1586,53 @@ function renderDashboard() {
     }
   });
 
+  // 카테고리별 진행 상황 계산
+  const categoryCount = {};
+  const categories = ['Career Guide', 'AI Work', 'Money Log', 'Life Style'];
+  categories.forEach(cat => {
+    categoryCount[cat] = monthPlans.filter(p => p.category === cat).length;
+  });
+  const totalPlans = monthPlans.length;
+  const totalGoal = totalGoalConfig || 8;
+
   document.getElementById('dashboard-content').innerHTML = `
     <!-- 서브탭 (성과분석 스타일) -->
     <div class="flex gap-6 mb-6 border-b border-botanical-stone/30">
       <button onclick="switchPlannerTab('plans')" id="planner-tab-plans" class="planner-tab-btn pb-3 text-sm font-medium border-b-2 ${plannerSubTab === 'plans' ? 'border-botanical-fg text-botanical-fg' : 'border-transparent text-botanical-sage hover:text-botanical-fg'}">월간 계획</button>
       <button onclick="switchPlannerTab('ideas')" id="planner-tab-ideas" class="planner-tab-btn pb-3 text-sm font-medium border-b-2 ${plannerSubTab === 'ideas' ? 'border-botanical-fg text-botanical-fg' : 'border-transparent text-botanical-sage hover:text-botanical-fg'}">아이디어</button>
+    </div>
+
+    <!-- 카테고리별 진행 상황 (플랜 탭에서만 표시) -->
+    <div id="planner-progress" class="${plannerSubTab === 'ideas' ? 'hidden' : ''} mb-6">
+      <div class="bg-white rounded-2xl p-4 md:p-5 shadow-sm">
+        <div class="flex items-center justify-between mb-4">
+          <h3 class="text-sm font-semibold text-botanical-fg">카테고리별 진행 상황</h3>
+          <span class="text-sm text-botanical-sage">${dashY}년 ${dashM}월</span>
+        </div>
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-3">
+          ${categories.map(cat => {
+            const goal = categoryGoalsConfig[cat] || 2;
+            const current = categoryCount[cat] || 0;
+            const percentage = goal > 0 ? Math.round((current / goal) * 100) : 0;
+            return `
+              <div class="p-3 rounded-lg border border-botanical-stone hover:border-botanical-sage transition-all">
+                <p class="text-xs text-botanical-sage mb-1">${cat}</p>
+                <div class="flex items-baseline gap-1">
+                  <span class="text-lg font-semibold ${current >= goal ? 'text-botanical-sage' : 'text-botanical-fg'}">${current}</span>
+                  <span class="text-xs text-botanical-sage">/ ${goal}</span>
+                </div>
+                <div class="mt-2 h-1 bg-botanical-stone rounded-full overflow-hidden">
+                  <div class="h-full bg-botanical-sage transition-all" style="width: ${Math.min(percentage, 100)}%"></div>
+                </div>
+              </div>
+            `;
+          }).join('')}
+        </div>
+        <div class="pt-3 border-t border-botanical-stone flex items-center justify-between">
+          <span class="text-sm text-botanical-sage">전체 진행</span>
+          <span class="text-sm font-semibold ${totalPlans >= totalGoal ? 'text-botanical-sage' : 'text-botanical-fg'}">${totalPlans} / ${totalGoal}</span>
+        </div>
+      </div>
     </div>
 
     <!-- 월 선택기 (플랜 탭에서만 표시) -->
