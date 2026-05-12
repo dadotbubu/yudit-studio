@@ -1731,8 +1731,86 @@ function addPlanToWeek(week) {
 }
 
 function editPlan(planId) {
-  alert(`계획 수정 기능 구현 예정: ${planId}`);
-  // TODO: 모달 팝업으로 계획 수정
+  if (!plansData || !plansData[dashSelectedMonth] || !plansData[dashSelectedMonth].plans) return;
+
+  const plan = plansData[dashSelectedMonth].plans.find(p => p.id === planId);
+  if (!plan) {
+    alert('계획을 찾을 수 없습니다');
+    return;
+  }
+
+  const popup = document.getElementById('calendar-popup');
+  const popupContent = document.getElementById('popup-content');
+
+  popupContent.innerHTML = `
+    <div class="flex items-center justify-between mb-4">
+      <h3 class="font-semibold text-lg">계획 수정</h3>
+      <button onclick="closeCalendarPopup()" class="text-botanical-sage hover:text-botanical-fg">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18M6 6l12 12"/></svg>
+      </button>
+    </div>
+
+    <div class="space-y-4">
+      <div class="grid grid-cols-2 gap-3">
+        <div>
+          <label class="text-sm font-medium block mb-1">주차</label>
+          <select id="edit-plan-week" class="w-full px-3 py-2 rounded-xl border border-botanical-stone focus:outline-none">
+            <option value="1" ${plan.week === 1 ? 'selected' : ''}>1주차</option>
+            <option value="2" ${plan.week === 2 ? 'selected' : ''}>2주차</option>
+            <option value="3" ${plan.week === 3 ? 'selected' : ''}>3주차</option>
+            <option value="4" ${plan.week === 4 ? 'selected' : ''}>4주차</option>
+          </select>
+        </div>
+        <div>
+          <label class="text-sm font-medium block mb-1">카테고리</label>
+          <select id="edit-plan-category" class="w-full px-3 py-2 rounded-xl border border-botanical-stone focus:outline-none">
+            <option value="Career Guide" ${plan.category === 'Career Guide' ? 'selected' : ''}>Career Guide</option>
+            <option value="AI Work" ${plan.category === 'AI Work' ? 'selected' : ''}>AI Work</option>
+            <option value="Money Log" ${plan.category === 'Money Log' ? 'selected' : ''}>Money Log</option>
+            <option value="Life Style" ${plan.category === 'Life Style' ? 'selected' : ''}>Life Style</option>
+          </select>
+        </div>
+      </div>
+      <div>
+        <label class="text-sm font-medium block mb-1">제목</label>
+        <input type="text" id="edit-plan-title" value="${plan.title}" class="w-full px-3 py-2 rounded-xl border border-botanical-stone focus:outline-none" placeholder="계획 제목">
+      </div>
+      <div>
+        <label class="text-sm font-medium block mb-1">상세 내용</label>
+        <textarea id="edit-plan-description" rows="4" class="w-full px-3 py-2 rounded-xl border border-botanical-stone focus:outline-none resize-none" placeholder="• 항목 1\n• 항목 2\n• 항목 3">${plan.description || ''}</textarea>
+      </div>
+      <button onclick="savePlan('${planId}')" class="w-full py-2.5 bg-botanical-fg text-white rounded-xl hover:bg-botanical-fg/90 transition-all font-medium">저장</button>
+    </div>
+  `;
+
+  popup.classList.remove('hidden');
+}
+
+function savePlan(planId) {
+  const week = parseInt(document.getElementById('edit-plan-week').value);
+  const category = document.getElementById('edit-plan-category').value;
+  const title = document.getElementById('edit-plan-title').value;
+  const description = document.getElementById('edit-plan-description').value;
+
+  if (!title) {
+    alert('제목을 입력하세요');
+    return;
+  }
+
+  const plan = plansData[dashSelectedMonth].plans.find(p => p.id === planId);
+  if (!plan) {
+    alert('계획을 찾을 수 없습니다');
+    return;
+  }
+
+  plan.week = week;
+  plan.category = category;
+  plan.title = title;
+  plan.description = description;
+
+  saveAllData();
+  closeCalendarPopup();
+  renderDashboard();
 }
 
 function startContentFromPlan(planId) {
@@ -1871,7 +1949,7 @@ function renderContentList() {
 
     <div class="hidden md:block bg-botanical-cream/50 rounded-xl px-5 py-3 mb-4">
       <div class="flex items-center gap-3 text-sm font-medium text-botanical-sage">
-        <span class="w-20 shrink-0">카테고리</span>
+        <span class="w-32 shrink-0">카테고리</span>
         <span class="w-24 shrink-0">상태</span>
         <span class="w-14 shrink-0">타입</span>
         <span class="flex-1 min-w-0">콘텐츠 제목</span>
@@ -1921,7 +1999,7 @@ function renderContentList() {
           </div>
           <!-- PC: single-row (업로드/URL까지만, 성과 제거) -->
           <div class="hidden md:flex items-center gap-3 text-sm">
-            <span class="w-20 shrink-0"><span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full flex-shrink-0" style="background-color: ${categoryColor};"></span><span class="text-xs text-botanical-sage truncate">${content.category}</span></span></span>
+            <span class="w-32 shrink-0"><span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full flex-shrink-0" style="background-color: ${categoryColor};"></span><span class="text-xs text-botanical-sage">${content.category}</span></span></span>
             <span class="w-24 shrink-0"><span class="px-2 py-1 rounded-full text-xs whitespace-nowrap" style="background-color: ${statusStyle.bg}; color: ${statusStyle.text};">${statusText(content.status)}</span></span>
             <span class="w-14 shrink-0"><span class="px-2 py-1 rounded-full text-xs font-medium whitespace-nowrap bg-botanical-sage/20 text-botanical-sage">${content.type}</span></span>
             <span class="font-medium flex-1 min-w-0"><span data-content-title="${content.id}" class="truncate block">${content.title || '무제'}</span></span>
@@ -4086,7 +4164,6 @@ function showNewContentModal() {
           <label class="text-sm font-medium block mb-1">상태 <span class="text-xs text-botanical-sage">(선택)</span></label>
           <select id="new-content-status" class="w-full px-3 rounded-xl border border-botanical-stone focus:outline-none text-sm" style="height: 42px; box-sizing: border-box;">
             <option value="">선택 안 함</option>
-            <option value="아이디어">아이디어</option>
             <option value="기획중">기획중</option>
             <option value="제작중">제작중</option>
             <option value="업로드완료">업로드 완료</option>
@@ -4208,7 +4285,7 @@ function saveNewContent(formType) {
   }
 
   // 현재 상태: 선택한 상태가 있으면 그것, 없으면 기본값
-  const currentStatus = selectedStatus || (formType === 'revenue' ? '계약완료' : '아이디어');
+  const currentStatus = selectedStatus || (formType === 'revenue' ? '계약완료' : '기획중');
 
   const contentId = Date.now();
   const newContent = {
