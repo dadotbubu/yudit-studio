@@ -4432,17 +4432,19 @@ function renderPerformance() {
             <div class="space-y-3 mb-4">
               ${recent6.map((d, idx) => {
                 const isCurrentMonth = d.month === currentMonthStr;
-                const width = maxCount > 0 ? (d.count / maxCount) * 100 : 0;
+                const count = d.count || 0;
+                const change = d.change || 0;
+                const width = maxCount > 0 ? (count / maxCount) * 100 : 0;
                 const barColor = isCurrentMonth ? '#2D3A31' : '#8C9A84';
                 return `
                   <div>
                     <div class="flex items-center justify-between mb-1">
                       <span class="text-sm ${isCurrentMonth ? 'font-semibold text-botanical-fg' : 'text-botanical-sage'}">${d.month.slice(5)}월</span>
-                      <span class="text-sm ${isCurrentMonth ? 'font-semibold text-botanical-fg' : 'font-medium'}">${d.count.toLocaleString()}명</span>
+                      <span class="text-sm ${isCurrentMonth ? 'font-semibold text-botanical-fg' : 'font-medium'}">${count.toLocaleString()}명</span>
                     </div>
                     <div class="h-8 bg-botanical-stone rounded-lg overflow-hidden relative">
                       <div class="absolute top-0 left-0 h-full flex items-center justify-end pr-2" style="width: ${width}%; background-color: ${barColor};">
-                        <span class="text-xs text-white font-medium">${d.change > 0 ? '+' : ''}${d.change.toLocaleString()}</span>
+                        <span class="text-xs text-white font-medium">${change > 0 ? '+' : ''}${change.toLocaleString()}</span>
                       </div>
                     </div>
                   </div>
