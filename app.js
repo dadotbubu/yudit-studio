@@ -1566,9 +1566,9 @@ function renderDashboard() {
   // 계획중: 아이디어만
   const planningTotal = thisMonthContents.filter(c => c.status === '아이디어').length;
 
-  // 전체 계획 개수
-  const totalPlan = thisMonthContents.length;
-  const progressPercent = totalPlan > 0 ? Math.round((completedTotal / totalPlan) * 100) : 0;
+  // 전체 계획 개수 (월 8개 기준 고정)
+  const totalPlan = 8;
+  const progressPercent = Math.round((completedTotal / totalPlan) * 100);
 
   // Category balance with goals (업로드완료 기준)
   const categoryGoals = {
