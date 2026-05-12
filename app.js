@@ -1704,7 +1704,7 @@ function renderDashboard() {
                 <div class="flex items-start justify-between gap-3">
                   <div class="flex-1 min-w-0">
                     <div class="flex items-center gap-2 mb-1">
-                      <span class="inline-block px-2 py-0.5 rounded-md text-xs font-medium bg-botanical-cream text-botanical-sage">${idea.category}</span>
+                      <span class="inline-block w-24 text-center px-2 py-0.5 rounded-md text-xs font-medium bg-botanical-cream text-botanical-sage">${idea.category}</span>
                       <h4 class="text-sm font-medium text-botanical-fg truncate">${idea.title}</h4>
                     </div>
                     ${idea.description ? `<p class="text-xs text-botanical-sage line-clamp-2">${idea.description}</p>` : ''}
