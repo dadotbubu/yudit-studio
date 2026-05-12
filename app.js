@@ -4,6 +4,7 @@ let contentsData = null;
 let performanceData = null;
 let revenueData = null;
 let memosData = null;
+let plansData = null;
 let selectedMemoId = null;
 let perfRecalculated = false; // 성과 데이터 재계산 완료 플래그
 
@@ -436,6 +437,7 @@ async function loadData() {
       performanceData = remote.performance || { follower: { current: 0, history: { daily: [], monthly: [] } }, monthly: {} };
       revenueData = remote.revenue || { summary: { thisMonth: 0, thisYear: 0 }, byType: { ad: {}, sales: {}, sponsor: {} }, tax: {}, monthly: [], items: { ad: [], sales: [], sponsor: [] } };
       memosData = remote.memos || { memos: [] };
+      plansData = remote.plans || {};
       console.log('Supabase에서 데이터 로드됨');
 
       // 로드 후 오늘 날짜 자동 스냅샷 (하루 1회)
@@ -449,13 +451,15 @@ async function loadData() {
         performanceData = JSON.parse(localStorage.getItem('yudit_performance') || '{"follower":{"current":0,"history":{"daily":[],"monthly":[]}},"monthly":{}}');
         revenueData = JSON.parse(localStorage.getItem('yudit_revenue') || '{"summary":{"thisMonth":0,"thisYear":0},"byType":{"ad":{},"sales":{},"sponsor":{}},"tax":{},"monthly":[],"items":{"ad":[],"sales":[],"sponsor":[]}}');
         memosData = JSON.parse(localStorage.getItem('yudit_memos') || '{"memos":[]}');
+        plansData = JSON.parse(localStorage.getItem('yudit_plans') || '{}');
         console.log('localStorage에서 로드 → Supabase로 마이그레이션 중...');
         await Promise.all([
           upsertToSupabase('calendar', calendarData),
           upsertToSupabase('contents', contentsData),
           upsertToSupabase('performance', performanceData),
           upsertToSupabase('revenue', revenueData),
-          upsertToSupabase('memos', memosData)
+          upsertToSupabase('memos', memosData),
+          upsertToSupabase('plans', plansData)
         ]);
         console.log('마이그레이션 완료');
       } else {
@@ -471,6 +475,7 @@ async function loadData() {
         performanceData = performance;
         revenueData = revenue;
         memosData = { memos: [] };
+        plansData = {};
       }
     }
 
@@ -486,6 +491,7 @@ async function loadData() {
       performanceData = JSON.parse(localStorage.getItem('yudit_performance') || '{}');
       revenueData = JSON.parse(localStorage.getItem('yudit_revenue') || '{}');
       memosData = JSON.parse(localStorage.getItem('yudit_memos') || '{"memos":[]}');
+      plansData = JSON.parse(localStorage.getItem('yudit_plans') || '{}');
       updateSaveStatus('offline');
       showOfflineBanner('서버 연결이 일시적으로 끊겨 로컬 백업 데이터로 작동 중. 새로고침하면 다시 시도.');
       initApp();
@@ -510,7 +516,8 @@ function flushSaveImmediately() {
     ['contents', contentsData],
     ['performance', performanceData],
     ['revenue', revenueData],
-    ['memos', memosData]
+    ['memos', memosData],
+    ['plans', plansData]
   ];
   payloads.forEach(([key, data]) => {
     if (!data) return;
@@ -549,6 +556,7 @@ function saveAllData() {
   localStorage.setItem('yudit_performance', JSON.stringify(performanceData));
   localStorage.setItem('yudit_revenue', JSON.stringify(revenueData));
   localStorage.setItem('yudit_memos', JSON.stringify(memosData));
+  localStorage.setItem('yudit_plans', JSON.stringify(plansData));
 
   // 2) Supabase에는 디바운스 (연속 호출 시 500ms 후 1번만)
   updateSaveStatus('saving');
@@ -560,7 +568,8 @@ function saveAllData() {
         upsertToSupabase('contents', contentsData),
         upsertToSupabase('performance', performanceData),
         upsertToSupabase('revenue', revenueData),
-        upsertToSupabase('memos', memosData)
+        upsertToSupabase('memos', memosData),
+        upsertToSupabase('plans', plansData)
       ]);
       // 저장 직후 서버 측 실제 updated_at 다시 fetch (클라 시계 의존 X)
       try {
@@ -1546,153 +1555,165 @@ function changeDashMonth(monthStr) {
   renderDashboard();
 }
 
+// 플래너 서브탭 상태
+let plannerSubTab = 'plans'; // 'plans' or 'ideas'
+
+function switchPlannerTab(tab) {
+  plannerSubTab = tab;
+  renderDashboard();
+}
+
 function renderDashboard() {
-  // 대시보드는 dashSelectedMonth 기준
+  // 플래너는 dashSelectedMonth 기준
   const dashMonthStr = dashSelectedMonth;
   const dashY = parseInt(dashMonthStr.slice(0, 4));
   const dashM = parseInt(dashMonthStr.slice(5));
 
-  // 이번 달 콘텐츠: uploadDate 또는 업로드완료 마일스톤 기준
-  const thisMonthContents = contentsData.contents.filter(c => {
-    const refDate = getContentRefDate(c);
-    return refDate && refDate.startsWith(dashMonthStr);
-  });
+  // plansData 초기화 (null 체크)
+  if (!plansData) plansData = {};
 
-  // 완료: 업로드완료 상태
-  const completedContents = thisMonthContents.filter(c => c.status === '업로드완료');
-  const completedGeneral = completedContents.filter(c => !['광고', '판매', '협찬'].includes(c.category)).length;
-  const completedAd = completedContents.filter(c => ['광고', '판매', '협찬'].includes(c.category)).length;
-  const completedTotal = completedContents.length;
+  // 해당 월의 plans, ideas 가져오기
+  const monthData = plansData[dashMonthStr] || { plans: [], ideas: [] };
+  const monthPlans = monthData.plans || [];
+  const monthIdeas = monthData.ideas || [];
 
-  // 진행중: 아이디어 제외한 모든 작업 상태
-  const inProgressStatuses = ['기획중', '제작중', '계약완료', '기획안1차공유', '기획안최종컨펌', '영상1차공유', '영상최종컨펌'];
-  const inProgressTotal = thisMonthContents.filter(c => inProgressStatuses.includes(c.status)).length;
-
-  // 계획중: 아이디어만
-  const planningTotal = thisMonthContents.filter(c => c.status === '아이디어').length;
-
-  // 전체 계획 개수 (월별 목표 기준)
-  const totalPlan = totalGoalConfig;
-  const progressPercent = Math.round((completedTotal / totalPlan) * 100);
-
-  // Category balance with goals (업로드완료 기준)
-  const categoryGoals = categoryGoalsConfig;
-  const categoryCounts = {
-    'Career Guide': completedContents.filter(c => c.category === 'Career Guide').length,
-    'AI Work': completedContents.filter(c => c.category === 'AI Work').length,
-    'Money Log': completedContents.filter(c => c.category === 'Money Log').length,
-    'Life Style': completedContents.filter(c => c.category === 'Life Style').length
-  };
-  const totalGoal = totalGoalConfig;
-  const totalCount = Object.values(categoryCounts).reduce((a, b) => a + b, 0);
-
-  // Monthly trend (12 months) — 선택한 월의 연도 기준
-  const monthlyContents = Array(12).fill(0);
-  contentsData.contents.forEach(c => {
-    const d = getUploadDate(c);
-    if (d && c.status === '업로드완료') {
-      const uploadMonth = parseInt(d.slice(5, 7));
-      const uploadYear = parseInt(d.slice(0, 4));
-      if (uploadYear === dashY && uploadMonth >= 1 && uploadMonth <= 12) {
-        monthlyContents[uploadMonth - 1]++;
-      }
+  // 주차별로 plans 그룹화 (1~4주차)
+  const plansByWeek = { 1: [], 2: [], 3: [], 4: [] };
+  monthPlans.forEach(plan => {
+    const week = plan.week || 1;
+    if (week >= 1 && week <= 4) {
+      plansByWeek[week].push(plan);
     }
   });
-  const totalUploaded = monthlyContents.reduce((a, b) => a + b, 0);
-  const monthsWithContent = monthlyContents.filter(m => m > 0).length;
-  const monthlyAvg = monthsWithContent > 0 ? parseFloat((totalUploaded / monthsWithContent).toFixed(1)) : 0;
-  const maxContents = Math.max(...monthlyContents, 1);
 
   document.getElementById('dashboard-content').innerHTML = `
-    <!-- 월 선택기 -->
-    <div class="flex items-center gap-3 mb-6">
-      ${renderMonthSelect('dashboard-month-select', dashSelectedMonth, 'changeDashMonth')}
-      <span class="text-xs text-botanical-sage">${dashM}월 콘텐츠 계획</span>
+    <!-- 서브탭 (성과분석 스타일) -->
+    <div class="flex gap-6 mb-6 border-b border-botanical-stone/30">
+      <button onclick="switchPlannerTab('plans')" id="planner-tab-plans" class="planner-tab-btn pb-3 text-sm font-medium border-b-2 ${plannerSubTab === 'plans' ? 'border-botanical-fg text-botanical-fg' : 'border-transparent text-botanical-sage hover:text-botanical-fg'}">월간 계획</button>
+      <button onclick="switchPlannerTab('ideas')" id="planner-tab-ideas" class="planner-tab-btn pb-3 text-sm font-medium border-b-2 ${plannerSubTab === 'ideas' ? 'border-botanical-fg text-botanical-fg' : 'border-transparent text-botanical-sage hover:text-botanical-fg'}">아이디어</button>
     </div>
 
-    <!-- 월간 콘텐츠 계획 통합 판넬 -->
-    <div class="bg-white rounded-2xl p-5 shadow-sm mb-6">
-      <!-- 진행률 -->
-      <div class="mb-5">
-        <div class="flex items-center justify-between mb-2">
-          <h3 class="text-lg font-semibold">📋 ${dashM}월 콘텐츠 계획</h3>
-          <span class="text-sm font-semibold text-botanical-fg">${progressPercent}%</span>
-        </div>
-        <div class="w-full h-2 bg-botanical-stone rounded-full overflow-hidden mb-3">
-          <div class="h-full bg-botanical-fg rounded-full transition-all" style="width: ${progressPercent}%;"></div>
-        </div>
-        <div class="flex items-center gap-4 text-sm">
-          <span class="text-botanical-fg font-medium">완료 ${completedTotal}개 (일반 ${completedGeneral} • 광고 ${completedAd})</span>
-          <span class="text-botanical-sage">진행중 ${inProgressTotal}개</span>
-          <span class="text-botanical-sage">계획중 ${planningTotal}개</span>
-        </div>
-      </div>
-
-      <!-- 카테고리 Balance -->
-      <div class="border-t border-botanical-stone pt-5 mb-5">
-        <div class="flex items-center justify-between mb-3">
-          <h4 class="text-base font-semibold">카테고리 <span class="font-serif italic">Balance</span></h4>
-          <div class="flex items-center gap-2">
-            <span class="text-xs text-botanical-sage bg-botanical-cream px-2 py-0.5 rounded-full">월 ${totalGoal}개 기준</span>
-            <button onclick="editTotalGoal()" class="w-6 h-6 rounded-full hover:bg-botanical-cream transition-all flex items-center justify-center" title="총 목표 개수 수정">
-              <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-botanical-sage"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>
-            </button>
-          </div>
-        </div>
-        <div class="grid grid-cols-2 md:grid-cols-5 gap-3">
-          <div class="col-span-2 md:col-span-1 p-3 rounded-xl text-center border border-botanical-stone" style="background-color: #F9F8F4;">
-            <p class="text-sm text-botanical-fg font-medium mb-1">전체</p>
-            <p class="text-2xl font-semibold text-botanical-fg font-serif">${totalCount}<span class="text-botanical-clay">/${totalGoal}</span></p>
-          </div>
-          ${Object.entries(categoryGoals).map(([cat, goal]) => {
-            const count = categoryCounts[cat] || 0;
-            const isComplete = count >= goal;
-            const isZero = count === 0;
-            return `
-              <div class="p-2.5 bg-white rounded-xl text-center border border-botanical-stone relative group">
-                <button onclick="editCategoryGoal('${cat}')" class="absolute top-1 right-1 w-5 h-5 rounded-full hover:bg-botanical-cream opacity-0 group-hover:opacity-100 transition-all flex items-center justify-center" title="${cat} 목표 수정">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-botanical-sage"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>
-                </button>
-                <p class="text-xs ${isComplete ? 'text-botanical-sage' : (isZero ? 'text-botanical-terracotta' : 'text-botanical-sage')} mb-1">${cat}${isComplete ? ' ✓' : ''}</p>
-                <p class="text-xl font-semibold ${isZero ? 'text-botanical-terracotta' : ''} font-serif">${count}<span class="text-botanical-clay">/${goal}</span></p>
-              </div>
-            `;
-          }).join('')}
-        </div>
-      </div>
-
-      <!-- 이번 달 계획 리스트 -->
-      <div class="border-t border-botanical-stone pt-5">
-        ${renderDashboardPlans(dashMonthStr)}
+    <!-- 월 선택기 (플랜 탭에서만 표시) -->
+    <div id="planner-month-selector" class="${plannerSubTab === 'ideas' ? 'hidden' : ''} mb-6">
+      <div class="flex items-center gap-3">
+        ${renderMonthSelect('dashboard-month-select', dashSelectedMonth, 'changeDashMonth')}
       </div>
     </div>
 
-    <!-- 콘텐츠 Trend -->
-    <div class="bg-white rounded-2xl p-5 shadow-sm">
-      <h4 class="text-base font-semibold mb-4">콘텐츠 <span class="font-serif italic">Trend</span></h4>
-      <div class="flex items-end justify-between gap-1" style="height: 140px;">
-        ${monthlyContents.map((count, idx) => {
-          const month = idx + 1;
-          const isSelectedMonth = month === dashM;
-          const realNow = new Date();
-          const isFuture = dashY > realNow.getFullYear() || (dashY === realNow.getFullYear() && month > realNow.getMonth() + 1);
-          const height = count > 0 ? (count / maxContents) * 100 : 0;
-          const bgColor = isFuture ? '#E6E2DA' : (isSelectedMonth ? '#2D3A31' : '#8C9A84');
-          const textColor = isFuture ? 'text-botanical-clay' : (isSelectedMonth ? 'text-botanical-fg font-semibold' : 'text-botanical-sage');
+    <!-- 월간 계획 탭 -->
+    <div id="planner-plans-tab" class="${plannerSubTab === 'plans' ? '' : 'hidden'}">
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+        ${[1, 2, 3, 4].map(week => {
+          const weekPlans = plansByWeek[week] || [];
+          const weekStart = (week - 1) * 7 + 1;
+          const weekEnd = Math.min(week * 7, new Date(dashY, dashM, 0).getDate());
           return `
-            <div class="flex-1 flex flex-col items-center gap-1">
-              ${count > 0 ? `<span class="text-[9px] text-botanical-sage font-medium mb-0.5">${count}</span>` : '<span class="text-[9px] invisible mb-0.5">0</span>'}
-              <div class="w-full rounded-t" style="height: ${height}px; background-color: ${bgColor};"></div>
-              <span class="text-[10px] ${textColor}">${month}</span>
+            <div class="bg-white rounded-2xl p-4 shadow-sm">
+              <h3 class="text-sm font-semibold text-botanical-sage mb-3 flex items-center justify-between">
+                <span>${week}주차</span>
+                <span class="text-xs font-normal text-botanical-clay">${dashM}/${weekStart}-${dashM}/${weekEnd}</span>
+              </h3>
+
+              ${weekPlans.map(plan => `
+                <div class="mb-3 p-4 rounded-xl border border-botanical-stone hover:border-botanical-sage transition-all">
+                  <div class="mb-2">
+                    <span class="inline-block px-2 py-0.5 rounded-md text-xs font-medium bg-botanical-cream text-botanical-sage">${plan.category}</span>
+                  </div>
+                  <h4 class="text-base font-semibold text-botanical-fg mb-2">${plan.title}</h4>
+                  ${plan.description ? `<p class="text-xs text-botanical-sage leading-relaxed mb-4">${plan.description.split('\\n').map(line => line.trim()).filter(line => line).join('<br>')}</p>` : ''}
+                  <div class="flex items-center gap-1.5">
+                    <button onclick="editPlan('${plan.id}')" class="flex-1 px-2 py-1.5 rounded-lg text-xs font-medium border border-botanical-stone text-botanical-sage hover:bg-botanical-cream transition-all">
+                      수정
+                    </button>
+                    <button onclick="startContentFromPlan('${plan.id}')" class="flex-1 px-2 py-1.5 rounded-lg text-xs font-medium bg-botanical-fg text-white hover:bg-opacity-90 transition-all">
+                      제작 시작 →
+                    </button>
+                  </div>
+                </div>
+              `).join('')}
+
+              <button onclick="addPlanToWeek(${week})" class="w-full py-2.5 rounded-xl border-2 border-dashed border-botanical-stone text-botanical-sage hover:border-botanical-sage hover:text-botanical-fg transition-all text-sm font-medium">
+                + 계획 추가
+              </button>
             </div>
           `;
         }).join('')}
       </div>
-      <div class="mt-3 pt-3 border-t border-botanical-stone text-xs text-right">
-        <span class="text-botanical-sage">총 ${totalUploaded}개 업로드</span>
+    </div>
+
+    <!-- 아이디어 탭 -->
+    <div id="planner-ideas-tab" class="${plannerSubTab === 'ideas' ? '' : 'hidden'}">
+      <div class="flex items-center justify-between mb-6">
+        <h2 class="text-lg font-semibold">${dashY}년 ${dashM}월</h2>
+        <button onclick="addIdea()" class="px-5 py-2.5 rounded-full bg-botanical-fg text-white text-sm font-medium hover:bg-opacity-90 transition-all">
+          + 아이디어 추가
+        </button>
+      </div>
+
+      <div class="bg-white rounded-2xl p-4 shadow-sm">
+        ${monthIdeas.length > 0 ? `
+          <div class="space-y-2">
+            ${monthIdeas.map(idea => `
+              <div class="flex items-start gap-3 p-3 rounded-xl border border-botanical-stone hover:border-botanical-sage transition-all">
+                <div class="flex-shrink-0 min-w-[100px]">
+                  <span class="inline-block px-2.5 py-1 rounded-md text-xs font-medium bg-botanical-cream text-botanical-sage">${idea.category}</span>
+                </div>
+                <div class="flex-1 min-w-0">
+                  <p class="text-sm font-medium">${idea.title}</p>
+                </div>
+                <div class="flex-shrink-0 flex items-center gap-2">
+                  <button onclick="editIdea('${idea.id}')" class="w-8 h-8 rounded-full hover:bg-botanical-cream flex items-center justify-center transition-all" title="수정">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-botanical-sage"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>
+                  </button>
+                  <button onclick="deleteIdea('${idea.id}')" class="w-8 h-8 rounded-full hover:bg-red-50 flex items-center justify-center transition-all" title="삭제">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-botanical-terracotta"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                  </button>
+                </div>
+              </div>
+            `).join('')}
+          </div>
+        ` : `
+          <div class="py-16 text-center text-botanical-sage">
+            <p class="text-base mb-2">아직 등록된 아이디어가 없습니다</p>
+            <p class="text-sm">+ 아이디어 추가 버튼을 눌러 아이디어를 등록하세요</p>
+          </div>
+        `}
       </div>
     </div>
   `;
+}
+
+// ========== Planner Functions ==========
+function addPlanToWeek(week) {
+  alert(`${week}주차 계획 추가 기능 구현 예정`);
+  // TODO: 모달 팝업으로 계획 추가
+}
+
+function editPlan(planId) {
+  alert(`계획 수정 기능 구현 예정: ${planId}`);
+  // TODO: 모달 팝업으로 계획 수정
+}
+
+function startContentFromPlan(planId) {
+  alert(`제작 시작 기능 구현 예정: ${planId}`);
+  // TODO: 콘텐츠 탭으로 이동 + 데이터 연동
+}
+
+function addIdea() {
+  alert('아이디어 추가 기능 구현 예정');
+  // TODO: 모달 팝업으로 아이디어 추가
+}
+
+function editIdea(ideaId) {
+  alert(`아이디어 수정 기능 구현 예정: ${ideaId}`);
+  // TODO: 모달 팝업으로 아이디어 수정
+}
+
+function deleteIdea(ideaId) {
+  if (confirm('이 아이디어를 삭제하시겠습니까?')) {
+    alert(`아이디어 삭제 기능 구현 예정: ${ideaId}`);
+    // TODO: plansData에서 아이디어 삭제 + 저장
+  }
 }
 
 // ========== Content List ==========
