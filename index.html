@@ -75,6 +75,7 @@
     .script-table textarea.script-cell {
       min-height: 24px; font-size: 13px; line-height: 1.5;
       word-break: break-word; white-space: pre-wrap;
+      touch-action: manipulation; /* 애플펜슬 글쓰기 방지, 터치만 허용 */
     }
     @media (min-width: 768px) {
       .script-table textarea.script-cell { font-size: 14px; }

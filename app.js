@@ -3479,14 +3479,67 @@ function autoSaveTopField(el, contentId) {
 }
 
 // 성과분석 탭에서 성과 셀 입력 저장
+// 특정 월의 성과 요약 재계산
+function recalcMonthPerf(monthStr) {
+  // 해당 월의 업로드 완료 콘텐츠
+  const monthContents = contentsData.contents.filter(c =>
+    c.status === '업로드완료' && getUploadDate(c).startsWith(monthStr)
+  );
+
+  if (monthContents.length === 0) {
+    performanceData.monthly[monthStr] = null;
+    return;
+  }
+
+  // 총 조회수, 저장수 계산
+  let totalViews = 0;
+  let totalSaves = 0;
+  let bestContent = '';
+  let maxViews = 0;
+
+  monthContents.forEach(c => {
+    const views = c.performance?.views || 0;
+    const saves = c.performance?.saves || 0;
+    totalViews += views;
+    totalSaves += saves;
+    if (views > maxViews) {
+      maxViews = views;
+      bestContent = c.title || '무제';
+    }
+  });
+
+  // 평균 저장률 계산
+  const avgSaveRate = totalViews > 0 ? ((totalSaves / totalViews) * 100).toFixed(1) : 0;
+
+  // 월별 요약 업데이트
+  if (!performanceData.monthly) performanceData.monthly = {};
+  performanceData.monthly[monthStr] = {
+    totalContents: monthContents.length,
+    totalViews,
+    totalSaves,
+    avgSaveRate: parseFloat(avgSaveRate),
+    bestContent
+  };
+}
+
 function savePerfCell(el, contentId, field) {
   const content = contentsData.contents.find(c => c.id === contentId);
   if (!content) return;
   if (!content.performance) content.performance = {};
   content.performance[field] = parseK(el.value);
+
+  // 해당 콘텐츠가 속한 월의 요약 재계산
+  const uploadDate = getUploadDate(content);
+  if (uploadDate) {
+    const monthStr = uploadDate.slice(0, 7); // YYYY-MM
+    recalcMonthPerf(monthStr);
+  }
+
   saveAllData();
   // 콘텐츠 상세 폼의 readonly 성과 블록 동기화
   renderContentList();
+  // 성과분석 탭 갱신
+  if (typeof renderPerformance === 'function') renderPerformance();
 }
 
 // 상단 기본 정보 섹션의 모든 필드를 DOM에서 읽어 일괄 저장 (버튼 수동 저장 + 재렌더)
@@ -3508,7 +3561,7 @@ function saveTopInfo(contentId) {
     } else if (field === 'status') {
       content.status = val;
       calendarData.items.forEach(item => {
-        if (item.contentId === contentId) item.status = val;
+        if (item.contentId === contentId && !item.isMilestone) item.status = val;
       });
     } else if (field === 'category') {
       content.category = val;
@@ -4028,9 +4081,10 @@ function renderPerformance() {
     c.status === '업로드완료' && getUploadDate(c).startsWith(perfSelectedMonth)
   );
 
-  // 성과 입력 대기 체크 (업로드 후 2주 지남 + 성과 데이터 없음)
+  // 성과 입력 대기 체크 (업로드 후 2주 지남 + 성과 데이터 없음) — 전체 콘텐츠 대상
   const nowDate = new Date();
-  const needsPerfList = monthContents.filter(c => {
+  const needsPerfList = contentsData.contents.filter(c => {
+    if (c.status !== '업로드완료') return false;
     const d = getUploadDate(c);
     if (!d) return false;
     const uploadDate = new Date(d);
@@ -4083,7 +4137,7 @@ function renderPerformance() {
         <h3 class="font-medium mb-4">${monthNum}월 성과 요약</h3>
         <div class="grid grid-cols-2 md:grid-cols-5 gap-4">
           <div class="text-center">
-            <p class="text-xl font-semibold">${monthPerf.totalContents || 0}</p>
+            <p class="text-xl font-semibold">${(monthPerf.totalContents || 0).toLocaleString()}</p>
             <p class="text-xs text-botanical-sage">총 콘텐츠</p>
           </div>
           <div class="text-center">
@@ -4091,11 +4145,11 @@ function renderPerformance() {
             <p class="text-xs text-botanical-sage">총 조회수</p>
           </div>
           <div class="text-center">
-            <p class="text-xl font-semibold">${monthPerf.totalSaves || 0}</p>
+            <p class="text-xl font-semibold">${(monthPerf.totalSaves || 0).toLocaleString()}</p>
             <p class="text-xs text-botanical-sage">총 저장</p>
           </div>
           <div class="text-center">
-            <p class="text-xl font-semibold">${monthPerf.avgSaveRate || 0}%</p>
+            <p class="text-xl font-semibold">${(monthPerf.avgSaveRate || 0).toLocaleString()}%</p>
             <p class="text-xs text-botanical-sage">평균 저장률</p>
           </div>
           <div class="text-center">
@@ -4292,21 +4346,42 @@ function renderPerformance() {
         <!-- Weekly Graph -->
         <div id="follower-graph-weekly" class="${followerViewMode === 'weekly' ? '' : 'hidden'}">
           <p class="text-xs text-botanical-sage mb-3">${monthNum}월 주차별 팔로워 증가</p>
-          <div class="flex items-end justify-between gap-6 px-8" style="height: 120px;">
-            ${[0, 0, 0, 0].map((change, idx) => `
-              <div class="flex-1 flex flex-col items-center">
-                <div class="w-full rounded-t" style="height: 0px; background-color: #8C9A84;"></div>
+          ${(() => {
+            // 선택된 월의 주차별 팔로워 증가 계산
+            const weeklyChanges = [0, 0, 0, 0, 0]; // 최대 5주차까지
+            dailyData.forEach(d => {
+              if (!d.date.startsWith(perfSelectedMonth)) return;
+              const day = parseInt(d.date.slice(8, 10));
+              const weekIdx = Math.floor((day - 1) / 7); // 0-4
+              if (weekIdx < 5) weeklyChanges[weekIdx] += d.change || 0;
+            });
+            const maxChange = Math.max(1, ...weeklyChanges.map(Math.abs));
+            return `
+              <div class="flex items-end justify-between gap-6 px-8" style="height: 120px;">
+                ${weeklyChanges.slice(0, 4).map((change, idx) => {
+                  const height = Math.abs(change) / maxChange * 100;
+                  const color = change > 0 ? '#8C9A84' : (change < 0 ? '#C27B66' : '#E5E7EB');
+                  return `
+                    <div class="flex-1 flex flex-col items-center justify-end" style="height: 120px;">
+                      <div class="w-full rounded-t" style="height: ${height}px; background-color: ${color};"></div>
+                    </div>
+                  `;
+                }).join('')}
               </div>
-            `).join('')}
-          </div>
-          <div class="flex justify-between gap-6 px-8 mt-2">
-            ${['1주차', '2주차', '3주차', '4주차'].map((week, idx) => `
-              <div class="flex-1 text-center">
-                <span class="text-xs text-botanical-sage">${week}</span><br>
-                <span class="text-xs font-medium">+0</span>
+              <div class="flex justify-between gap-6 px-8 mt-2">
+                ${['1주차', '2주차', '3주차', '4주차'].map((week, idx) => {
+                  const change = weeklyChanges[idx];
+                  const label = change > 0 ? `+${change}` : (change < 0 ? `${change}` : '0');
+                  return `
+                    <div class="flex-1 text-center">
+                      <span class="text-xs text-botanical-sage">${week}</span><br>
+                      <span class="text-xs font-medium ${change > 0 ? 'text-green-600' : (change < 0 ? 'text-red-500' : '')}">${label}</span>
+                    </div>
+                  `;
+                }).join('')}
               </div>
-            `).join('')}
-          </div>
+            `;
+          })()}
         </div>
       </div>
     </div>
@@ -4385,10 +4460,10 @@ function renderPerformance() {
                 Object.entries(performanceData.monthly).filter(([m]) => m.startsWith(String(perfSelectedYear))).reverse().map(([month, data], idx) => `
                   <tr class="border-t border-botanical-stone ${idx === 0 ? 'bg-botanical-terracotta/5' : ''}">
                     <td class="px-3 py-3 font-medium">${month.slice(5)}월</td>
-                    <td class="px-3 py-3 text-center">${data.totalContents || 0}</td>
+                    <td class="px-3 py-3 text-center">${(data.totalContents || 0).toLocaleString()}</td>
                     <td class="px-3 py-3 text-center">${toK(data.totalViews)}</td>
                     <td class="px-3 py-3 text-center">${data.totalSaves?.toLocaleString() || '-'}</td>
-                    <td class="px-3 py-3 text-center">${data.avgSaveRate || 0}%</td>
+                    <td class="px-3 py-3 text-center">${(data.avgSaveRate || 0).toLocaleString()}%</td>
                     <td class="px-3 py-3 text-center text-green-600">+${(data.followerGain || 0).toLocaleString()}</td>
                     <td class="px-3 py-3 text-center ${idx === 0 ? 'text-botanical-terracotta' : ''}">${data.bestContent || '-'}</td>
                   </tr>
