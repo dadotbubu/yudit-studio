@@ -1711,13 +1711,10 @@ function editIdea(ideaId) {
 
 function deleteIdea(ideaId) {
   if (confirm('이 아이디어를 삭제하시겠습니까?')) {
-    const monthStr = dashSelectedMonth;
-    if (!plansData || !plansData[monthStr] || !plansData[monthStr].ideas) return;
+    if (!plansData || !plansData[dashSelectedMonth] || !plansData[dashSelectedMonth].ideas) return;
 
-    // 아이디어 배열에서 해당 ID 제거
-    plansData[monthStr].ideas = plansData[monthStr].ideas.filter(idea => idea.id !== ideaId);
+    plansData[dashSelectedMonth].ideas = plansData[dashSelectedMonth].ideas.filter(idea => idea.id !== ideaId);
 
-    // 저장 및 화면 갱신
     saveAllData();
     renderDashboard();
   }
