@@ -2464,7 +2464,12 @@ function renderContentForm(content) {
 
       <!-- 계획 상세 -->
       <div class="md:border md:border-botanical-stone md:rounded-xl p-0 md:p-5 mb-5">
-        <h3 class="font-medium mb-3 text-sm text-botanical-sage">작성 계획</h3>
+        <div class="flex items-center justify-between mb-3">
+          <h3 class="font-medium text-sm text-botanical-sage">작성 계획</h3>
+          <button onclick="linkPlanToContent(${content.id})" class="px-3 py-1 rounded-lg border border-botanical-stone text-xs text-botanical-sage hover:bg-botanical-cream hover:text-botanical-fg transition-all">
+            계획 연동
+          </button>
+        </div>
         <textarea
           rows="3"
           oninput="autoResize(this);updatePlanDetail(${content.id}, this.value)"
@@ -3984,6 +3989,71 @@ function updatePlanDetail(contentId, value) {
   if (!content) return;
   content.planDetail = value;
   saveAllData();
+}
+
+function linkPlanToContent(contentId) {
+  const content = contentsData.contents.find(c => c.id === contentId);
+  if (!content) return;
+
+  // 콘텐츠의 업로드 날짜 또는 마일스톤 날짜로 월 추정
+  const refDate = getContentRefDate(content);
+  const monthStr = refDate ? refDate.slice(0, 7) : contentSelectedMonth;
+
+  if (!plansData || !plansData[monthStr] || !plansData[monthStr].plans || plansData[monthStr].plans.length === 0) {
+    alert('해당 월에 등록된 계획이 없습니다');
+    return;
+  }
+
+  const monthPlans = plansData[monthStr].plans;
+
+  const popup = document.getElementById('calendar-popup');
+  const popupContent = document.getElementById('popup-content');
+
+  popupContent.innerHTML = `
+    <div class="flex items-center justify-between mb-4">
+      <h3 class="font-semibold text-lg">계획 연동</h3>
+      <button onclick="closeCalendarPopup()" class="text-botanical-sage hover:text-botanical-fg">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18M6 6l12 12"/></svg>
+      </button>
+    </div>
+
+    <div class="space-y-2 max-h-[60vh] overflow-y-auto">
+      ${monthPlans.map(plan => `
+        <div onclick="applyPlanToContent(${contentId}, '${plan.id}', '${monthStr}')" class="p-3 rounded-lg border border-botanical-stone hover:border-botanical-sage cursor-pointer transition-all">
+          <div class="flex items-start justify-between gap-2 mb-1">
+            <span class="inline-block px-2 py-0.5 rounded-md text-xs font-medium bg-botanical-cream text-botanical-sage">${plan.category}</span>
+            <span class="text-xs text-botanical-clay">${plan.week}주차</span>
+          </div>
+          <h4 class="text-sm font-semibold text-botanical-fg mb-1">${plan.title}</h4>
+          ${plan.description ? `<p class="text-xs text-botanical-sage line-clamp-2">${plan.description.split('\n').slice(0, 2).join(' ')}</p>` : ''}
+        </div>
+      `).join('')}
+    </div>
+  `;
+
+  popup.classList.remove('hidden');
+}
+
+function applyPlanToContent(contentId, planId, monthStr) {
+  const content = contentsData.contents.find(c => c.id === contentId);
+  if (!content) return;
+
+  const plan = plansData[monthStr].plans.find(p => p.id === planId);
+  if (!plan) return;
+
+  // plan의 정보를 콘텐츠에 적용
+  content.planDetail = plan.description || '';
+  content.category = plan.category;
+  content.title = plan.title;
+
+  saveAllData();
+  closeCalendarPopup();
+  renderContentList();
+
+  // 해당 콘텐츠 폼 다시 열기
+  setTimeout(() => {
+    toggleContentForm(contentId);
+  }, 100);
 }
 
 function updateClientNotion(contentId, value) {
