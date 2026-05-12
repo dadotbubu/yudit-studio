@@ -1620,7 +1620,7 @@ function renderDashboard() {
                     <span class="inline-block px-2 py-0.5 rounded-md text-xs font-medium bg-botanical-cream text-botanical-sage">${plan.category}</span>
                   </div>
                   <h4 class="text-base font-semibold text-botanical-fg mb-2">${plan.title}</h4>
-                  ${plan.description ? `<p class="text-xs text-botanical-sage leading-relaxed mb-4">${plan.description.split('\\n').map(line => line.trim()).filter(line => line).join('<br>')}</p>` : ''}
+                  ${plan.description ? `<p class="text-xs text-botanical-sage leading-relaxed mb-4">${plan.description.split('\n').map(line => line.trim()).filter(line => line).join('<br>')}</p>` : ''}
                   <div class="flex items-center gap-1.5">
                     <button onclick="editPlan('${plan.id}')" class="flex-1 px-2 py-1.5 rounded-lg text-xs font-medium border border-botanical-stone text-botanical-sage hover:bg-botanical-cream transition-all">
                       수정
@@ -1659,7 +1659,7 @@ function renderDashboard() {
                   <span class="inline-block px-2 py-0.5 rounded-md text-xs font-medium bg-botanical-cream text-botanical-sage">${idea.category}</span>
                 </div>
                 <h4 class="text-base font-semibold text-botanical-fg mb-2">${idea.title}</h4>
-                ${idea.description ? `<p class="text-xs text-botanical-sage leading-relaxed mb-4">${idea.description.split('\\n').map(line => line.trim()).filter(line => line).join('<br>')}</p>` : ''}
+                ${idea.description ? `<p class="text-xs text-botanical-sage leading-relaxed mb-4">${idea.description.split('\n').map(line => line.trim()).filter(line => line).join('<br>')}</p>` : ''}
                 <div class="flex items-center gap-1.5">
                   <button onclick="editIdea('${idea.id}')" class="flex-1 px-2 py-1.5 rounded-lg text-xs font-medium border border-botanical-stone text-botanical-sage hover:bg-botanical-cream transition-all">
                     수정
@@ -2337,7 +2337,7 @@ function renderContentForm(content) {
           oninput="autoResize(this);updatePlanDetail(${content.id}, this.value)"
           placeholder="플래너에서 등록한 계획 상세 내용이 여기 표시됩니다"
           class="auto-grow unified-text w-full px-3 md:px-4 py-2 md:py-3 rounded-lg border border-botanical-stone focus:outline-none focus:border-botanical-sage resize-none overflow-hidden break-words"
-          style="min-height: 60px; word-break: break-word;">${content.planDetail ? content.planDetail.split('\\n').map(line => line.trim()).filter(line => line).join('\n') : ''}</textarea>
+          style="min-height: 60px; word-break: break-word;">${content.planDetail ? content.planDetail.split('\n').map(line => line.trim()).filter(line => line).join('\n') : ''}</textarea>
       </div>
 
       <!-- 2. 촬영 및 대본 -->
