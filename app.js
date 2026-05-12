@@ -3526,18 +3526,12 @@ function recalcMonthPerf(monthStr) {
   // 총 조회수, 저장수 계산
   let totalViews = 0;
   let totalSaves = 0;
-  let bestContent = '';
-  let maxViews = 0;
 
   monthContents.forEach(c => {
     const views = c.performance?.views || 0;
     const saves = c.performance?.saves || 0;
     totalViews += views;
     totalSaves += saves;
-    if (views > maxViews) {
-      maxViews = views;
-      bestContent = c.title || '무제';
-    }
   });
 
   // 평균 저장률 계산
@@ -3549,8 +3543,7 @@ function recalcMonthPerf(monthStr) {
     totalContents: monthContents.length,
     totalViews,
     totalSaves,
-    avgSaveRate: parseFloat(avgSaveRate),
-    bestContent
+    avgSaveRate: parseFloat(avgSaveRate)
   };
 }
 
@@ -4113,6 +4106,13 @@ function renderPerformance() {
     c.status === '업로드완료' && getUploadDate(c).startsWith(perfSelectedMonth)
   );
 
+  // 최신순 정렬 (업로드 날짜 기준 내림차순)
+  monthContents.sort((a, b) => {
+    const dateA = getUploadDate(a);
+    const dateB = getUploadDate(b);
+    return dateB.localeCompare(dateA);
+  });
+
   // 성과 입력 대기 체크 (업로드 후 2주 지남 + 성과 데이터 없음) — 전체 콘텐츠 대상
   const nowDate = new Date();
   const needsPerfList = contentsData.contents.filter(c => {
@@ -4167,7 +4167,7 @@ function renderPerformance() {
       <!-- Month Summary -->
       <div class="bg-white rounded-2xl p-6 shadow-sm mb-6">
         <h3 class="font-medium mb-4">${monthNum}월 성과 요약</h3>
-        <div class="grid grid-cols-2 md:grid-cols-5 gap-4">
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
           <div class="text-center">
             <p class="text-xl font-semibold">${(monthPerf.totalContents || 0).toLocaleString()}</p>
             <p class="text-xs text-botanical-sage">총 콘텐츠</p>
@@ -4183,10 +4183,6 @@ function renderPerformance() {
           <div class="text-center">
             <p class="text-xl font-semibold">${Math.round(monthPerf.avgSaveRate || 0)}%</p>
             <p class="text-xs text-botanical-sage">평균 저장률</p>
-          </div>
-          <div class="text-center">
-            <p class="text-xl font-semibold text-botanical-terracotta">${monthPerf.bestContent || '-'}</p>
-            <p class="text-xs text-botanical-sage">베스트 콘텐츠</p>
           </div>
         </div>
       </div>
@@ -4299,25 +4295,29 @@ function renderPerformance() {
           </div>
         </div>
 
-        <!-- Summary Cards -->
-        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-          <div class="p-4 bg-botanical-sage/10 rounded-xl text-center">
-            <p class="text-2xl font-semibold text-botanical-fg">${currentFollowerCount.toLocaleString()}</p>
-            <p class="text-xs text-botanical-sage break-keep">${todayHasEntry ? '오늘 팔로워' : (latestDateStr ? `${latestDateStr} 기준` : '팔로워 수')}</p>
-          </div>
-          <div class="p-4 bg-botanical-cream/30 rounded-xl text-center">
-            <p class="text-2xl font-semibold ${todayChange > 0 ? 'text-green-600' : (todayChange < 0 ? 'text-red-500' : 'text-botanical-sage')}">${todayChange > 0 ? '+' : ''}${todayChange.toLocaleString()}</p>
-            <p class="text-xs text-botanical-sage">오늘 증가</p>
-          </div>
-          <div class="p-4 bg-botanical-cream/30 rounded-xl text-center">
-            <p class="text-2xl font-semibold ${weekChange > 0 ? 'text-green-600' : (weekChange < 0 ? 'text-red-500' : 'text-botanical-sage')}">${weekChange > 0 ? '+' : ''}${weekChange.toLocaleString()}</p>
-            <p class="text-xs text-botanical-sage">최근 7일 증가</p>
-          </div>
-          <div class="p-4 bg-botanical-cream/30 rounded-xl text-center">
-            <p class="text-2xl font-semibold ${(monthPerf.followerGain || 0) > 0 ? 'text-green-600' : 'text-botanical-sage'}">${(monthPerf.followerGain || 0) > 0 ? '+' : ''}${(monthPerf.followerGain || 0).toLocaleString()}</p>
-            <p class="text-xs text-botanical-sage">이번 달 증가</p>
-          </div>
-        </div>
+        <!-- Summary Cards: 오늘 증가 제거 -->
+        ${(() => {
+          // 이번 달 증가 계산 (선택된 월의 daily 데이터 합산)
+          const monthChange = dailyData
+            .filter(d => d.date.startsWith(perfSelectedMonth))
+            .reduce((sum, d) => sum + (d.change || 0), 0);
+          return `
+            <div class="grid grid-cols-3 gap-4 mb-6">
+              <div class="p-4 bg-botanical-sage/10 rounded-xl text-center">
+                <p class="text-2xl font-semibold text-botanical-fg">${currentFollowerCount.toLocaleString()}</p>
+                <p class="text-xs text-botanical-sage break-keep">현재 팔로워</p>
+              </div>
+              <div class="p-4 bg-botanical-cream/30 rounded-xl text-center">
+                <p class="text-2xl font-semibold ${weekChange > 0 ? 'text-green-600' : (weekChange < 0 ? 'text-red-500' : 'text-botanical-sage')}">${weekChange > 0 ? '+' : ''}${weekChange.toLocaleString()}</p>
+                <p class="text-xs text-botanical-sage">최근 7일 증가</p>
+              </div>
+              <div class="p-4 bg-botanical-cream/30 rounded-xl text-center">
+                <p class="text-2xl font-semibold ${monthChange > 0 ? 'text-green-600' : (monthChange < 0 ? 'text-red-500' : 'text-botanical-sage')}">${monthChange > 0 ? '+' : ''}${monthChange.toLocaleString()}</p>
+                <p class="text-xs text-botanical-sage">이번 달 증가</p>
+              </div>
+            </div>
+          `;
+        })()}
 
         <!-- Daily Graph — 항상 오늘 포함 최근 7일 표시 -->
         <div id="follower-graph-daily" class="${followerViewMode === 'daily' ? '' : 'hidden'}">
@@ -4419,6 +4419,10 @@ function renderPerformance() {
     </div>
 
     <div id="perf-compare" class="perf-section ${perfSubTab === 'compare' ? '' : 'hidden'}">
+      <div class="bg-white rounded-2xl p-6 shadow-sm text-center">
+        <p class="text-sm text-botanical-sage">📊 월간 비교 기능 준비 중입니다</p>
+      </div>
+
       <!-- Year Selector (시작월 2026-04 ~ 오늘 연도까지 동적 생성) -->
       <div class="flex items-center gap-3 mb-6">
         <select id="perf-year-select" onchange="changePerfYear(this.value)" class="px-4 py-2 pr-8 rounded-full border border-botanical-stone bg-white text-sm focus:outline-none appearance-none bg-no-repeat" style="background-image: url('data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%2712%27 height=%2712%27 viewBox=%270 0 24 24%27 fill=%27none%27 stroke=%27%238C9A84%27 stroke-width=%272%27%3E%3Cpath d=%27m6 9 6 6 6-6%27/%3E%3C/svg%3E'); background-position: right 12px center;">
@@ -4426,49 +4430,41 @@ function renderPerformance() {
         </select>
       </div>
 
-      <!-- 현재 팔로워 & 월간 트렌드 -->
+      <!-- 월간 트렌드 (가로 막대형) -->
       <div class="bg-white rounded-2xl p-6 shadow-sm mb-6">
         <h3 class="font-medium mb-4">팔로워 월간 트렌드</h3>
-        <div class="flex items-center gap-6 mb-6">
-          <div class="p-4 bg-botanical-cream/30 rounded-xl text-center flex-1">
-            <p class="text-2xl font-semibold">${(performanceData.follower?.current || 0).toLocaleString()}</p>
-            <p class="text-xs text-botanical-sage">현재 팔로워</p>
-          </div>
-          <div class="p-4 bg-botanical-cream/30 rounded-xl text-center flex-1">
-            <p class="text-2xl font-semibold ${monthPerf.followerGain ? 'text-green-600' : 'text-botanical-sage'}">+${(monthPerf.followerGain || 0).toLocaleString()}</p>
-            <p class="text-xs text-botanical-sage">이번 달 증가</p>
-          </div>
-          <div class="p-4 bg-botanical-cream/30 rounded-xl text-center flex-1">
-            <p class="text-2xl font-semibold text-botanical-sage">-</p>
-            <p class="text-xs text-botanical-sage">전월 대비</p>
-          </div>
-        </div>
-        ${monthlyData.length > 0 ? `
-        <p class="text-xs text-botanical-sage mb-3">최근 6개월 팔로워 증가</p>
-        <div class="flex items-end justify-between gap-4 px-6" style="height: 120px;">
-          ${monthlyData.slice(-6).map((d, idx, arr) => {
-            const maxChange = Math.max(...arr.map(x => x.change));
-            const height = maxChange > 0 ? (d.change / maxChange) * 100 : 0;
-            const isLast = idx === arr.length - 1;
-            return `
-              <div class="flex-1 flex flex-col items-center">
-                <div class="w-full rounded-t" style="height: ${height}px; background-color: ${isLast ? '#C27B66' : '#8C9A84'};"></div>
-              </div>
-            `;
-          }).join('')}
-        </div>
-        <div class="flex justify-between gap-4 px-6 mt-2">
-          ${monthlyData.slice(-6).map((d, idx, arr) => {
-            const isLast = idx === arr.length - 1;
-            return `
-              <div class="flex-1 text-center">
-                <span class="text-xs text-botanical-sage">${d.month.slice(5)}월</span><br>
-                <span class="text-xs font-medium ${isLast ? 'text-botanical-terracotta' : ''}">+${(d.change/1000).toFixed(1)}K</span>
-              </div>
-            `;
-          }).join('')}
-        </div>
-        ` : `<p class="text-sm text-botanical-sage text-center py-8">팔로워 데이터가 없습니다</p>`}
+        ${monthlyData.length > 0 ? (() => {
+          const recent6 = monthlyData.slice(-6);
+          const maxCount = Math.max(...recent6.map(d => d.count || 0));
+          const avgChange = recent6.length > 0 ? Math.round(recent6.reduce((sum, d) => sum + d.change, 0) / recent6.length) : 0;
+          const currentMonthStr = perfSelectedMonth;
+          return `
+            <div class="space-y-3 mb-4">
+              ${recent6.map((d, idx) => {
+                const isCurrentMonth = d.month === currentMonthStr;
+                const width = maxCount > 0 ? (d.count / maxCount) * 100 : 0;
+                const barColor = isCurrentMonth ? '#2D3A31' : '#8C9A84';
+                return `
+                  <div>
+                    <div class="flex items-center justify-between mb-1">
+                      <span class="text-sm ${isCurrentMonth ? 'font-semibold text-botanical-fg' : 'text-botanical-sage'}">${d.month.slice(5)}월</span>
+                      <span class="text-sm ${isCurrentMonth ? 'font-semibold text-botanical-fg' : 'font-medium'}">${d.count.toLocaleString()}명</span>
+                    </div>
+                    <div class="h-8 bg-botanical-stone rounded-lg overflow-hidden relative">
+                      <div class="absolute top-0 left-0 h-full flex items-center justify-end pr-2" style="width: ${width}%; background-color: ${barColor};">
+                        <span class="text-xs text-white font-medium">${d.change > 0 ? '+' : ''}${d.change.toLocaleString()}</span>
+                      </div>
+                    </div>
+                  </div>
+                `;
+              }).join('')}
+            </div>
+            <div class="pt-3 border-t border-botanical-stone text-xs text-right">
+              <span class="text-botanical-sage">최근 6개월 평균 증가</span>
+              <span class="ml-2 font-semibold text-botanical-fg">${avgChange > 0 ? '+' : ''}${avgChange.toLocaleString()}명/월</span>
+            </div>
+          `;
+        })() : `<p class="text-sm text-botanical-sage text-center py-8">팔로워 데이터가 없습니다</p>`}
       </div>
 
       <!-- 월간 콘텐츠 성과 비교 -->
