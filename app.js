@@ -1711,8 +1711,15 @@ function editIdea(ideaId) {
 
 function deleteIdea(ideaId) {
   if (confirm('이 아이디어를 삭제하시겠습니까?')) {
-    alert(`아이디어 삭제 기능 구현 예정: ${ideaId}`);
-    // TODO: plansData에서 아이디어 삭제 + 저장
+    const monthStr = dashSelectedMonth;
+    if (!plansData || !plansData[monthStr] || !plansData[monthStr].ideas) return;
+
+    // 아이디어 배열에서 해당 ID 제거
+    plansData[monthStr].ideas = plansData[monthStr].ideas.filter(idea => idea.id !== ideaId);
+
+    // 저장 및 화면 갱신
+    saveAllData();
+    renderDashboard();
   }
 }
 
