@@ -1777,7 +1777,7 @@ function editPlan(planId) {
       </div>
       <div>
         <label class="text-sm font-medium block mb-1">상세 내용</label>
-        <textarea id="edit-plan-description" rows="4" class="w-full px-3 py-2 rounded-xl border border-botanical-stone focus:outline-none resize-none" placeholder="• 항목 1\n• 항목 2\n• 항목 3">${plan.description || ''}</textarea>
+        <textarea id="edit-plan-description" rows="4" class="w-full px-3 py-2 rounded-xl border border-botanical-stone focus:outline-none resize-none" placeholder="• 항목 1\n• 항목 2\n• 항목 3" onkeydown="handlePlanDescriptionEnter(event)">${plan.description || ''}</textarea>
       </div>
       <button onclick="savePlan('${planId}')" class="w-full py-2.5 bg-botanical-fg text-white rounded-xl hover:bg-botanical-fg/90 transition-all font-medium">저장</button>
     </div>
@@ -1811,6 +1811,19 @@ function savePlan(planId) {
   saveAllData();
   closeCalendarPopup();
   renderDashboard();
+}
+
+function handlePlanDescriptionEnter(event) {
+  if (event.key === 'Enter') {
+    event.preventDefault();
+    const textarea = event.target;
+    const cursorPos = textarea.selectionStart;
+    const textBefore = textarea.value.substring(0, cursorPos);
+    const textAfter = textarea.value.substring(cursorPos);
+
+    textarea.value = textBefore + '\n• ' + textAfter;
+    textarea.selectionStart = textarea.selectionEnd = cursorPos + 3;
+  }
 }
 
 function startContentFromPlan(planId) {
