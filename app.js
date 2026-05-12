@@ -1659,7 +1659,7 @@ function renderDashboard() {
                   <span class="inline-block px-2 py-0.5 rounded-md text-xs font-medium bg-botanical-cream text-botanical-sage">${idea.category}</span>
                 </div>
                 <h4 class="text-base font-semibold text-botanical-fg mb-2">${idea.title}</h4>
-                ${idea.description ? `<p class="text-xs text-botanical-sage leading-relaxed mb-4">${idea.description}</p>` : ''}
+                ${idea.description ? `<p class="text-xs text-botanical-sage leading-relaxed mb-4">${idea.description.split('\\n').map(line => line.trim()).filter(line => line).join('<br>')}</p>` : ''}
                 <div class="flex items-center gap-1.5">
                   <button onclick="editIdea('${idea.id}')" class="flex-1 px-2 py-1.5 rounded-lg text-xs font-medium border border-botanical-stone text-botanical-sage hover:bg-botanical-cream transition-all">
                     수정
