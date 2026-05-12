@@ -1588,7 +1588,7 @@ function renderDashboard() {
 
   // 카테고리별 진행 상황 계산
   const categoryCount = {};
-  const categories = ['Career Guide', 'AI Work', 'Money Log', 'Life Style'];
+  const categories = ['Career Guide', 'Money Log', 'AI Work', 'Life Style'];
   categories.forEach(cat => {
     categoryCount[cat] = monthPlans.filter(p => p.category === cat).length;
   });
