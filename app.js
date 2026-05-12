@@ -5,6 +5,7 @@ let performanceData = null;
 let revenueData = null;
 let memosData = null;
 let selectedMemoId = null;
+let perfRecalculated = false; // 성과 데이터 재계산 완료 플래그
 
 // Lazy Loading - 탭 렌더링 상태 추적
 const tabRendered = {
@@ -3532,6 +3533,25 @@ function recalcMonthPerf(monthStr) {
   };
 }
 
+// 전체 월별 성과 재계산 (기존 데이터 마이그레이션용)
+function recalcAllMonthPerf() {
+  if (!performanceData) performanceData = { follower: { current: 0, history: { daily: [], monthly: [] } }, monthly: {} };
+
+  // 업로드 완료된 모든 콘텐츠에서 월 추출
+  const months = new Set();
+  contentsData.contents.forEach(c => {
+    if (c.status === '업로드완료') {
+      const uploadDate = getUploadDate(c);
+      if (uploadDate) {
+        months.add(uploadDate.slice(0, 7)); // YYYY-MM
+      }
+    }
+  });
+
+  // 각 월별로 재계산
+  months.forEach(monthStr => recalcMonthPerf(monthStr));
+}
+
 function savePerfCell(el, contentId, field) {
   const content = contentsData.contents.find(c => c.id === contentId);
   if (!content) return;
@@ -4086,6 +4106,12 @@ function renderPerformance() {
   // performanceData null check
   if (!performanceData) {
     performanceData = { follower: { current: 0, history: { daily: [], monthly: [] } }, monthly: {} };
+  }
+
+  // 기존 데이터 마이그레이션: 최초 1회만 전체 월별 성과 재계산
+  if (!perfRecalculated) {
+    recalcAllMonthPerf();
+    perfRecalculated = true;
   }
 
   const monthPerf = performanceData.monthly?.[perfSelectedMonth] || {};
