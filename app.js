@@ -2232,11 +2232,11 @@ function renderContentForm(content) {
           <div class="space-y-2">
             ${[
               '이 영상을 봐야할 타겟이 명확한가요?',
+              '나만의 스토리가 포함되었나요?',
               '공유 또는 저장할 이유가 있나요?',
               '첫 3~5초 안에 주제 / 미끼를 드러냈나요?',
               '영상 길이가 30초 이내로 간결한가요?',
               '콘텐츠에서 다 못 알려준 정보는 본문에 상세히 풀었나요?',
-              '본문 글이 간결하고 잘 읽히나요?',
               '레퍼런스 카피가 아닌지 냉정하게 판단해주세요.'
             ].map((text, i) => `
               <label class="flex items-center gap-2 text-sm cursor-pointer">
