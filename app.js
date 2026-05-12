@@ -1653,24 +1653,6 @@ function renderDashboard() {
       <!-- 이번 달 계획 리스트 -->
       <div class="border-t border-botanical-stone pt-5">
         ${renderDashboardPlans(dashMonthStr)}
-        <button onclick="toggleDashboardPlanForm()" class="w-full py-2 border border-dashed border-botanical-stone rounded-lg text-botanical-sage hover:bg-botanical-cream/40 transition-all text-sm">
-          + 새 콘텐츠 계획 추가
-        </button>
-        <div id="dashboard-plan-form" class="hidden mt-3 p-3 bg-botanical-cream/30 rounded-lg">
-          <div class="grid grid-cols-1 md:grid-cols-12 gap-2">
-            <input type="date" id="new-plan-date" class="md:col-span-3 px-3 py-2 rounded-lg border border-botanical-stone text-sm focus:outline-none">
-            <select id="new-plan-category" class="md:col-span-3 px-3 py-2 rounded-lg border border-botanical-stone text-sm focus:outline-none bg-white">
-              <option value="">카테고리 선택</option>
-              <option value="Career Guide">Career Guide</option>
-              <option value="AI Work">AI Work</option>
-              <option value="Money Log">Money Log</option>
-              <option value="Life Style">Life Style</option>
-              <option value="광고">광고</option>
-            </select>
-            <input type="text" id="new-plan-keyword" placeholder="키워드 입력..." class="md:col-span-4 px-3 py-2 rounded-lg border border-botanical-stone text-sm focus:outline-none">
-            <button onclick="saveDashboardPlan()" class="md:col-span-2 px-4 py-2 bg-botanical-fg text-white rounded-lg text-sm font-medium hover:bg-botanical-fg/90 transition-all">저장</button>
-          </div>
-        </div>
       </div>
     </div>
 
@@ -4102,7 +4084,12 @@ let followerViewMode = 'daily';
 let perfSubTab = 'detail'; // 'detail' | 'compare' — 리렌더 후에도 보존
 
 function renderPerformance() {
-  const monthPerf = performanceData.monthly[perfSelectedMonth] || {};
+  // performanceData null check
+  if (!performanceData) {
+    performanceData = { follower: { current: 0, history: { daily: [], monthly: [] } }, monthly: {} };
+  }
+
+  const monthPerf = performanceData.monthly?.[perfSelectedMonth] || {};
   const monthNum = parseInt(perfSelectedMonth.slice(5));
 
   // Get contents for selected month — 상태 '업로드완료' + 업로드완료 마일스톤 날짜가 해당 월
