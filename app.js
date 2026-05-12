@@ -2409,11 +2409,7 @@ function renderContentForm(content) {
             </div>
           </div>
           ` : `
-          <div class="grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-3">
-            <div>
-              <label class="text-xs text-botanical-sage block mb-1">아이디어</label>
-              <input type="date" id="milestone-${content.id}-idea" value="${getMilestoneDate(content, '아이디어')}" oninput="updateMilestone(${content.id}, '아이디어', this.value)" class="w-full px-2 md:px-3 py-1.5 md:py-2 rounded-lg border border-botanical-stone text-xs md:text-sm focus:outline-none">
-            </div>
+          <div class="grid grid-cols-3 gap-2 md:gap-3">
             <div>
               <label class="text-xs text-botanical-sage block mb-1">기획중</label>
               <input type="date" id="milestone-${content.id}-planning" value="${getMilestoneDate(content, '기획중')}" oninput="updateMilestone(${content.id}, '기획중', this.value)" class="w-full px-2 md:px-3 py-1.5 md:py-2 rounded-lg border border-botanical-stone text-xs md:text-sm focus:outline-none">
