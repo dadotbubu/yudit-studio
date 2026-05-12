@@ -4401,12 +4401,15 @@ function renderPerformance() {
                 }).join('')}
               </div>
               <div class="flex justify-between gap-6 px-8 mt-2">
-                ${['1주차', '2주차', '3주차', '4주차'].map((week, idx) => {
-                  const change = weeklyChanges[idx];
+                ${weeklyChanges.slice(0, 4).map((change, idx) => {
+                  // 주차별 날짜 범위 계산
+                  const startDay = idx * 7 + 1;
+                  const endDay = Math.min((idx + 1) * 7, new Date(perfSelectedMonth.slice(0, 4), parseInt(perfSelectedMonth.slice(5)), 0).getDate());
+                  const dateRange = `${monthNum}/${startDay}-${endDay}`;
                   const label = change > 0 ? `+${change}` : (change < 0 ? `${change}` : '0');
                   return `
                     <div class="flex-1 text-center">
-                      <span class="text-xs text-botanical-sage">${week}</span><br>
+                      <span class="text-xs text-botanical-sage">${dateRange}</span><br>
                       <span class="text-xs font-medium ${change > 0 ? 'text-green-600' : (change < 0 ? 'text-red-500' : '')}">${label}</span>
                     </div>
                   `;
