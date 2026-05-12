@@ -43,7 +43,12 @@ function getMonthOptions(selectedMonth) {
   const [startY, startM] = MONTH_SELECT_START.split('-').map(Number);
   const realNow = new Date();
   let topY = realNow.getFullYear();
-  let topM = realNow.getMonth() + 1;
+  let topM = realNow.getMonth() + 2; // 다음 달까지 포함
+  // 12월 넘어가면 다음 해로
+  if (topM > 12) {
+    topM = topM - 12;
+    topY++;
+  }
   // 오늘이 시작월보다 이전이면 시작월 = 오늘 (방어적)
   if (topY < startY || (topY === startY && topM < startM)) {
     topY = startY; topM = startM;
@@ -1602,6 +1607,13 @@ function renderDashboard() {
       <button onclick="switchPlannerTab('ideas')" id="planner-tab-ideas" class="planner-tab-btn pb-3 text-sm font-medium border-b-2 ${plannerSubTab === 'ideas' ? 'border-botanical-fg text-botanical-fg' : 'border-transparent text-botanical-sage hover:text-botanical-fg'}">아이디어</button>
     </div>
 
+    <!-- 월 선택기 (플랜 탭에서만 표시) -->
+    <div id="planner-month-selector" class="${plannerSubTab === 'ideas' ? 'hidden' : ''} mb-6">
+      <div class="flex items-center gap-3">
+        ${renderMonthSelect('dashboard-month-select', dashSelectedMonth, 'changeDashMonth')}
+      </div>
+    </div>
+
     <!-- 카테고리별 진행 상황 (플랜 탭에서만 표시) -->
     <div id="planner-progress" class="${plannerSubTab === 'ideas' ? 'hidden' : ''} mb-6">
       <div class="bg-white rounded-2xl p-4 md:p-5 shadow-sm">
@@ -1632,13 +1644,6 @@ function renderDashboard() {
           <span class="text-sm text-botanical-sage">전체 진행</span>
           <span class="text-sm font-semibold ${totalPlans >= totalGoal ? 'text-botanical-sage' : 'text-botanical-fg'}">${totalPlans} / ${totalGoal}</span>
         </div>
-      </div>
-    </div>
-
-    <!-- 월 선택기 (플랜 탭에서만 표시) -->
-    <div id="planner-month-selector" class="${plannerSubTab === 'ideas' ? 'hidden' : ''} mb-6">
-      <div class="flex items-center gap-3">
-        ${renderMonthSelect('dashboard-month-select', dashSelectedMonth, 'changeDashMonth')}
       </div>
     </div>
 
