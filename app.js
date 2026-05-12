@@ -1714,7 +1714,8 @@ function startContentFromPlan(planId) {
     milestones: [],
     url: '',
     performance: { views: null, likes: null, shares: null, comments: null, saves: null },
-    reference: { links: [], analysis: plan.description || '' },
+    reference: { links: [], analysis: '' },
+    planDetail: plan.description || '',
     script: { versions: [], currentVersion: 0 },
     caption: '',
     dm: '',
@@ -2327,6 +2328,17 @@ function renderContentForm(content) {
         </div>
       </div>
       `}
+
+      <!-- 계획 상세 -->
+      <div class="md:border md:border-botanical-stone md:rounded-xl p-0 md:p-5 mb-5">
+        <h3 class="font-medium mb-3 text-sm text-botanical-sage">작성 계획</h3>
+        <textarea
+          rows="3"
+          oninput="autoResize(this);updatePlanDetail(${content.id}, this.value)"
+          placeholder="플래너에서 등록한 계획 상세 내용이 여기 표시됩니다"
+          class="auto-grow unified-text w-full px-3 md:px-4 py-2 md:py-3 rounded-lg border border-botanical-stone focus:outline-none focus:border-botanical-sage resize-none overflow-hidden break-words"
+          style="min-height: 60px; word-break: break-word;">${content.planDetail ? content.planDetail.split('\\n').map(line => line.trim()).filter(line => line).join('\n') : ''}</textarea>
+      </div>
 
       <!-- 2. 촬영 및 대본 -->
       <div class="md:border md:border-botanical-stone md:rounded-xl p-0 md:p-5">
@@ -3834,6 +3846,13 @@ function updateReference(contentId, field, value) {
   saveAllData();
 }
 
+function updatePlanDetail(contentId, value) {
+  const content = contentsData.contents.find(c => c.id === contentId);
+  if (!content) return;
+  content.planDetail = value;
+  saveAllData();
+}
+
 function updateClientNotion(contentId, value) {
   const content = contentsData.contents.find(c => c.id === contentId);
   if (!content) return;
@@ -4162,6 +4181,7 @@ function saveNewContent(formType) {
     url: '',
     performance: { views: null, likes: null, shares: null, comments: null, saves: null },
     reference: { links: [], analysis: '' },
+    planDetail: '',
     script: { versions: [], currentVersion: 0 },
     caption: '',
     dm: '',
