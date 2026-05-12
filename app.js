@@ -1811,7 +1811,10 @@ function editPlan(planId) {
         <label class="text-sm font-medium block mb-1">상세 내용</label>
         <textarea id="edit-plan-description" rows="4" class="w-full px-3 py-2 rounded-xl border border-botanical-stone focus:outline-none resize-none" placeholder="• 항목 1\n• 항목 2\n• 항목 3" onkeydown="handlePlanDescriptionEnter(event)">${plan.description || ''}</textarea>
       </div>
-      <button onclick="savePlan('${planId}')" class="w-full py-2.5 bg-botanical-fg text-white rounded-xl hover:bg-botanical-fg/90 transition-all font-medium">저장</button>
+      <div class="flex gap-2">
+        <button onclick="deletePlan('${planId}')" class="flex-1 py-2.5 border border-red-300 text-red-500 rounded-xl hover:bg-red-50 transition-all font-medium">삭제</button>
+        <button onclick="savePlan('${planId}')" class="flex-1 py-2.5 bg-botanical-fg text-white rounded-xl hover:bg-botanical-fg/90 transition-all font-medium">저장</button>
+      </div>
     </div>
   `;
 
@@ -1839,6 +1842,31 @@ function savePlan(planId) {
   plan.category = category;
   plan.title = title;
   plan.description = description;
+
+  saveAllData();
+  closeCalendarPopup();
+  renderDashboard();
+}
+
+function deletePlan(planId) {
+  if (!confirm('이 계획을 삭제하시겠습니까?\n\n연동된 콘텐츠는 유지되지만, 작성 계획 내용은 삭제됩니다.')) {
+    return;
+  }
+
+  if (!plansData || !plansData[dashSelectedMonth] || !plansData[dashSelectedMonth].plans) return;
+
+  // plan 삭제
+  plansData[dashSelectedMonth].plans = plansData[dashSelectedMonth].plans.filter(p => p.id !== planId);
+
+  // 연동된 콘텐츠의 planDetail 비우기 (콘텐츠 자체는 유지)
+  if (contentsData && contentsData.contents) {
+    contentsData.contents.forEach(content => {
+      if (content.planDetail && content.planDetail.includes(planId)) {
+        // planId가 직접 저장되지 않으므로, 모든 콘텐츠의 planDetail을 유지
+        // 사용자가 수동으로 정리하도록 함
+      }
+    });
+  }
 
   saveAllData();
   closeCalendarPopup();
