@@ -1738,6 +1738,15 @@ function renderContentList() {
     return ref.startsWith(monthStr);
   });
 
+  // 3) 정렬: 업로드 완료된 것은 맨 아래로, 나머지는 등록 순
+  filteredContents.sort((a, b) => {
+    const aCompleted = a.status === '업로드완료' ? 1 : 0;
+    const bCompleted = b.status === '업로드완료' ? 1 : 0;
+    if (aCompleted !== bCompleted) return aCompleted - bCompleted;
+    // 같은 상태끼리는 id 순서 유지 (등록 순)
+    return a.id - b.id;
+  });
+
   const contentCount = filteredContents.length;
 
   let html = `
@@ -4172,7 +4181,7 @@ function renderPerformance() {
             <p class="text-xs text-botanical-sage">총 저장</p>
           </div>
           <div class="text-center">
-            <p class="text-xl font-semibold">${(monthPerf.avgSaveRate || 0).toLocaleString()}%</p>
+            <p class="text-xl font-semibold">${Math.round(monthPerf.avgSaveRate || 0)}%</p>
             <p class="text-xs text-botanical-sage">평균 저장률</p>
           </div>
           <div class="text-center">
@@ -4231,11 +4240,11 @@ function renderPerformance() {
                     </span>
                   </td>
                   <td class="px-3 py-2 text-center text-botanical-sage">${getUploadDate(c) ? getUploadDate(c).slice(5).replace('-', '/') : '-'}</td>
-                  <td class="px-3 py-2"><input type="text" onchange="savePerfCell(this, ${c.id}, 'views')" value="${toK(c.performance.views, '')}" placeholder="-" class="w-full text-center bg-transparent border-b border-transparent hover:border-botanical-stone focus:border-botanical-sage focus:outline-none"></td>
-                  <td class="px-3 py-2"><input type="text" onchange="savePerfCell(this, ${c.id}, 'likes')" value="${toK(c.performance.likes, '')}" placeholder="-" class="w-full text-center bg-transparent border-b border-transparent hover:border-botanical-stone focus:border-botanical-sage focus:outline-none"></td>
-                  <td class="px-3 py-2"><input type="text" onchange="savePerfCell(this, ${c.id}, 'shares')" value="${c.performance.shares || ''}" placeholder="-" class="w-full text-center bg-transparent border-b border-transparent hover:border-botanical-stone focus:border-botanical-sage focus:outline-none"></td>
-                  <td class="px-3 py-2"><input type="text" onchange="savePerfCell(this, ${c.id}, 'comments')" value="${c.performance.comments || ''}" placeholder="-" class="w-full text-center bg-transparent border-b border-transparent hover:border-botanical-stone focus:border-botanical-sage focus:outline-none"></td>
-                  <td class="px-3 py-2"><input type="text" onchange="savePerfCell(this, ${c.id}, 'saves')" value="${c.performance.saves || ''}" placeholder="-" class="w-full text-center bg-transparent border-b border-transparent hover:border-botanical-stone focus:border-botanical-sage focus:outline-none"></td>
+                  <td class="px-3 py-2"><input type="text" onchange="savePerfCell(this, ${c.id}, 'views')" value="${c.performance.views ? c.performance.views.toLocaleString() : ''}" placeholder="-" class="w-full text-center bg-transparent border-b border-transparent hover:border-botanical-stone focus:border-botanical-sage focus:outline-none"></td>
+                  <td class="px-3 py-2"><input type="text" onchange="savePerfCell(this, ${c.id}, 'likes')" value="${c.performance.likes ? c.performance.likes.toLocaleString() : ''}" placeholder="-" class="w-full text-center bg-transparent border-b border-transparent hover:border-botanical-stone focus:border-botanical-sage focus:outline-none"></td>
+                  <td class="px-3 py-2"><input type="text" onchange="savePerfCell(this, ${c.id}, 'shares')" value="${c.performance.shares ? c.performance.shares.toLocaleString() : ''}" placeholder="-" class="w-full text-center bg-transparent border-b border-transparent hover:border-botanical-stone focus:border-botanical-sage focus:outline-none"></td>
+                  <td class="px-3 py-2"><input type="text" onchange="savePerfCell(this, ${c.id}, 'comments')" value="${c.performance.comments ? c.performance.comments.toLocaleString() : ''}" placeholder="-" class="w-full text-center bg-transparent border-b border-transparent hover:border-botanical-stone focus:border-botanical-sage focus:outline-none"></td>
+                  <td class="px-3 py-2"><input type="text" onchange="savePerfCell(this, ${c.id}, 'saves')" value="${c.performance.saves ? c.performance.saves.toLocaleString() : ''}" placeholder="-" class="w-full text-center bg-transparent border-b border-transparent hover:border-botanical-stone focus:border-botanical-sage focus:outline-none"></td>
                 </tr>
               `;}).join('') : '<tr><td colspan="8" class="px-3 py-4 text-center text-botanical-sage">해당 월 콘텐츠 없음</td></tr>'}
             </tbody>
@@ -4255,11 +4264,11 @@ function renderPerformance() {
                 <span class="text-botanical-sage text-[10px]">${getUploadDate(c) ? getUploadDate(c).slice(5).replace('-', '/') : '-'}</span>
               </div>
               <div class="grid grid-cols-5 gap-1 text-center text-xs">
-                <div><p class="text-[10px] text-botanical-sage mb-0.5">조회</p><input type="text" onchange="savePerfCell(this, ${c.id}, 'views')" value="${toK(c.performance.views, '')}" placeholder="-" class="w-full text-center px-1 py-1 rounded border border-botanical-stone focus:border-botanical-sage focus:outline-none"></div>
-                <div><p class="text-[10px] text-botanical-sage mb-0.5">좋아요</p><input type="text" onchange="savePerfCell(this, ${c.id}, 'likes')" value="${toK(c.performance.likes, '')}" placeholder="-" class="w-full text-center px-1 py-1 rounded border border-botanical-stone focus:border-botanical-sage focus:outline-none"></div>
-                <div><p class="text-[10px] text-botanical-sage mb-0.5">공유</p><input type="text" onchange="savePerfCell(this, ${c.id}, 'shares')" value="${c.performance.shares || ''}" placeholder="-" class="w-full text-center px-1 py-1 rounded border border-botanical-stone focus:border-botanical-sage focus:outline-none"></div>
-                <div><p class="text-[10px] text-botanical-sage mb-0.5">댓글</p><input type="text" onchange="savePerfCell(this, ${c.id}, 'comments')" value="${c.performance.comments || ''}" placeholder="-" class="w-full text-center px-1 py-1 rounded border border-botanical-stone focus:border-botanical-sage focus:outline-none"></div>
-                <div><p class="text-[10px] text-botanical-sage mb-0.5">저장</p><input type="text" onchange="savePerfCell(this, ${c.id}, 'saves')" value="${c.performance.saves || ''}" placeholder="-" class="w-full text-center px-1 py-1 rounded border border-botanical-stone focus:border-botanical-sage focus:outline-none"></div>
+                <div><p class="text-[10px] text-botanical-sage mb-0.5">조회</p><input type="text" onchange="savePerfCell(this, ${c.id}, 'views')" value="${c.performance.views ? c.performance.views.toLocaleString() : ''}" placeholder="-" class="w-full text-center px-1 py-1 rounded border border-botanical-stone focus:border-botanical-sage focus:outline-none"></div>
+                <div><p class="text-[10px] text-botanical-sage mb-0.5">좋아요</p><input type="text" onchange="savePerfCell(this, ${c.id}, 'likes')" value="${c.performance.likes ? c.performance.likes.toLocaleString() : ''}" placeholder="-" class="w-full text-center px-1 py-1 rounded border border-botanical-stone focus:border-botanical-sage focus:outline-none"></div>
+                <div><p class="text-[10px] text-botanical-sage mb-0.5">공유</p><input type="text" onchange="savePerfCell(this, ${c.id}, 'shares')" value="${c.performance.shares ? c.performance.shares.toLocaleString() : ''}" placeholder="-" class="w-full text-center px-1 py-1 rounded border border-botanical-stone focus:border-botanical-sage focus:outline-none"></div>
+                <div><p class="text-[10px] text-botanical-sage mb-0.5">댓글</p><input type="text" onchange="savePerfCell(this, ${c.id}, 'comments')" value="${c.performance.comments ? c.performance.comments.toLocaleString() : ''}" placeholder="-" class="w-full text-center px-1 py-1 rounded border border-botanical-stone focus:border-botanical-sage focus:outline-none"></div>
+                <div><p class="text-[10px] text-botanical-sage mb-0.5">저장</p><input type="text" onchange="savePerfCell(this, ${c.id}, 'saves')" value="${c.performance.saves ? c.performance.saves.toLocaleString() : ''}" placeholder="-" class="w-full text-center px-1 py-1 rounded border border-botanical-stone focus:border-botanical-sage focus:outline-none"></div>
               </div>
             </div>
           `;}).join('') : '<p class="text-sm text-botanical-sage text-center py-4">해당 월 콘텐츠 없음</p>'}
@@ -4486,7 +4495,7 @@ function renderPerformance() {
                     <td class="px-3 py-3 text-center">${(data.totalContents || 0).toLocaleString()}</td>
                     <td class="px-3 py-3 text-center">${toK(data.totalViews)}</td>
                     <td class="px-3 py-3 text-center">${data.totalSaves?.toLocaleString() || '-'}</td>
-                    <td class="px-3 py-3 text-center">${(data.avgSaveRate || 0).toLocaleString()}%</td>
+                    <td class="px-3 py-3 text-center">${Math.round(data.avgSaveRate || 0)}%</td>
                     <td class="px-3 py-3 text-center text-green-600">+${(data.followerGain || 0).toLocaleString()}</td>
                     <td class="px-3 py-3 text-center ${idx === 0 ? 'text-botanical-terracotta' : ''}">${data.bestContent || '-'}</td>
                   </tr>
