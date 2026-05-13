@@ -1119,7 +1119,7 @@ function renderMilestoneView() {
     });
 
     // Define stage order
-    const generalStages = ['아이디어', '기획중', '제작중', '업로드완료'];
+    const generalStages = ['기획중', '제작중', '업로드완료'];
     const revenueStages = ['계약완료', '기획안1차공유', '기획안최종컨펌', '영상1차공유', '영상최종컨펌', '업로드완료'];
 
     allContents.forEach(content => {
@@ -1128,7 +1128,7 @@ function renderMilestoneView() {
       const stages = content.isRevenue ? revenueStages : generalStages;
       const stageLabels = content.isRevenue
         ? ['계약', '기획1차', '기획최종', '영상1차', '영상최종', '업로드']
-        : ['아이디어', '기획중', '제작중', '업로드'];
+        : ['기획중', '제작중', '업로드'];
 
       // Get date for each stage
       const stageDates = {};
