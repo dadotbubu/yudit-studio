@@ -1646,6 +1646,12 @@ function renderDashboard() {
     return c.uploadDate.startsWith(dashMonthStr);
   }) || [];
 
+  // 디버깅 로그
+  console.log(`[플래너] ${dashMonthStr} 업로드 콘텐츠:`, monthContents.length, '개');
+  if (monthContents.length > 0) {
+    console.log('[플래너] 콘텐츠 상세:', monthContents.map(c => `${c.category}: ${c.title} (${c.uploadDate})`));
+  }
+
   const categoryCount = {};
   const categories = ['Career Guide', 'Money Log', 'AI Work', 'Life Style'];
   categories.forEach(cat => {
