@@ -436,63 +436,43 @@ async function upsertToSupabase(key, data) {
   }
 }
 
-// ========== 중복 데이터 자동 정리 (매일 최초 실행 시 1회) ==========
-async function maybeCleanupDuplicates() {
-  const today = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
-  const lastCleanup = localStorage.getItem('yudit_lastCleanup');
+// ========== 중복 데이터 감지 (매일 최초 실행 시 1회) ==========
+// 실제 삭제는 cleanup_duplicates.py 스크립트 사용
+async function maybeCheckDuplicates() {
+  const today = new Date().toISOString().slice(0, 10);
+  const lastCheck = localStorage.getItem('yudit_lastDuplicateCheck');
 
-  if (lastCleanup === today) return; // 오늘 이미 정리함
+  if (lastCheck === today) return;
 
   try {
-    console.log('🔍 중복 데이터 정리 시작...');
-
-    // 모든 row 가져오기
-    const res = await fetch(`${SUPABASE_URL}/rest/v1/${SUPABASE_TABLE}?select=*`, {
+    // key와 updated_at만 조회 (최적화)
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/${SUPABASE_TABLE}?select=key,updated_at`, {
       headers: {
         'apikey': SUPABASE_KEY,
         'Authorization': `Bearer ${SUPABASE_KEY}`
       }
     });
 
-    if (!res.ok) throw new Error('데이터 조회 실패');
+    if (!res.ok) return;
 
     const rows = await res.json();
     if (!rows || rows.length === 0) return;
 
-    // key별로 그룹화
-    const byKey = {};
-    rows.forEach(row => {
-      const key = row.key;
-      if (!byKey[key]) byKey[key] = [];
-      byKey[key].push(row);
-    });
+    // key별 개수 확인
+    const counts = {};
+    rows.forEach(r => counts[r.key] = (counts[r.key] || 0) + 1);
 
-    // 중복 찾기 (key별로 updated_at이 가장 최신인 것만 남김)
-    const toDelete = [];
-    for (const [key, group] of Object.entries(byKey)) {
-      if (group.length > 1) {
-        // updated_at 기준 정렬 (최신이 먼저)
-        const sorted = group.sort((a, b) => b.updated_at.localeCompare(a.updated_at));
-        // 첫 번째(최신) 제외하고 나머지 삭제
-        toDelete.push(...sorted.slice(1));
-      }
+    const duplicates = Object.entries(counts).filter(([_, count]) => count > 1);
+
+    if (duplicates.length > 0) {
+      console.warn(`⚠️  중복 데이터 발견: ${duplicates.length}개 key에 중복 존재`);
+      console.warn('cleanup_duplicates.py 스크립트로 정리하세요');
     }
 
-    if (toDelete.length > 0) {
-      console.log(`🗑️  ${toDelete.length}개 중복 row 삭제 중...`);
-
-      // Supabase는 key로만 삭제 가능하므로, 각 row를 개별 삭제하지 않고
-      // updated_at이 최신이 아닌 것들을 필터링해서 재저장하는 방식 사용
-      // (실제로는 이미 loadFromSupabase에서 최신 것만 사용하므로 안전)
-
-      console.log(`✅ 정리 완료 (${toDelete.length}개 중복 발견)`);
-    }
-
-    // 정리 완료 날짜 저장
-    localStorage.setItem('yudit_lastCleanup', today);
+    localStorage.setItem('yudit_lastDuplicateCheck', today);
 
   } catch (e) {
-    console.warn('중복 정리 실패 (무시):', e);
+    // 감지 실패는 무시 (중요하지 않음)
   }
 }
 
@@ -552,8 +532,8 @@ async function loadData() {
 
     updateSaveStatus('saved');
 
-    // 매일 최초 실행 시 중복 데이터 정리 (밤 12시 기준)
-    maybeCleanupDuplicates();
+    // 매일 최초 실행 시 중복 데이터 감지 (비동기, 블로킹 안 함)
+    maybeCheckDuplicates();
 
     initApp();
   } catch (e) {
