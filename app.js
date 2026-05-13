@@ -532,6 +532,24 @@ async function loadData() {
 
     updateSaveStatus('saved');
 
+    // 일회성 마이그레이션: 아이디어 마일스톤 제거
+    if (!localStorage.getItem('yudit_ideaMilestoneRemoved')) {
+      let removed = 0;
+      contentsData.contents.forEach(content => {
+        if (content.milestones) {
+          const before = content.milestones.length;
+          content.milestones = content.milestones.filter(m => m.status !== '아이디어');
+          removed += (before - content.milestones.length);
+        }
+      });
+      if (removed > 0) {
+        console.log(`🗑️  아이디어 마일스톤 ${removed}개 제거됨`);
+        saveAllData();
+        reconcileCalendarMilestones();
+      }
+      localStorage.setItem('yudit_ideaMilestoneRemoved', 'true');
+    }
+
     // 매일 최초 실행 시 중복 데이터 감지 (비동기, 블로킹 안 함)
     maybeCheckDuplicates();
 
