@@ -610,12 +610,35 @@ function flushSaveImmediately() {
   });
 }
 
-document.addEventListener('visibilitychange', () => {
+document.addEventListener('visibilitychange', async () => {
   if (document.hidden) {
     flushSaveImmediately();
   } else {
-    // 다시 보일 때 — 자동 동기화 (충돌 배너 X, 항상 원격 최신으로)
-    autoReloadFromRemote();
+    // 다시 보일 때 — 무조건 최신 데이터 로드 (덮어쓰기 방지)
+    try {
+      const remote = await loadFromSupabase();
+      if (!remote) return;
+      if (remote.calendar) calendarData = remote.calendar;
+      if (remote.contents) contentsData = remote.contents;
+      if (remote.performance) performanceData = remote.performance;
+      if (remote.revenue) revenueData = remote.revenue;
+      if (remote.memos) memosData = remote.memos;
+      if (remote.plans) plansData = remote.plans;
+      reconcileCalendarMilestones();
+
+      // 현재 탭만 다시 렌더링
+      const activeTab = document.querySelector('.tab-content.active')?.id.replace('-tab', '');
+      if (activeTab === 'calendar') renderCalendar();
+      if (activeTab === 'dashboard') renderDashboard();
+      if (activeTab === 'content') renderContentList();
+      if (activeTab === 'performance' && typeof renderPerformance === 'function') renderPerformance();
+      if (activeTab === 'revenue') renderRevenue();
+      if (activeTab === 'memos') renderMemos();
+
+      console.log('✅ 최신 데이터 동기화:', new Date().toLocaleTimeString());
+    } catch (e) {
+      console.warn('동기화 실패:', e);
+    }
   }
 });
 window.addEventListener('pagehide', flushSaveImmediately);
@@ -2325,6 +2348,26 @@ function renderContentList() {
 
   html += '</div>';
   document.getElementById('content-list').innerHTML = html;
+
+  // 이전에 열려있던 콘텐츠 복원 (앱 전환 후 복귀 시)
+  const openContentId = sessionStorage.getItem('yudit_openContentId');
+  if (openContentId) {
+    const contentExists = contentsData.contents.some(c => c.id == openContentId);
+    if (contentExists) {
+      setTimeout(() => {
+        const form = document.getElementById('form-' + openContentId);
+        const arrow = document.getElementById('arrow-' + openContentId);
+        if (form && !form.classList.contains('active')) {
+          form.classList.add('active');
+          arrow.style.transform = 'rotate(180deg)';
+          form.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          requestAnimationFrame(() => { autoResizeAllScriptCells(); attachScriptCellObservers(); });
+        }
+      }, 100);
+    } else {
+      sessionStorage.removeItem('yudit_openContentId');
+    }
+  }
 }
 
 function renderContentForm(content) {
@@ -3001,7 +3044,14 @@ function toggleContentForm(id) {
 
   form.classList.toggle('active');
   arrow.style.transform = form.classList.contains('active') ? 'rotate(180deg)' : 'rotate(0deg)';
-  if (form.classList.contains('active')) requestAnimationFrame(() => { autoResizeAllScriptCells(); attachScriptCellObservers(); });
+
+  // 열려있는 콘텐츠 ID 저장/제거 (위치 유지용)
+  if (form.classList.contains('active')) {
+    sessionStorage.setItem('yudit_openContentId', id);
+    requestAnimationFrame(() => { autoResizeAllScriptCells(); attachScriptCellObservers(); });
+  } else {
+    sessionStorage.removeItem('yudit_openContentId');
+  }
 }
 
 // ========== 자동 스냅샷 백업 ==========
