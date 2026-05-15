@@ -612,6 +612,10 @@ function flushSaveImmediately() {
 
 document.addEventListener('visibilitychange', async () => {
   if (document.hidden) {
+    // 숨겨지기 전 스크롤 위치 저장 (콘텐츠가 열려있는 경우)
+    if (sessionStorage.getItem('yudit_openContentId')) {
+      sessionStorage.setItem('yudit_scrollY', window.scrollY.toString());
+    }
     flushSaveImmediately();
   } else {
     // 다시 보일 때 — 무조건 최신 데이터 로드 (덮어쓰기 방지)
@@ -2360,14 +2364,68 @@ function renderContentList() {
         if (form && !form.classList.contains('active')) {
           form.classList.add('active');
           arrow.style.transform = 'rotate(180deg)';
-          form.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+          // 정확한 스크롤 위치 복원 (최상단이 아닌 작업 위치로)
+          const savedScrollY = sessionStorage.getItem('yudit_scrollY');
+          if (savedScrollY) {
+            window.scrollTo(0, parseInt(savedScrollY));
+          } else {
+            form.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          }
+
+          // 스크롤 위치 추적 재시작
+          const saveScrollPosition = () => {
+            sessionStorage.setItem('yudit_scrollY', window.scrollY.toString());
+          };
+          window.addEventListener('scroll', saveScrollPosition, { passive: true });
+
           requestAnimationFrame(() => { autoResizeAllScriptCells(); attachScriptCellObservers(); });
         }
       }, 100);
     } else {
       sessionStorage.removeItem('yudit_openContentId');
+      sessionStorage.removeItem('yudit_scrollY');
     }
   }
+
+  // 대사 셀 롱프레스 이벤트 (모바일용)
+  attachDialogueLongPress();
+}
+
+// 대사 셀 롱프레스 이벤트 리스너 (모바일)
+function attachDialogueLongPress() {
+  const dialogueCells = document.querySelectorAll('.dialogue-cell');
+
+  dialogueCells.forEach(cell => {
+    let longPressTimer;
+    const textarea = cell.querySelector('textarea');
+    if (!textarea) return;
+
+    textarea.addEventListener('touchstart', (e) => {
+      longPressTimer = setTimeout(() => {
+        const contentId = parseInt(cell.dataset.contentId);
+        const idx = parseInt(cell.dataset.rowIdx);
+        toggleDialogueMenu(contentId, idx);
+      }, 500); // 500ms 길게 누르기
+    }, { passive: true });
+
+    textarea.addEventListener('touchend', () => {
+      clearTimeout(longPressTimer);
+    }, { passive: true });
+
+    textarea.addEventListener('touchmove', () => {
+      clearTimeout(longPressTimer);
+    }, { passive: true });
+  });
+
+  // 메뉴 외부 클릭 시 닫기
+  document.addEventListener('click', (e) => {
+    if (!e.target.closest('.dialogue-menu') && !e.target.closest('.dialogue-menu-btn')) {
+      document.querySelectorAll('.dialogue-menu').forEach(menu => {
+        menu.classList.add('hidden');
+      });
+    }
+  });
 }
 
 function renderContentForm(content) {
@@ -2897,7 +2955,14 @@ function renderContentForm(content) {
                       <input type="text" value="${row.section || ''}" oninput="updateScriptRow(${content.id}, ${idx}, 'section', this.value)" class="w-full bg-transparent focus:outline-none font-semibold pr-5" style="color: ${sectionColors[row.section] || '#8C9A84'};">
                       <button onclick="removeScriptRow(${content.id}, ${idx})" title="행 삭제" class="absolute top-1 right-1 w-5 h-5 rounded text-xs text-red-400 opacity-0 group-hover:opacity-100 hover:bg-red-50 transition-opacity">×</button>
                     </td>
-                    <td class="px-4 py-3 border-l border-botanical-stone"><textarea rows="1" oninput="autoResize(this);updateScriptRow(${content.id}, ${idx}, 'dialogue', this.value)" class="script-cell w-full bg-transparent focus:outline-none resize-none overflow-hidden">${row.dialogue || ''}</textarea></td>
+                    <td class="px-4 py-3 border-l border-botanical-stone relative dialogue-cell" data-content-id="${content.id}" data-row-idx="${idx}">
+                      <textarea rows="1" oninput="autoResize(this);updateScriptRow(${content.id}, ${idx}, 'dialogue', this.value)" class="script-cell w-full bg-transparent focus:outline-none resize-none overflow-hidden">${row.dialogue || ''}</textarea>
+                      <button class="dialogue-menu-btn" onclick="event.stopPropagation();toggleDialogueMenu(${content.id}, ${idx})">⋮</button>
+                      <div class="dialogue-menu hidden" id="dialogue-menu-${content.id}-${idx}">
+                        <button onclick="copyDialogueCell(${content.id}, ${idx})">복사</button>
+                        <button onclick="clearDialogueCell(${content.id}, ${idx})">지우기</button>
+                      </div>
+                    </td>
                     <td class="px-4 py-3 border-l border-botanical-stone"><textarea rows="1" oninput="autoResize(this);updateScriptRow(${content.id}, ${idx}, 'subtitle', this.value)" class="script-cell w-full bg-transparent focus:outline-none resize-none overflow-hidden">${row.subtitle || ''}</textarea></td>
                     <td class="px-4 py-3 border-l border-botanical-stone"><textarea rows="1" oninput="autoResize(this);updateScriptRow(${content.id}, ${idx}, 'scene', this.value)" class="script-cell w-full bg-transparent focus:outline-none resize-none overflow-hidden">${row.scene || ''}</textarea></td>
                   </tr>
@@ -3048,9 +3113,19 @@ function toggleContentForm(id) {
   // 열려있는 콘텐츠 ID 저장/제거 (위치 유지용)
   if (form.classList.contains('active')) {
     sessionStorage.setItem('yudit_openContentId', id);
+
+    // 스크롤 위치 추적 시작
+    const saveScrollPosition = () => {
+      sessionStorage.setItem('yudit_scrollY', window.scrollY.toString());
+    };
+    window.addEventListener('scroll', saveScrollPosition, { passive: true });
+    sessionStorage.setItem('yudit_scrollListener', 'active');
+
     requestAnimationFrame(() => { autoResizeAllScriptCells(); attachScriptCellObservers(); });
   } else {
     sessionStorage.removeItem('yudit_openContentId');
+    sessionStorage.removeItem('yudit_scrollY');
+    sessionStorage.removeItem('yudit_scrollListener');
   }
 }
 
@@ -3430,6 +3505,58 @@ function copyScriptAll(contentId) {
   navigator.clipboard.writeText(text).then(() => {
     alert('표 전체 복사됨 (탭 구분 — 표에 바로 붙여넣기 OK)');
   }).catch(() => alert('복사 실패'));
+}
+
+// 대사 셀 메뉴 토글
+function toggleDialogueMenu(contentId, idx) {
+  const menu = document.getElementById(`dialogue-menu-${contentId}-${idx}`);
+  const allMenus = document.querySelectorAll('.dialogue-menu');
+
+  // 다른 메뉴 모두 닫기
+  allMenus.forEach(m => {
+    if (m !== menu) m.classList.add('hidden');
+  });
+
+  // 현재 메뉴 토글
+  menu.classList.toggle('hidden');
+}
+
+// 대사 셀 복사
+function copyDialogueCell(contentId, idx) {
+  const content = contentsData.contents.find(c => c.id === contentId);
+  const ver = content?.script?.currentVersion ?? 0;
+  const row = content?.script?.versions?.[ver]?.rows?.[idx];
+  const text = row?.dialogue || '';
+
+  if (!text.trim()) {
+    alert('복사할 내용이 없습니다');
+    return;
+  }
+
+  navigator.clipboard.writeText(text).then(() => {
+    // 메뉴 닫기
+    const menu = document.getElementById(`dialogue-menu-${contentId}-${idx}`);
+    menu.classList.add('hidden');
+  }).catch(() => alert('복사 실패'));
+}
+
+// 대사 셀 지우기
+function clearDialogueCell(contentId, idx) {
+  const content = contentsData.contents.find(c => c.id === contentId);
+  const ver = content?.script?.currentVersion ?? 0;
+  const row = content?.script?.versions?.[ver]?.rows?.[idx];
+
+  if (!row || !row.dialogue?.trim()) return;
+
+  // 내용 지우기
+  updateScriptRow(contentId, idx, 'dialogue', '');
+
+  // 메뉴 닫기
+  const menu = document.getElementById(`dialogue-menu-${contentId}-${idx}`);
+  menu.classList.add('hidden');
+
+  // UI 업데이트
+  renderContentList();
 }
 
 function copyCaption(contentId) {
