@@ -7,6 +7,7 @@ let memosData = null;
 let plansData = null;
 let selectedMemoId = null;
 let perfRecalculated = false; // 성과 데이터 재계산 완료 플래그
+let isOfflineMode = false; // 오프라인 모드 (읽기 전용)
 
 // 카테고리 목표 설정 (localStorage에 저장)
 let categoryGoalsConfig = JSON.parse(localStorage.getItem('yudit_categoryGoals') || '{"Career Guide":2,"AI Work":2,"Money Log":2,"Life Style":2}');
@@ -556,9 +557,10 @@ async function loadData() {
     initApp();
   } catch (e) {
     console.error('Supabase 로드 실패:', e);
-    // 오프라인 폴백 - localStorage 시도
+    // 오프라인 폴백 - localStorage 읽기 전용 모드
     const savedContents = localStorage.getItem('yudit_contents');
     if (savedContents) {
+      isOfflineMode = true; // ← 읽기 전용 모드 활성화
       calendarData = JSON.parse(localStorage.getItem('yudit_calendar') || '{"currentMonth":"2026-04","items":[]}');
       contentsData = JSON.parse(savedContents);
       performanceData = JSON.parse(localStorage.getItem('yudit_performance') || '{}');
@@ -566,7 +568,7 @@ async function loadData() {
       memosData = JSON.parse(localStorage.getItem('yudit_memos') || '{"memos":[]}');
       plansData = JSON.parse(localStorage.getItem('yudit_plans') || '{}');
       updateSaveStatus('offline');
-      showOfflineBanner('서버 연결이 일시적으로 끊겨 로컬 백업 데이터로 작동 중. 새로고침하면 다시 시도.');
+      showOfflineBanner('⚠️  오프라인 모드 (읽기 전용) — 인터넷 연결 후 새로고침하세요. 저장 기능이 비활성화됩니다.');
       initApp();
     } else {
       alert('데이터 로드 실패. 인터넷 연결을 확인하세요.\n\n' + e.message);
@@ -650,6 +652,13 @@ window.addEventListener('beforeunload', flushSaveImmediately);
 window.addEventListener('focus', autoReloadFromRemote);
 
 function saveAllData() {
+  // 오프라인 모드(읽기 전용)에서는 저장 금지
+  if (isOfflineMode) {
+    console.warn('⚠️  오프라인 모드: 저장 불가');
+    updateSaveStatus('offline');
+    return;
+  }
+
   // 1) localStorage 즉시 백업 (네트워크 끊겨도 잃지 않게)
   localStorage.setItem('yudit_calendar', JSON.stringify(calendarData));
   localStorage.setItem('yudit_contents', JSON.stringify(contentsData));
