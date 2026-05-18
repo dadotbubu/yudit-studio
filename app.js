@@ -663,6 +663,15 @@ function saveAllData() {
   clearTimeout(saveTimer);
   saveTimer = setTimeout(async () => {
     try {
+      // ★ 저장 전 충돌 검사: Supabase에 더 최신 데이터가 있는지 확인
+      const remoteLatest = await getRemoteLatestUpdatedAt();
+      if (remoteLatest && lastLoadedAt && isRemoteSignificantlyNewer(remoteLatest, lastLoadedAt)) {
+        console.warn('⚠️  충돌 감지: Supabase에 더 최신 데이터가 있음. 저장 중단.');
+        updateSaveStatus('error');
+        alert('⚠️  다른 기기에서 더 최신 데이터가 저장되었습니다.\n\n새로고침(F5)하여 최신 데이터를 불러오세요.\n\n※ 현재 작업 내용은 로컬에 백업되어 있습니다.');
+        return; // 저장 중단
+      }
+
       await Promise.all([
         upsertToSupabase('calendar', calendarData),
         upsertToSupabase('contents', contentsData),
