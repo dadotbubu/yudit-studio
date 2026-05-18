@@ -2358,30 +2358,36 @@ function renderContentList() {
   if (openContentId) {
     const contentExists = contentsData.contents.some(c => c.id == openContentId);
     if (contentExists) {
-      setTimeout(() => {
-        const form = document.getElementById('form-' + openContentId);
-        const arrow = document.getElementById('arrow-' + openContentId);
-        if (form && !form.classList.contains('active')) {
-          form.classList.add('active');
-          arrow.style.transform = 'rotate(180deg)';
+      // 먼저 form 열기
+      const form = document.getElementById('form-' + openContentId);
+      const arrow = document.getElementById('arrow-' + openContentId);
+      if (form && !form.classList.contains('active')) {
+        form.classList.add('active');
+        arrow.style.transform = 'rotate(180deg)';
 
-          // 정확한 스크롤 위치 복원 (최상단이 아닌 작업 위치로)
-          const savedScrollY = sessionStorage.getItem('yudit_scrollY');
-          if (savedScrollY) {
-            window.scrollTo(0, parseInt(savedScrollY));
-          } else {
-            form.scrollIntoView({ behavior: 'smooth', block: 'start' });
-          }
+        // 레이아웃 안정화 후 스크롤 복원
+        requestAnimationFrame(() => {
+          autoResizeAllScriptCells();
+          attachScriptCellObservers();
 
-          // 스크롤 위치 추적 재시작
-          const saveScrollPosition = () => {
-            sessionStorage.setItem('yudit_scrollY', window.scrollY.toString());
-          };
-          window.addEventListener('scroll', saveScrollPosition, { passive: true });
+          // 한 프레임 더 기다려서 레이아웃 완전히 안정화
+          requestAnimationFrame(() => {
+            const savedScrollY = sessionStorage.getItem('yudit_scrollY');
+            if (savedScrollY) {
+              window.scrollTo({
+                top: parseInt(savedScrollY),
+                behavior: 'instant' // 즉시 이동 (튀는 현상 방지)
+              });
+            }
+          });
+        });
 
-          requestAnimationFrame(() => { autoResizeAllScriptCells(); attachScriptCellObservers(); });
-        }
-      }, 100);
+        // 스크롤 위치 추적 재시작
+        const saveScrollPosition = () => {
+          sessionStorage.setItem('yudit_scrollY', window.scrollY.toString());
+        };
+        window.addEventListener('scroll', saveScrollPosition, { passive: true });
+      }
     } else {
       sessionStorage.removeItem('yudit_openContentId');
       sessionStorage.removeItem('yudit_scrollY');

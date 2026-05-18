@@ -75,13 +75,19 @@
     .script-table textarea.script-cell {
       min-height: 24px; font-size: 13px; line-height: 1.5;
       word-break: break-word; white-space: pre-wrap;
-      touch-action: manipulation; /* 애플펜슬 글쓰기 방지, 터치만 허용 */
+      touch-action: pan-y; /* 세로 스크롤만 허용, 애플펜슬 손글씨 입력 차단 */
+      -webkit-user-select: text; /* 텍스트 선택은 가능 */
     }
     @media (min-width: 768px) {
       .script-table textarea.script-cell { font-size: 14px; }
     }
     /* 본문 입력 통일 (레퍼런스/캡션/DM/대본/메모/자주쓰는내용) — 모바일 13px, PC 14px, 줄간격 1.5 */
-    .unified-text { font-size: 13px !important; line-height: 1.5 !important; }
+    .unified-text {
+      font-size: 13px !important;
+      line-height: 1.5 !important;
+      touch-action: pan-y; /* 애플펜슬 손글씨 입력 차단 */
+      -webkit-user-select: text;
+    }
     @media (min-width: 768px) {
       .unified-text { font-size: 14px !important; }
     }
@@ -275,6 +281,6 @@
     </div>
   </div>
 
-  <script src="app.js?v=110"></script>
+  <script src="app.js?v=111"></script>
 </body>
 </html>
