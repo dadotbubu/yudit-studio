@@ -29,6 +29,11 @@ let currentYear = now.getFullYear();
 let currentMonth = now.getMonth() + 1; // 1-indexed (0-11 -> 1-12)
 let currentView = 'monthly';
 
+// 스크롤 위치 저장 함수 (재사용, 메모리 누수 방지)
+const saveScrollPosition = () => {
+  sessionStorage.setItem('yudit_scrollY', window.scrollY.toString());
+};
+
 // ========== 월 선택 헬퍼 (탭별 독립 상태) ==========
 // 각 탭은 자신의 월 상태를 가짐. 탭 간 UI는 연동되지 않음.
 // 데이터 소스(contentsData, revenueData 등)는 공통이라 "4월"을 선택하면
@@ -689,13 +694,7 @@ function saveAllData() {
         upsertToSupabase('memos', memosData),
         upsertToSupabase('plans', plansData)
       ]);
-      // 저장 직후 서버 측 실제 updated_at 다시 fetch (클라 시계 의존 X)
-      try {
-        const serverLatest = await getRemoteLatestUpdatedAt();
-        if (serverLatest) lastLoadedAt = serverLatest;
-      } catch (_) {
-        lastLoadedAt = new Date().toISOString(); // fallback
-      }
+      lastLoadedAt = new Date().toISOString();
       lastOwnSaveAt = Date.now();
       updateSaveStatus('saved');
       console.log('Supabase 저장 완료:', new Date().toLocaleTimeString());
@@ -2401,9 +2400,6 @@ function renderContentList() {
         });
 
         // 스크롤 위치 추적 재시작
-        const saveScrollPosition = () => {
-          sessionStorage.setItem('yudit_scrollY', window.scrollY.toString());
-        };
         window.addEventListener('scroll', saveScrollPosition, { passive: true });
       }
     } else {
@@ -3137,19 +3133,12 @@ function toggleContentForm(id) {
   // 열려있는 콘텐츠 ID 저장/제거 (위치 유지용)
   if (form.classList.contains('active')) {
     sessionStorage.setItem('yudit_openContentId', id);
-
-    // 스크롤 위치 추적 시작
-    const saveScrollPosition = () => {
-      sessionStorage.setItem('yudit_scrollY', window.scrollY.toString());
-    };
     window.addEventListener('scroll', saveScrollPosition, { passive: true });
-    sessionStorage.setItem('yudit_scrollListener', 'active');
-
     requestAnimationFrame(() => { autoResizeAllScriptCells(); attachScriptCellObservers(); });
   } else {
     sessionStorage.removeItem('yudit_openContentId');
     sessionStorage.removeItem('yudit_scrollY');
-    sessionStorage.removeItem('yudit_scrollListener');
+    window.removeEventListener('scroll', saveScrollPosition);
   }
 }
 
