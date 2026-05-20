@@ -220,9 +220,17 @@ function getUploadDate(content) {
 
 // 링크 열기 버튼 — URL 있으면 활성 <a>, 없으면 회색 disabled <span>
 function openLinkBtn(url, label = '열기') {
-  const base = 'px-2 text-xs border rounded-lg shrink-0 flex items-center';
+  const base = 'px-1.5 text-xs border rounded-lg shrink-0 flex items-center';
   return url
     ? `<a href="${url}" target="_blank" class="${base} text-blue-500 border-blue-200 hover:bg-blue-50">${label}</a>`
+    : `<span class="${base} text-botanical-sage/50 border-botanical-stone cursor-default">${label}</span>`;
+}
+
+// 링크 복사 버튼 — URL 있으면 활성, 없으면 회색 disabled
+function copyLinkBtn(url, label = '복사') {
+  const base = 'px-1.5 text-xs border rounded-lg shrink-0 flex items-center';
+  return url
+    ? `<button onclick="navigator.clipboard.writeText('${url}').then(() => alert('링크 복사 완료')).catch(() => alert('복사 실패'))" class="${base} text-blue-500 border-blue-200 hover:bg-blue-50">${label}</button>`
     : `<span class="${base} text-botanical-sage/50 border-botanical-stone cursor-default">${label}</span>`;
 }
 
@@ -2460,6 +2468,10 @@ function attachDialogueLongPress() {
     if (!textarea) return;
 
     textarea.addEventListener('touchstart', (e) => {
+      // 롱프레스 중 텍스트 선택 방지
+      cell.style.userSelect = 'none';
+      cell.style.webkitUserSelect = 'none';
+
       longPressTimer = setTimeout(() => {
         const contentId = parseInt(cell.dataset.contentId);
         const idx = parseInt(cell.dataset.rowIdx);
@@ -2469,10 +2481,16 @@ function attachDialogueLongPress() {
 
     textarea.addEventListener('touchend', () => {
       clearTimeout(longPressTimer);
+      // 텍스트 선택 복원
+      cell.style.userSelect = '';
+      cell.style.webkitUserSelect = '';
     }, { passive: true });
 
     textarea.addEventListener('touchmove', () => {
       clearTimeout(longPressTimer);
+      // 텍스트 선택 복원
+      cell.style.userSelect = '';
+      cell.style.webkitUserSelect = '';
     }, { passive: true });
   });
 
@@ -2517,8 +2535,7 @@ function renderContentForm(content) {
   const colW = content.script?.columnWidths || {};
   const colSection = colW.section ?? 100;
   const colDialogue = colW.dialogue ?? 280;
-  const colSubtitle = colW.subtitle ?? 280;
-  const colScene = colW.scene ?? 180;
+  const colSubtitle = colW.subtitle ?? 460;
 
   return `
     <div class="p-2 md:p-6 space-y-3 md:space-y-6">
@@ -2853,10 +2870,11 @@ function renderContentForm(content) {
                       type === 'textarea'
                         ? `<textarea rows="1" oninput="autoResize(this);updateReference(${content.id}, '${field}', this.value)" placeholder="${ph}" class="auto-grow unified-text w-full bg-transparent focus:outline-none resize-none overflow-hidden break-words" style="min-height: 24px; word-break: break-word;">${content.reference?.[field] ?? ''}</textarea>`
                         : type === 'url'
-                        ? `<div class="flex items-center gap-2">
-                            <input type="text" value="${content.reference?.[field] ?? ''}" placeholder="${ph}" oninput="updateReference(${content.id}, '${field}', this.value)" class="flex-1 bg-transparent focus:outline-none">
+                        ? `<div class="flex items-center gap-1">
+                            <input type="text" value="${content.reference?.[field] ?? ''}" placeholder="${ph}" oninput="updateReference(${content.id}, '${field}', this.value)" class="flex-1 min-w-0 bg-transparent focus:outline-none">
                             ${openLinkBtn(content.reference?.[field])}
-                            <a href="${DEFAULT_TRANSCRIPT_LINK}" target="_blank" class="px-2 text-xs text-botanical-terracotta border border-botanical-terracotta/40 rounded-lg hover:bg-botanical-terracotta/10 flex items-center shrink-0">대본</a>
+                            ${copyLinkBtn(content.reference?.[field])}
+                            <a href="${DEFAULT_TRANSCRIPT_LINK}" target="_blank" class="px-1.5 text-xs text-botanical-terracotta border border-botanical-terracotta/40 rounded-lg hover:bg-botanical-terracotta/10 flex items-center shrink-0">대본</a>
                           </div>`
                         : `<input type="${type}" value="${content.reference?.[field] ?? ''}" placeholder="${ph}" oninput="updateReference(${content.id}, '${field}', this.value)" class="w-full bg-transparent focus:outline-none">`
                     }</td>
@@ -2967,7 +2985,7 @@ function renderContentForm(content) {
               </span>
             `;
           }).join('')}
-          <button onclick="addScriptVersion(${content.id})" class="px-3 py-1 rounded-full text-xs border border-botanical-stone hover:bg-botanical-cream transition-all">+ 버전</button>
+          <button onclick="showAddVersionMenu(${content.id})" class="px-3 py-1 rounded-full text-xs border border-botanical-stone hover:bg-botanical-cream transition-all">+ 버전</button>
         </div>
 
         <div class="mb-4">
@@ -2996,14 +3014,12 @@ function renderContentForm(content) {
                 <col style="width: ${colSection}px">
                 <col style="width: ${colDialogue}px">
                 <col style="width: ${colSubtitle}px">
-                <col style="width: ${colScene}px">
               </colgroup>
               <thead>
                 <tr class="bg-botanical-cream/50">
                   <th class="col-resizable px-4 py-3 text-left font-medium" data-col="section">구간<span class="col-resize-handle"></span></th>
                   <th class="col-resizable px-4 py-3 text-left font-medium" data-col="dialogue">대사<span class="col-resize-handle"></span></th>
                   <th class="col-resizable px-4 py-3 text-left font-medium" data-col="subtitle">자막<span class="col-resize-handle"></span></th>
-                  <th class="px-4 py-3 text-left font-medium" data-col="scene">장면</th>
                 </tr>
               </thead>
               <tbody id="script-tbody-${content.id}">
@@ -3022,7 +3038,6 @@ function renderContentForm(content) {
                       </div>
                     </td>
                     <td class="px-4 py-3 border-l border-botanical-stone"><textarea rows="1" oninput="autoResize(this);updateScriptRow(${content.id}, ${idx}, 'subtitle', this.value)" class="script-cell w-full bg-transparent focus:outline-none resize-none overflow-hidden">${row.subtitle || ''}</textarea></td>
-                    <td class="px-4 py-3 border-l border-botanical-stone"><textarea rows="1" oninput="autoResize(this);updateScriptRow(${content.id}, ${idx}, 'scene', this.value)" class="script-cell w-full bg-transparent focus:outline-none resize-none overflow-hidden">${row.scene || ''}</textarea></td>
                   </tr>
                 `).join('')}
               </tbody>
@@ -3458,6 +3473,41 @@ function removeScriptRow(contentId, rowIdx) {
   reopenForm(contentId);
 }
 
+function showAddVersionMenu(contentId) {
+  const content = contentsData.contents.find(c => c.id === contentId);
+  if (!content) return;
+  ensureScript(content);
+
+  const popup = document.getElementById('calendar-popup');
+  const popupContent = document.getElementById('popup-content');
+
+  popupContent.innerHTML = `
+    <div class="flex items-center justify-between mb-4">
+      <h3 class="font-semibold text-lg">버전 추가</h3>
+      <button onclick="closeCalendarPopup()" class="text-botanical-sage hover:text-botanical-fg">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18M6 6l12 12"/></svg>
+      </button>
+    </div>
+
+    <div class="space-y-2">
+      <button onclick="addScriptVersion(${contentId});closeCalendarPopup()" class="w-full p-3 rounded-lg border-2 border-botanical-sage bg-botanical-sage/10 hover:bg-botanical-sage hover:text-white transition-all text-left">
+        <div class="font-medium">신규 버전</div>
+        <div class="text-xs text-botanical-sage mt-1">빈 대사 테이블로 시작</div>
+      </button>
+      ${content.script.versions.map((v, idx) => `
+        <button onclick="addScriptVersionCopy(${contentId}, ${idx});closeCalendarPopup()" class="w-full p-3 rounded-lg border border-botanical-stone hover:border-botanical-sage hover:bg-botanical-cream transition-all text-left">
+          <div class="flex items-center justify-between">
+            <span class="font-medium">V${idx + 1} ${v.title ? `- ${v.title}` : ''}</span>
+            <span class="text-xs text-botanical-sage">복사</span>
+          </div>
+        </button>
+      `).join('')}
+    </div>
+  `;
+
+  popup.classList.remove('hidden');
+}
+
 function addScriptVersion(contentId) {
   const content = contentsData.contents.find(c => c.id === contentId);
   if (!content) return;
@@ -3465,6 +3515,23 @@ function addScriptVersion(contentId) {
   content.script.versions.push({ rows: DEFAULT_SCRIPT_ROWS(), title: '' });
   content.script.currentVersion = content.script.versions.length - 1;
   // 최종 버전은 기존대로 유지 (새 버전은 draft)
+  saveAllData();
+  renderContentList();
+  reopenForm(contentId);
+}
+
+function addScriptVersionCopy(contentId, sourceIdx) {
+  const content = contentsData.contents.find(c => c.id === contentId);
+  if (!content?.script?.versions?.[sourceIdx]) return;
+
+  // 원본 버전 복사 (깊은 복사)
+  const sourceVersion = content.script.versions[sourceIdx];
+  const copiedRows = JSON.parse(JSON.stringify(sourceVersion.rows || DEFAULT_SCRIPT_ROWS()));
+  const copiedTitle = sourceVersion.title ? `${sourceVersion.title} (복사)` : '';
+
+  content.script.versions.push({ rows: copiedRows, title: copiedTitle });
+  content.script.currentVersion = content.script.versions.length - 1;
+
   saveAllData();
   renderContentList();
   reopenForm(contentId);
@@ -4537,14 +4604,14 @@ function linkPlanToContent(contentId) {
 
     <div class="space-y-2 max-h-[60vh] overflow-y-auto">
       ${monthPlans.map(plan => `
-        <div onclick="applyPlanToContent(${contentId}, '${plan.id}', '${monthStr}')" class="p-3 rounded-lg border border-botanical-stone hover:border-botanical-sage cursor-pointer transition-all">
-          <div class="flex items-start justify-between gap-2 mb-1">
+        <button onclick="applyPlanToContent(${contentId}, '${plan.id}', '${monthStr}')" class="w-full p-3 rounded-lg border border-botanical-stone hover:border-botanical-sage cursor-pointer transition-all text-left">
+          <div class="flex items-start justify-between gap-2 mb-1 pointer-events-none">
             <span class="inline-block px-2 py-0.5 rounded-md text-xs font-medium bg-botanical-cream text-botanical-sage">${plan.category}</span>
             <span class="text-xs text-botanical-clay">${plan.week}주차</span>
           </div>
-          <h4 class="text-sm font-semibold text-botanical-fg mb-1">${plan.title}</h4>
-          ${plan.description ? `<p class="text-xs text-botanical-sage line-clamp-2">${plan.description.split('\n').slice(0, 2).join(' ')}</p>` : ''}
-        </div>
+          <h4 class="text-sm font-semibold text-botanical-fg mb-1 pointer-events-none">${plan.title}</h4>
+          ${plan.description ? `<p class="text-xs text-botanical-sage line-clamp-2 pointer-events-none">${plan.description.split('\n').slice(0, 2).join(' ')}</p>` : ''}
+        </button>
       `).join('')}
     </div>
   `;
