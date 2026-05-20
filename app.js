@@ -867,7 +867,7 @@ function renderMonthlyView() {
   const today = new Date();
   for (let day = 1; day <= daysInMonth; day++) {
     const dateStr = `${currentYear}-${String(currentMonth).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-    const items = calendarData.items.filter(item => item.date === dateStr);
+    const items = calendarData.items.filter(item => item.date === dateStr && item.status === '업로드완료');
     const dayOfWeek = (startDayOfWeek + day - 1) % 7;
     const isSunday = dayOfWeek === 6;
     const isToday = today.getFullYear() === currentYear && today.getMonth() + 1 === currentMonth && today.getDate() === day;
@@ -1897,6 +1897,16 @@ function editPlan(planId) {
   const popup = document.getElementById('calendar-popup');
   const popupContent = document.getElementById('popup-content');
 
+  // 현재 월과 다음 월 계산
+  const currentMonthObj = new Date(dashSelectedMonth + '-01');
+  const nextMonthObj = new Date(currentMonthObj);
+  nextMonthObj.setMonth(nextMonthObj.getMonth() + 1);
+  const nextMonthStr = `${nextMonthObj.getFullYear()}-${String(nextMonthObj.getMonth() + 1).padStart(2, '0')}`;
+
+  const currentM = currentMonthObj.getMonth() + 1;
+  const nextM = nextMonthObj.getMonth() + 1;
+  const currentValue = `${dashSelectedMonth}-${plan.week}`;
+
   popupContent.innerHTML = `
     <div class="flex items-center justify-between mb-4">
       <h3 class="font-semibold text-lg">계획 수정</h3>
@@ -1910,10 +1920,14 @@ function editPlan(planId) {
         <div>
           <label class="text-sm font-medium block mb-1">주차</label>
           <select id="edit-plan-week" class="w-full px-3 py-2 rounded-xl border border-botanical-stone focus:outline-none">
-            <option value="1" ${plan.week === 1 ? 'selected' : ''}>1주차</option>
-            <option value="2" ${plan.week === 2 ? 'selected' : ''}>2주차</option>
-            <option value="3" ${plan.week === 3 ? 'selected' : ''}>3주차</option>
-            <option value="4" ${plan.week === 4 ? 'selected' : ''}>4주차</option>
+            <option value="${dashSelectedMonth}-1" ${currentValue === `${dashSelectedMonth}-1` ? 'selected' : ''}>${currentM}월 1주차</option>
+            <option value="${dashSelectedMonth}-2" ${currentValue === `${dashSelectedMonth}-2` ? 'selected' : ''}>${currentM}월 2주차</option>
+            <option value="${dashSelectedMonth}-3" ${currentValue === `${dashSelectedMonth}-3` ? 'selected' : ''}>${currentM}월 3주차</option>
+            <option value="${dashSelectedMonth}-4" ${currentValue === `${dashSelectedMonth}-4` ? 'selected' : ''}>${currentM}월 4주차</option>
+            <option value="${nextMonthStr}-1">${nextM}월 1주차</option>
+            <option value="${nextMonthStr}-2">${nextM}월 2주차</option>
+            <option value="${nextMonthStr}-3">${nextM}월 3주차</option>
+            <option value="${nextMonthStr}-4">${nextM}월 4주차</option>
           </select>
         </div>
         <div>
@@ -1945,7 +1959,7 @@ function editPlan(planId) {
 }
 
 function savePlan(planId) {
-  const week = parseInt(document.getElementById('edit-plan-week').value);
+  const weekValue = document.getElementById('edit-plan-week').value; // "YYYY-MM-W" 형식
   const category = document.getElementById('edit-plan-category').value;
   const title = document.getElementById('edit-plan-title').value;
   const description = document.getElementById('edit-plan-description').value;
@@ -1955,16 +1969,40 @@ function savePlan(planId) {
     return;
   }
 
+  // 월-주차 파싱
+  const [targetMonth, weekStr] = weekValue.split('-').slice(0, 2).join('-') === dashSelectedMonth ?
+    [dashSelectedMonth, weekValue.split('-')[2]] :
+    [weekValue.substring(0, 7), weekValue.split('-')[2]];
+  const week = parseInt(weekStr);
+
+  // 원래 계획 찾기
   const plan = plansData[dashSelectedMonth].plans.find(p => p.id === planId);
   if (!plan) {
     alert('계획을 찾을 수 없습니다');
     return;
   }
 
-  plan.week = week;
-  plan.category = category;
-  plan.title = title;
-  plan.description = description;
+  // 월이 변경된 경우 이동 처리
+  if (targetMonth !== dashSelectedMonth) {
+    // 원래 월에서 제거
+    plansData[dashSelectedMonth].plans = plansData[dashSelectedMonth].plans.filter(p => p.id !== planId);
+
+    // 새로운 월로 이동
+    if (!plansData[targetMonth]) {
+      plansData[targetMonth] = { plans: [], ideas: [] };
+    }
+    plan.week = week;
+    plan.category = category;
+    plan.title = title;
+    plan.description = description;
+    plansData[targetMonth].plans.push(plan);
+  } else {
+    // 같은 월 내에서 수정
+    plan.week = week;
+    plan.category = category;
+    plan.title = title;
+    plan.description = description;
+  }
 
   saveAllData();
   closeCalendarPopup();
@@ -5154,16 +5192,25 @@ function renderPerformance() {
             const dateMap = {};
             monthDailyData.forEach(d => { dateMap[d.date] = d; });
 
-            // 입력된 날짜만 추출하고 최대 7개까지만 표시 (최신순)
-            const days = monthDailyData
-              .sort((a, b) => b.date.localeCompare(a.date))
-              .slice(0, 7)
-              .reverse()
-              .map(d => ({
-                date: d.date,
-                count: d.count ?? null,
-                change: d.change ?? 0
-              }));
+            // 해당 월의 모든 날짜 생성 (1일부터 오늘 또는 말일까지)
+            const [y, m] = perfSelectedMonth.split('-').map(Number);
+            const today = new Date();
+            const isCurrentMonth = today.getFullYear() === y && (today.getMonth() + 1) === m;
+            const lastDay = isCurrentMonth ? today.getDate() : new Date(y, m, 0).getDate();
+
+            const allDays = [];
+            for (let day = 1; day <= lastDay; day++) {
+              const dateStr = `${perfSelectedMonth}-${String(day).padStart(2, '0')}`;
+              const data = dateMap[dateStr];
+              allDays.push({
+                date: dateStr,
+                count: data?.count ?? null,
+                change: data?.change ?? 0
+              });
+            }
+
+            // 최근 7일만 표시 (오늘 기준)
+            const days = allDays.slice(-7);
             const maxCount = Math.max(0, ...days.map(d => d.count ?? 0));
             const minCount = Math.min(...days.filter(d => d.count != null).map(d => d.count), maxCount);
             const range = Math.max(1, maxCount - minCount);
