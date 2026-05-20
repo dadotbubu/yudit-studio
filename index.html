@@ -179,6 +179,52 @@
     .dialogue-menu button:active {
       background: #F0EFE9;
     }
+    /* 버전 추가 메뉴 (+ 버전 버튼 아래 드롭다운) */
+    .version-add-menu {
+      position: absolute;
+      top: 100%;
+      right: 0;
+      margin-top: 4px;
+      background: white;
+      border: 1px solid #D1D1CB;
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+      z-index: 50;
+      min-width: 180px;
+      max-height: 300px;
+      overflow-y: auto;
+    }
+    .version-add-menu.hidden { display: none; }
+    .version-add-menu button {
+      display: block;
+      width: 100%;
+      padding: 10px 12px;
+      text-align: left;
+      font-size: 13px;
+      color: #2D3A31;
+      background: white;
+      border: none;
+      cursor: pointer;
+      transition: background 0.1s;
+      border-bottom: 1px solid #F0EFE9;
+    }
+    .version-add-menu button:last-child {
+      border-bottom: none;
+    }
+    .version-add-menu button:first-child {
+      border-radius: 8px 8px 0 0;
+      background: #F0F4EF;
+      font-weight: 500;
+    }
+    .version-add-menu button:hover {
+      background: #F9F8F4;
+    }
+    .version-add-menu button:first-child:hover {
+      background: #E8EEE5;
+    }
+    .version-add-menu button:active {
+      background: #F0EFE9;
+    }
   </style>
 </head>
 <body class="min-h-screen font-sans">
@@ -284,6 +330,6 @@
     </div>
   </div>
 
-  <script src="app.js?v=1"></script>
+  <script src="app.js?v=2"></script>
 </body>
 </html>

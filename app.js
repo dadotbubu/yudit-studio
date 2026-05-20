@@ -2468,9 +2468,13 @@ function attachDialogueLongPress() {
     if (!textarea) return;
 
     textarea.addEventListener('touchstart', (e) => {
-      // 롱프레스 중 텍스트 선택 방지
+      // 롱프레스 중 텍스트 선택 방지 (셀과 textarea 모두)
       cell.style.userSelect = 'none';
       cell.style.webkitUserSelect = 'none';
+      cell.style.webkitTouchCallout = 'none';
+      textarea.style.userSelect = 'none';
+      textarea.style.webkitUserSelect = 'none';
+      textarea.style.webkitTouchCallout = 'none';
 
       longPressTimer = setTimeout(() => {
         const contentId = parseInt(cell.dataset.contentId);
@@ -2482,15 +2486,27 @@ function attachDialogueLongPress() {
     textarea.addEventListener('touchend', () => {
       clearTimeout(longPressTimer);
       // 텍스트 선택 복원
-      cell.style.userSelect = '';
-      cell.style.webkitUserSelect = '';
+      setTimeout(() => {
+        cell.style.userSelect = '';
+        cell.style.webkitUserSelect = '';
+        cell.style.webkitTouchCallout = '';
+        textarea.style.userSelect = '';
+        textarea.style.webkitUserSelect = '';
+        textarea.style.webkitTouchCallout = '';
+      }, 100);
     }, { passive: true });
 
     textarea.addEventListener('touchmove', () => {
       clearTimeout(longPressTimer);
       // 텍스트 선택 복원
-      cell.style.userSelect = '';
-      cell.style.webkitUserSelect = '';
+      setTimeout(() => {
+        cell.style.userSelect = '';
+        cell.style.webkitUserSelect = '';
+        cell.style.webkitTouchCallout = '';
+        textarea.style.userSelect = '';
+        textarea.style.webkitUserSelect = '';
+        textarea.style.webkitTouchCallout = '';
+      }, 100);
     }, { passive: true });
   });
 
@@ -2498,6 +2514,11 @@ function attachDialogueLongPress() {
   document.addEventListener('click', (e) => {
     if (!e.target.closest('.dialogue-menu') && !e.target.closest('.dialogue-menu-btn')) {
       document.querySelectorAll('.dialogue-menu').forEach(menu => {
+        menu.classList.add('hidden');
+      });
+    }
+    if (!e.target.closest('.version-add-menu') && !e.target.closest('button[onclick*="toggleAddVersionMenu"]')) {
+      document.querySelectorAll('.version-add-menu').forEach(menu => {
         menu.classList.add('hidden');
       });
     }
@@ -2973,7 +2994,7 @@ function renderContentForm(content) {
         </div>
 
         <!-- 저장 + 버전 선택 (썸네일/대본 바로 위) -->
-        <div class="flex flex-wrap gap-2 items-center mb-4 pb-3 border-b border-botanical-stone">
+        <div class="flex flex-wrap gap-2 items-center mb-4 pb-3 border-b border-botanical-stone relative">
           <button onclick="saveCheckpoint(${content.id}, '촬영및대본', this)" title="체크포인트 저장 (체크리스트 포함)" class="px-3 py-1 bg-botanical-fg text-white rounded-lg text-xs font-medium hover:bg-botanical-fg/90 transition-all">저장</button>
           ${scriptVersions.map((_, i) => {
             const isActive = i === currentVer;
@@ -2985,7 +3006,15 @@ function renderContentForm(content) {
               </span>
             `;
           }).join('')}
-          <button onclick="showAddVersionMenu(${content.id})" class="px-3 py-1 rounded-full text-xs border border-botanical-stone hover:bg-botanical-cream transition-all">+ 버전</button>
+          <button onclick="toggleAddVersionMenu(${content.id})" class="px-3 py-1 rounded-full text-xs border border-botanical-stone hover:bg-botanical-cream transition-all">+ 버전</button>
+          <div class="version-add-menu hidden" id="version-add-menu-${content.id}">
+            <button onclick="addScriptVersion(${content.id});hideAddVersionMenu(${content.id})">✨ 신규 버전</button>
+            ${scriptVersions.map((v, idx) => `
+              <button onclick="addScriptVersionCopy(${content.id}, ${idx});hideAddVersionMenu(${content.id})">
+                V${idx + 1}${v.title ? ` - ${v.title}` : ''} 복사
+              </button>
+            `).join('')}
+          </div>
         </div>
 
         <div class="mb-4">
@@ -3473,39 +3502,21 @@ function removeScriptRow(contentId, rowIdx) {
   reopenForm(contentId);
 }
 
-function showAddVersionMenu(contentId) {
-  const content = contentsData.contents.find(c => c.id === contentId);
-  if (!content) return;
-  ensureScript(content);
+function toggleAddVersionMenu(contentId) {
+  const menu = document.getElementById(`version-add-menu-${contentId}`);
+  if (!menu) return;
 
-  const popup = document.getElementById('calendar-popup');
-  const popupContent = document.getElementById('popup-content');
+  // 다른 메뉴 닫기
+  document.querySelectorAll('.version-add-menu').forEach(m => {
+    if (m !== menu) m.classList.add('hidden');
+  });
 
-  popupContent.innerHTML = `
-    <div class="flex items-center justify-between mb-4">
-      <h3 class="font-semibold text-lg">버전 추가</h3>
-      <button onclick="closeCalendarPopup()" class="text-botanical-sage hover:text-botanical-fg">
-        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18M6 6l12 12"/></svg>
-      </button>
-    </div>
+  menu.classList.toggle('hidden');
+}
 
-    <div class="space-y-2">
-      <button onclick="addScriptVersion(${contentId});closeCalendarPopup()" class="w-full p-3 rounded-lg border-2 border-botanical-sage bg-botanical-sage/10 hover:bg-botanical-sage hover:text-white transition-all text-left">
-        <div class="font-medium">신규 버전</div>
-        <div class="text-xs text-botanical-sage mt-1">빈 대사 테이블로 시작</div>
-      </button>
-      ${content.script.versions.map((v, idx) => `
-        <button onclick="addScriptVersionCopy(${contentId}, ${idx});closeCalendarPopup()" class="w-full p-3 rounded-lg border border-botanical-stone hover:border-botanical-sage hover:bg-botanical-cream transition-all text-left">
-          <div class="flex items-center justify-between">
-            <span class="font-medium">V${idx + 1} ${v.title ? `- ${v.title}` : ''}</span>
-            <span class="text-xs text-botanical-sage">복사</span>
-          </div>
-        </button>
-      `).join('')}
-    </div>
-  `;
-
-  popup.classList.remove('hidden');
+function hideAddVersionMenu(contentId) {
+  const menu = document.getElementById(`version-add-menu-${contentId}`);
+  if (menu) menu.classList.add('hidden');
 }
 
 function addScriptVersion(contentId) {
@@ -4604,7 +4615,7 @@ function linkPlanToContent(contentId) {
 
     <div class="space-y-2 max-h-[60vh] overflow-y-auto">
       ${monthPlans.map(plan => `
-        <button onclick="applyPlanToContent(${contentId}, '${plan.id}', '${monthStr}')" class="w-full p-3 rounded-lg border border-botanical-stone hover:border-botanical-sage cursor-pointer transition-all text-left">
+        <button data-plan-id="${plan.id}" data-month="${monthStr}" onclick="applyPlanToContent(${contentId}, this.dataset.planId, this.dataset.month)" class="w-full p-3 rounded-lg border border-botanical-stone hover:border-botanical-sage cursor-pointer transition-all text-left">
           <div class="flex items-start justify-between gap-2 mb-1 pointer-events-none">
             <span class="inline-block px-2 py-0.5 rounded-md text-xs font-medium bg-botanical-cream text-botanical-sage">${plan.category}</span>
             <span class="text-xs text-botanical-clay">${plan.week}주차</span>
