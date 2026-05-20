@@ -2458,6 +2458,24 @@ function renderContentList() {
   attachDialogueLongPress();
 }
 
+// Helper: 텍스트 선택 방지
+function disableTextSelection(...elements) {
+  elements.forEach(el => {
+    el.style.userSelect = 'none';
+    el.style.webkitUserSelect = 'none';
+    el.style.webkitTouchCallout = 'none';
+  });
+}
+
+// Helper: 텍스트 선택 복원
+function restoreTextSelection(...elements) {
+  elements.forEach(el => {
+    el.style.userSelect = '';
+    el.style.webkitUserSelect = '';
+    el.style.webkitTouchCallout = '';
+  });
+}
+
 // 대사 셀 롱프레스 이벤트 리스너 (모바일)
 function attachDialogueLongPress() {
   const dialogueCells = document.querySelectorAll('.dialogue-cell');
@@ -2468,45 +2486,23 @@ function attachDialogueLongPress() {
     if (!textarea) return;
 
     textarea.addEventListener('touchstart', (e) => {
-      // 롱프레스 중 텍스트 선택 방지 (셀과 textarea 모두)
-      cell.style.userSelect = 'none';
-      cell.style.webkitUserSelect = 'none';
-      cell.style.webkitTouchCallout = 'none';
-      textarea.style.userSelect = 'none';
-      textarea.style.webkitUserSelect = 'none';
-      textarea.style.webkitTouchCallout = 'none';
+      disableTextSelection(cell, textarea);
 
       longPressTimer = setTimeout(() => {
         const contentId = parseInt(cell.dataset.contentId);
         const idx = parseInt(cell.dataset.rowIdx);
         toggleDialogueMenu(contentId, idx);
-      }, 500); // 500ms 길게 누르기
+      }, 500);
     }, { passive: true });
 
     textarea.addEventListener('touchend', () => {
       clearTimeout(longPressTimer);
-      // 텍스트 선택 복원
-      setTimeout(() => {
-        cell.style.userSelect = '';
-        cell.style.webkitUserSelect = '';
-        cell.style.webkitTouchCallout = '';
-        textarea.style.userSelect = '';
-        textarea.style.webkitUserSelect = '';
-        textarea.style.webkitTouchCallout = '';
-      }, 100);
+      setTimeout(() => restoreTextSelection(cell, textarea), 100);
     }, { passive: true });
 
     textarea.addEventListener('touchmove', () => {
       clearTimeout(longPressTimer);
-      // 텍스트 선택 복원
-      setTimeout(() => {
-        cell.style.userSelect = '';
-        cell.style.webkitUserSelect = '';
-        cell.style.webkitTouchCallout = '';
-        textarea.style.userSelect = '';
-        textarea.style.webkitUserSelect = '';
-        textarea.style.webkitTouchCallout = '';
-      }, 100);
+      setTimeout(() => restoreTextSelection(cell, textarea), 100);
     }, { passive: true });
   });
 
