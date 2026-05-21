@@ -5807,7 +5807,7 @@ let mobileEditingMemoId = null; // 모바일 인라인 편집 대상
 let _memoTouchDrag = null;
 function onMemoTouchStart(e, id) {
   if (!e.touches?.length) return;
-  e.preventDefault();
+  // preventDefault 제거 - 롱프레스 메뉴 허용
   const itemEl = e.currentTarget.closest('[data-memo-id]');
   if (!itemEl) return;
   _memoTouchDrag = { id, itemEl, targetEl: null, isAfter: false };
