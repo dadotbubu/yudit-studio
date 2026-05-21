@@ -4636,7 +4636,21 @@ function applyPlanToContent(contentId, planId, monthStr) {
   // plan의 정보를 콘텐츠에 적용
   content.planDetail = plan.description || '';
   content.category = plan.category;
-  content.title = plan.title;
+
+  // 현재 버전의 제목 업데이트 (핵심 키워드)
+  ensureScript(content);
+  const ver = content.script.currentVersion ?? 0;
+  const finalVer = content.script.finalVersion ?? 0;
+
+  content.script.versions[ver].title = plan.title;
+
+  // 최종 버전이면 content.title과 캘린더도 동기화
+  if (ver === finalVer) {
+    content.title = plan.title;
+    calendarData.items.forEach(item => {
+      if (item.contentId === contentId) item.title = plan.title;
+    });
+  }
 
   saveAllData();
   closeCalendarPopup();
