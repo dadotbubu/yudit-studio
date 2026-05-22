@@ -225,6 +225,12 @@
     .version-add-menu button:active {
       background: #F0EFE9;
     }
+    /* 메모 제목/내용 텍스트 선택 방지 (롱프레스 메뉴 허용) */
+    .memo-title, .memo-preview {
+      user-select: none;
+      -webkit-user-select: none;
+      -webkit-touch-callout: none;
+    }
   </style>
 </head>
 <body class="min-h-screen font-sans">
@@ -330,6 +336,6 @@
     </div>
   </div>
 
-  <script src="app.js?v=5"></script>
+  <script src="app.js?v=6"></script>
 </body>
 </html>
