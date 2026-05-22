@@ -2055,8 +2055,10 @@ function saveNewPlan(week) {
   if (!plansData) plansData = {};
   if (!plansData[dashSelectedMonth]) plansData[dashSelectedMonth] = { plans: [], ideas: [] };
 
+  // 고유 ID 생성 (삭제 후 중복 방지)
+  const timestamp = Date.now();
   const newPlan = {
-    id: `p_${dashSelectedMonth}_${String(plansData[dashSelectedMonth].plans.length + 1).padStart(3, '0')}`,
+    id: `p_${dashSelectedMonth}_${timestamp}`,
     week: week,
     category: category,
     title: title,
@@ -2600,10 +2602,6 @@ function renderContentForm(content) {
                 <option value="협찬" ${content.category === '협찬' ? 'selected' : ''}>협찬</option>
               </optgroup>
             </select>
-          </div>
-          <div>
-            <label class="text-xs text-botanical-sage mb-1 block">${content.isRevenue ? '브랜드 / 상품' : '제목'}</label>
-            <input type="text" data-field="keywords" value="${content.keywords ?? content.title ?? ''}" placeholder="${content.isRevenue ? '브랜드 / 상품명' : '콘텐츠 제목'}" class="w-full px-3 py-2 rounded-lg border border-botanical-stone text-sm focus:outline-none">
           </div>
         </div>
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
