@@ -2602,12 +2602,8 @@ function renderContentForm(content) {
             </select>
           </div>
           <div>
-            <label class="text-xs text-botanical-sage mb-1 block">예정일 <span class="text-botanical-sage/60 font-normal">(메모용)</span></label>
-            <input type="date" data-field="uploadDate" value="${content.uploadDate || ''}" class="w-full px-3 py-2 rounded-lg border border-botanical-stone text-sm focus:outline-none">
-          </div>
-          <div>
-            <label class="text-xs text-botanical-sage mb-1 block">${content.isRevenue ? '브랜드 / 상품' : '핵심 키워드'}</label>
-            <input type="text" data-field="keywords" value="${content.keywords ?? content.title ?? ''}" placeholder="${content.isRevenue ? '브랜드 / 상품명' : '핵심 키워드'}" class="w-full px-3 py-2 rounded-lg border border-botanical-stone text-sm focus:outline-none">
+            <label class="text-xs text-botanical-sage mb-1 block">${content.isRevenue ? '브랜드 / 상품' : '제목'}</label>
+            <input type="text" data-field="keywords" value="${content.keywords ?? content.title ?? ''}" placeholder="${content.isRevenue ? '브랜드 / 상품명' : '콘텐츠 제목'}" class="w-full px-3 py-2 rounded-lg border border-botanical-stone text-sm focus:outline-none">
           </div>
         </div>
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -2866,7 +2862,7 @@ function renderContentForm(content) {
               ${(() => {
                 const singleFields = [
                   ['url', '링크', 'url', '인스타 URL'],
-                  ['title', '썸네일 제목', 'text', ''],
+                  ['title', '제목', 'text', ''],
                   ['hook', '첫 3초 훅킹 멘트, 장면 (1~2줄)', 'textarea', ''],
                   ['followers', '계정 팔로워 수', 'text', ''],
                 ];
@@ -3014,8 +3010,8 @@ function renderContentForm(content) {
         </div>
 
         <div class="mb-4">
-          <label class="text-sm font-medium mb-2 block">썸네일 제목 <span class="text-xs text-botanical-sage font-normal block md:inline mt-0.5 md:mt-0">(버전별 / 현재 버전 제목이 목록·캘린더에 표시됨)</span></label>
-          <input type="text" value="${scriptVersions[currentVer]?.title ?? content.title ?? ''}" oninput="updateContentTitle(${content.id}, this.value)" placeholder="V${currentVer+1} 썸네일 제목 입력" class="w-full px-4 py-2 rounded-lg border border-botanical-stone text-sm focus:outline-none focus:border-botanical-sage">
+          <label class="text-sm font-medium mb-2 block">V${currentVer+1} 제목 <span class="text-xs text-botanical-sage font-normal block md:inline mt-0.5 md:mt-0">(최종 버전 제목이 목록·캘린더에 표시됨)</span></label>
+          <input type="text" value="${scriptVersions[currentVer]?.title ?? content.title ?? ''}" oninput="updateContentTitle(${content.id}, this.value)" placeholder="영상 제목 또는 핵심 키워드 입력" class="w-full px-4 py-2 rounded-lg border border-botanical-stone text-sm focus:outline-none focus:border-botanical-sage">
         </div>
 
         <div class="mb-4">
@@ -4648,7 +4644,7 @@ function applyPlanToContent(contentId, planId, monthStr) {
   content.planDetail = plan.description || '';
   content.category = plan.category;
 
-  // 현재 버전의 제목 업데이트 (핵심 키워드)
+  // 현재 버전의 제목 업데이트
   ensureScript(content);
   const ver = content.script.currentVersion ?? 0;
   const finalVer = content.script.finalVersion ?? 0;
