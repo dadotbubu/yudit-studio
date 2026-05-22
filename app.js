@@ -4627,11 +4627,22 @@ function linkPlanToContent(contentId) {
 }
 
 function applyPlanToContent(contentId, planId, monthStr) {
+  console.log('🔍 플래너 클릭:', { contentId, planId, monthStr });
+
   const content = contentsData.contents.find(c => c.id === contentId);
-  if (!content) return;
+  if (!content) {
+    console.error('❌ 콘텐츠를 찾을 수 없음:', contentId);
+    return;
+  }
 
   const plan = plansData[monthStr].plans.find(p => p.id === planId);
-  if (!plan) return;
+  if (!plan) {
+    console.error('❌ 플랜을 찾을 수 없음:', planId, '월:', monthStr);
+    console.log('사용 가능한 플랜:', plansData[monthStr]?.plans?.map(p => ({ id: p.id, title: p.title })));
+    return;
+  }
+
+  console.log('✅ 연동:', plan.title, '→ 콘텐츠', content.id);
 
   // plan의 정보를 콘텐츠에 적용
   content.planDetail = plan.description || '';
