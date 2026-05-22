@@ -1307,8 +1307,20 @@ function openDateDetail(dateStr) {
   const popupContent = document.getElementById('popup-content');
 
   if (items.length === 0) {
-    // Empty date - show new content registration form
-    popupContent.innerHTML = getRegistrationFormHTML(dateStr);
+    // Empty date - show empty message
+    const [y, m, d] = dateStr.split('-');
+    popupContent.innerHTML = `
+      <div class="flex items-center justify-between mb-4">
+        <h3 class="font-semibold text-lg">${parseInt(m)}월 ${parseInt(d)}일</h3>
+        <button onclick="closeCalendarPopup()" class="text-botanical-sage hover:text-botanical-fg">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18M6 6l12 12"/></svg>
+        </button>
+      </div>
+      <div class="text-center py-8 text-botanical-sage">
+        <p class="text-sm">등록된 일정이 없습니다</p>
+        <p class="text-xs mt-2 text-botanical-clay">플래너 탭에서 계획을 등록하세요</p>
+      </div>
+    `;
   } else if (items.length > 1) {
     // Multiple items - show list to pick
     popupContent.innerHTML = renderDateItemList(items, dateStr);
@@ -1343,7 +1355,6 @@ function renderDateItemList(items, dateStr) {
           </button>
         `).join('')}
     </div>
-    <button onclick="showNewItemForm('${dateStr}')" class="w-full py-2 border border-dashed border-botanical-stone rounded-xl text-botanical-sage hover:bg-botanical-cream/40 transition-all text-sm">+ 이 날짜에 새 일정 추가</button>
   `;
 }
 
@@ -1392,9 +1403,6 @@ function openDateItemDetail(itemId, dateStr) {
         </div>
         <div class="flex gap-2">
           <button onclick="goToContentExpanded(${linkedContent.id})" class="flex-1 py-2 bg-botanical-fg text-white rounded-xl hover:bg-botanical-fg/90 transition-all">바로가기</button>
-          <button onclick="showNewItemForm('${dateStr}')" class="px-4 py-2 border border-botanical-stone rounded-xl text-botanical-sage hover:bg-botanical-cream transition-all">
-            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
-          </button>
           <button onclick="deleteCalendarItem(${item.id})" class="px-4 py-2 border border-red-300 rounded-xl text-red-400 hover:bg-red-50 transition-all">
             <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>
           </button>
@@ -1438,9 +1446,6 @@ function openDateItemDetail(itemId, dateStr) {
           </div>
           <div class="flex gap-2">
             <button onclick="linkToContent(${item.id})" class="flex-1 py-2 bg-botanical-terracotta text-white rounded-xl hover:bg-botanical-terracotta/90 transition-all">콘텐츠 연동하기</button>
-            <button onclick="showNewItemForm('${dateStr}')" class="px-4 py-2 border border-botanical-stone rounded-xl text-botanical-sage hover:bg-botanical-cream transition-all">
-              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
-            </button>
             <button onclick="deleteCalendarItem(${item.id})" class="px-4 py-2 border border-red-300 rounded-xl text-red-400 hover:bg-red-50 transition-all">
               <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>
             </button>
