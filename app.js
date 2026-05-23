@@ -2999,7 +2999,7 @@ function renderContentForm(content) {
                 const singleFields = [
                   ['url', '링크', 'url', '인스타 URL'],
                   ['title', '제목', 'text', ''],
-                  ['hook', '>3초 후킹', 'textarea', ''],
+                  ['hook', '3초 후킹', 'textarea', ''],
                   ['followers', '팔로워 수', 'text', ''],
                 ];
                 const doubleFields = [
