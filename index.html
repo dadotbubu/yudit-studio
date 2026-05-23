@@ -10,7 +10,7 @@
   <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png?v=2">
   <link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png?v=2">
   <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png?v=2">
-  <link rel="manifest" href="manifest.json?v=12">
+  <link rel="manifest" href="manifest.json?v=13">
   <meta name="theme-color" content="#F9F8F4">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-title" content="yudit">
@@ -336,11 +336,12 @@
     </div>
   </div>
 
-  <script src="app.js?v=12"></script>
+  <script src="app.js?v=13"></script>
   <script>
+    // 기존 서비스 워커 해제 (캐시 문제 방지)
     if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('./sw.js?v=12').then(() => {
-        console.log('SW registered');
+      navigator.serviceWorker.getRegistrations().then(regs => {
+        regs.forEach(r => r.unregister());
       });
     }
   </script>

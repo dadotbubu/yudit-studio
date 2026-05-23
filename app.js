@@ -218,25 +218,26 @@ function getUploadDate(content) {
   return (content?.milestones || []).find(m => m.status === '업로드완료')?.date || '';
 }
 
-// 아이콘 정의 (열기: ↗, 복사: ❐, 대본: ▶)
-const iconOpen = `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M7 17L17 7M17 7H8M17 7V16"/></svg>`;
-const iconCopy = `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="8" y="8" width="12" height="12" rx="2"/><rect x="4" y="4" width="12" height="12" rx="2"/></svg>`;
-const iconScript = `<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>`;
-
 // 링크 열기 버튼 — URL 있으면 활성 <a>, 없으면 회색 disabled <span>
 function openLinkBtn(url) {
-  const base = 'p-1.5 border rounded-lg shrink-0 flex items-center justify-center';
+  const base = 'px-2 py-1 text-xs border rounded-lg whitespace-nowrap';
   return url
-    ? `<a href="${url}" target="_blank" class="${base} text-blue-500 border-blue-300 hover:bg-blue-50" title="열기">${iconOpen}</a>`
-    : `<span class="${base} text-botanical-sage/40 border-botanical-stone/50 cursor-default" title="열기">${iconOpen}</span>`;
+    ? `<a href="${url}" target="_blank" class="${base} text-blue-500 border-blue-300 hover:bg-blue-50">열기</a>`
+    : `<span class="${base} text-botanical-sage/40 border-botanical-stone/50 cursor-default">열기</span>`;
 }
 
 // 링크 복사 버튼 — URL 있으면 활성, 없으면 회색 disabled
 function copyLinkBtn(url) {
-  const base = 'p-1.5 border rounded-lg shrink-0 flex items-center justify-center';
+  const base = 'px-2 py-1 text-xs border rounded-lg whitespace-nowrap';
   return url
-    ? `<button onclick="navigator.clipboard.writeText('${url}').then(() => alert('링크 복사 완료')).catch(() => alert('복사 실패'))" class="${base} text-emerald-500 border-emerald-300 hover:bg-emerald-50" title="복사">${iconCopy}</button>`
-    : `<span class="${base} text-botanical-sage/40 border-botanical-stone/50 cursor-default" title="복사">${iconCopy}</span>`;
+    ? `<button onclick="navigator.clipboard.writeText('${url}').then(() => alert('링크 복사 완료')).catch(() => alert('복사 실패'))" class="${base} text-emerald-500 border-emerald-300 hover:bg-emerald-50">복사</button>`
+    : `<span class="${base} text-botanical-sage/40 border-botanical-stone/50 cursor-default">복사</span>`;
+}
+
+// 대본 버튼
+function scriptLinkBtn() {
+  const base = 'px-2 py-1 text-xs border rounded-lg whitespace-nowrap';
+  return `<a href="${DEFAULT_TRANSCRIPT_LINK}" target="_blank" class="${base} text-botanical-terracotta border-botanical-terracotta/40 hover:bg-botanical-terracotta/10">대본</a>`;
 }
 
 // 조회·좋아요 등 큰 숫자를 "1.5K" 형식으로
@@ -2904,23 +2905,31 @@ function renderContentForm(content) {
 
                 // Single-column fields
                 singleFields.forEach(([field, label, type, ph], i) => {
-                  html += `<tr class="border-b border-botanical-stone">
-                    <td class="px-2 md:px-4 py-2 md:py-3 bg-botanical-cream/30 font-medium w-36 md:w-1/3 text-[10px] md:text-sm leading-tight md:leading-normal break-keep align-top">${label}</td>
-                    <td class="px-2 md:px-4 py-2 md:py-3 text-xs md:text-sm" colspan="3">${
-                      type === 'textarea'
-                        ? `<textarea rows="1" oninput="autoResize(this);updateReference(${content.id}, '${field}', this.value)" placeholder="${ph}" class="auto-grow unified-text w-full bg-transparent focus:outline-none resize-none overflow-hidden break-words" style="min-height: 24px; word-break: break-word;">${content.reference?.[field] ?? ''}</textarea>`
-                        : type === 'url'
-                        ? `<div class="flex items-center gap-1">
-                            <input type="text" value="${content.reference?.[field] ?? ''}" placeholder="${ph}" oninput="updateReference(${content.id}, '${field}', this.value)" class="min-w-0 bg-transparent focus:outline-none truncate" style="flex: 1 1 0; max-width: calc(100% - 110px);">
-                            <div class="flex items-center gap-1 shrink-0">
-                              ${openLinkBtn(content.reference?.[field])}
-                              ${copyLinkBtn(content.reference?.[field])}
-                              <a href="${DEFAULT_TRANSCRIPT_LINK}" target="_blank" class="p-1.5 border rounded-lg shrink-0 flex items-center justify-center text-botanical-terracotta border-botanical-terracotta/40 hover:bg-botanical-terracotta/10" title="대본">${iconScript}</a>
-                            </div>
-                          </div>`
-                        : `<input type="${type}" value="${content.reference?.[field] ?? ''}" placeholder="${ph}" oninput="updateReference(${content.id}, '${field}', this.value)" class="w-full bg-transparent focus:outline-none">`
-                    }</td>
-                  </tr>`;
+                  if (type === 'url') {
+                    // URL 타입은 별도 3열 구조 (라벨 | URL | 버튼들)
+                    html += `<tr class="border-b border-botanical-stone">
+                      <td class="px-2 md:px-4 py-2 md:py-3 bg-botanical-cream/30 font-medium text-[10px] md:text-sm leading-tight md:leading-normal break-keep align-top">${label}</td>
+                      <td class="px-2 md:px-4 py-2 md:py-3 text-xs md:text-sm" colspan="2">
+                        <input type="text" value="${content.reference?.[field] ?? ''}" placeholder="${ph}" oninput="updateReference(${content.id}, '${field}', this.value)" class="w-full bg-transparent focus:outline-none truncate">
+                      </td>
+                      <td class="px-2 md:px-4 py-2 md:py-3 whitespace-nowrap">
+                        <div class="flex items-center gap-1">
+                          ${openLinkBtn(content.reference?.[field])}
+                          ${copyLinkBtn(content.reference?.[field])}
+                          ${scriptLinkBtn()}
+                        </div>
+                      </td>
+                    </tr>`;
+                  } else {
+                    html += `<tr class="border-b border-botanical-stone">
+                      <td class="px-2 md:px-4 py-2 md:py-3 bg-botanical-cream/30 font-medium w-36 md:w-1/3 text-[10px] md:text-sm leading-tight md:leading-normal break-keep align-top">${label}</td>
+                      <td class="px-2 md:px-4 py-2 md:py-3 text-xs md:text-sm" colspan="3">${
+                        type === 'textarea'
+                          ? `<textarea rows="1" oninput="autoResize(this);updateReference(${content.id}, '${field}', this.value)" placeholder="${ph}" class="auto-grow unified-text w-full bg-transparent focus:outline-none resize-none overflow-hidden break-words" style="min-height: 24px; word-break: break-word;">${content.reference?.[field] ?? ''}</textarea>`
+                          : `<input type="${type}" value="${content.reference?.[field] ?? ''}" placeholder="${ph}" oninput="updateReference(${content.id}, '${field}', this.value)" class="w-full bg-transparent focus:outline-none">`
+                      }</td>
+                    </tr>`;
+                  }
                 });
 
                 // Double-column fields
