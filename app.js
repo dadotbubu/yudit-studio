@@ -3000,11 +3000,10 @@ function renderContentForm(content) {
                   ['url', '링크', 'url', '인스타 URL'],
                   ['title', '제목', 'text', ''],
                   ['hook', '3초 후킹', 'textarea', ''],
-                  ['followers', '팔로워 수', 'text', ''],
                 ];
                 const doubleFields = [
-                  [['views', '조회수', 'text', ''], ['likes', '좋아요', 'text', '']],
-                  [['shares', '공유', 'text', ''], ['saves', '저장', 'text', '']],
+                  [['followers', '팔로워수', 'text', ''], ['views', '조회수', 'text', '']],
+                  [['likes', '좋아요', 'text', ''], ['shares', '공유', 'text', '']],
                   [['comments', '댓글', 'text', ''], ['length', '영상 길이', 'text', '']],
                 ];
                 const lastField = ['reason', '잘 터진 이유 (정보 / 공감 / 유머 등)', 'textarea', ''];
