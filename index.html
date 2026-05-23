@@ -336,14 +336,17 @@
     </div>
   </div>
 
-  <script src="app.js?v=13"></script>
   <script>
-    // 기존 서비스 워커 해제 (캐시 문제 방지)
+    // 기존 서비스 워커 해제
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.getRegistrations().then(regs => {
         regs.forEach(r => r.unregister());
       });
     }
+    // app.js 동적 로드 (타임스탬프로 캐시 무효화)
+    const s = document.createElement('script');
+    s.src = 'app.js?t=' + Date.now();
+    document.body.appendChild(s);
   </script>
 </body>
 </html>

@@ -1823,7 +1823,14 @@ function renderDashboard() {
                     <span class="inline-block px-2 py-0.5 rounded-md text-xs font-medium bg-botanical-cream text-botanical-sage">${plan.category}</span>
                   </div>
                   <h4 class="text-base font-semibold text-botanical-fg mb-2">${plan.title}</h4>
-                  ${plan.description ? `<p class="text-xs text-botanical-sage leading-relaxed mb-4">${plan.description.split('\n').map(line => line.trim()).filter(line => line).join('<br>')}</p>` : ''}
+                  ${plan.link ? `
+                    <div class="flex items-center gap-2 mb-2">
+                      <span class="text-xs text-botanical-sage truncate flex-1">${plan.link}</span>
+                      ${openLinkBtn(plan.link)}
+                      ${copyLinkBtn(plan.link)}
+                    </div>
+                  ` : ''}
+                  ${plan.description ? `<p class="text-xs text-botanical-sage leading-relaxed mb-3">${plan.description.split('\n').map(line => line.trim()).filter(line => line).join('<br>')}</p>` : ''}
                   <div class="flex items-center gap-1.5">
                     <button onclick="editPlan('${plan.id}')" class="flex-1 px-2 py-1.5 rounded-lg text-xs font-medium border border-botanical-stone text-botanical-sage hover:bg-botanical-cream transition-all">
                       수정
@@ -1854,22 +1861,27 @@ function renderDashboard() {
 
       <div class="bg-white rounded-2xl p-4 shadow-sm">
         ${allIdeas.length > 0 ? `
-          <div class="space-y-2">
+          <div class="space-y-3">
             ${allIdeas.map(idea => `
               <div class="p-3 rounded-lg border border-botanical-stone hover:border-botanical-sage transition-all">
-                <div class="flex items-start justify-between gap-3">
-                  <div class="flex-1 min-w-0">
-                    <div class="flex items-center gap-2 mb-1">
-                      <span class="inline-block px-2 py-0.5 rounded-md text-xs font-medium bg-botanical-cream text-botanical-sage whitespace-nowrap">${idea.category}</span>
-                      <h4 class="text-sm font-medium text-botanical-fg truncate">${idea.title}</h4>
-                    </div>
-                    ${idea.description ? `<p class="text-xs text-botanical-sage line-clamp-2">${idea.description}</p>` : ''}
+                <div class="flex items-center gap-2 mb-2">
+                  <span class="inline-block px-2 py-0.5 rounded-md text-xs font-medium bg-botanical-cream text-botanical-sage whitespace-nowrap">${idea.category}</span>
+                  <h4 class="text-sm font-medium text-botanical-fg truncate flex-1">${idea.title}</h4>
+                </div>
+                ${idea.link ? `
+                  <div class="flex items-center gap-2 mb-2">
+                    <span class="text-xs text-botanical-sage truncate flex-1">${idea.link}</span>
+                    ${openLinkBtn(idea.link)}
+                    ${copyLinkBtn(idea.link)}
                   </div>
-                  <div class="flex items-center gap-2 shrink-0">
-                    <button onclick="editIdea('${idea.id}')" class="text-xs text-botanical-sage hover:text-botanical-fg transition-all">수정</button>
-                    <span class="text-botanical-stone">|</span>
-                    <button onclick="deleteIdea('${idea.id}')" class="text-xs text-botanical-terracotta hover:text-red-600 transition-all">삭제</button>
-                  </div>
+                ` : ''}
+                ${idea.description ? `<p class="text-xs text-botanical-sage line-clamp-2 mb-2">${idea.description}</p>` : ''}
+                <div class="flex items-center gap-2 pt-2 border-t border-botanical-stone/50">
+                  <button onclick="moveIdeaToPlanner('${idea.id}')" class="text-xs text-blue-500 hover:text-blue-700 transition-all">이동</button>
+                  <span class="text-botanical-stone">|</span>
+                  <button onclick="editIdea('${idea.id}')" class="text-xs text-botanical-sage hover:text-botanical-fg transition-all">수정</button>
+                  <span class="text-botanical-stone">|</span>
+                  <button onclick="deleteIdea('${idea.id}')" class="text-xs text-botanical-terracotta hover:text-red-600 transition-all">삭제</button>
                 </div>
               </div>
             `).join('')}
@@ -1911,6 +1923,10 @@ function addPlanToWeek(week) {
       <div>
         <label class="text-sm font-medium block mb-1">제목</label>
         <input type="text" id="new-plan-title" class="w-full px-3 py-2 rounded-xl border border-botanical-stone focus:outline-none" placeholder="계획 제목">
+      </div>
+      <div>
+        <label class="text-sm font-medium block mb-1">링크 <span class="text-xs text-botanical-sage">(선택)</span></label>
+        <input type="text" id="new-plan-link" class="w-full px-3 py-2 rounded-xl border border-botanical-stone focus:outline-none" placeholder="https://...">
       </div>
       <div>
         <label class="text-sm font-medium block mb-1">상세 내용</label>
@@ -1983,6 +1999,10 @@ function editPlan(planId) {
         <input type="text" id="edit-plan-title" value="${plan.title}" class="w-full px-3 py-2 rounded-xl border border-botanical-stone focus:outline-none" placeholder="계획 제목">
       </div>
       <div>
+        <label class="text-sm font-medium block mb-1">링크 <span class="text-xs text-botanical-sage">(선택)</span></label>
+        <input type="text" id="edit-plan-link" value="${plan.link || ''}" class="w-full px-3 py-2 rounded-xl border border-botanical-stone focus:outline-none" placeholder="https://...">
+      </div>
+      <div>
         <label class="text-sm font-medium block mb-1">상세 내용</label>
         <textarea id="edit-plan-description" rows="4" class="w-full px-3 py-2 rounded-xl border border-botanical-stone focus:outline-none resize-none" placeholder="• 항목 1\n• 항목 2\n• 항목 3" onkeydown="handlePlanDescriptionEnter(event)">${plan.description || ''}</textarea>
       </div>
@@ -2000,6 +2020,7 @@ function savePlan(planId) {
   const weekValue = document.getElementById('edit-plan-week').value; // "YYYY-MM-W" 형식
   const category = document.getElementById('edit-plan-category').value;
   const title = document.getElementById('edit-plan-title').value;
+  const link = document.getElementById('edit-plan-link').value;
   const description = document.getElementById('edit-plan-description').value;
 
   if (!title) {
@@ -2032,6 +2053,7 @@ function savePlan(planId) {
     plan.week = week;
     plan.category = category;
     plan.title = title;
+    plan.link = link;
     plan.description = description;
     plansData[targetMonth].plans.push(plan);
   } else {
@@ -2039,6 +2061,7 @@ function savePlan(planId) {
     plan.week = week;
     plan.category = category;
     plan.title = title;
+    plan.link = link;
     plan.description = description;
   }
 
@@ -2075,6 +2098,7 @@ function deletePlan(planId) {
 function saveNewPlan(week) {
   const category = document.getElementById('new-plan-category').value;
   const title = document.getElementById('new-plan-title').value;
+  const link = document.getElementById('new-plan-link').value;
   const description = document.getElementById('new-plan-description').value;
 
   if (!title) {
@@ -2092,6 +2116,7 @@ function saveNewPlan(week) {
     week: week,
     category: category,
     title: title,
+    link: link,
     description: description,
     createdAt: new Date().toISOString(),
     createdBy: 'user'
@@ -2138,7 +2163,7 @@ function startContentFromPlan(planId) {
     milestones: [],
     url: '',
     performance: { views: null, likes: null, shares: null, comments: null, saves: null },
-    reference: { links: [], analysis: '' },
+    reference: { link: plan.link || '', links: [], analysis: '' },
     planDetail: plan.description || '',
     script: { versions: [], currentVersion: 0 },
     caption: '',
@@ -2193,6 +2218,10 @@ function addIdea() {
         <input type="text" id="new-idea-title" class="w-full px-3 py-2 rounded-xl border border-botanical-stone focus:outline-none" placeholder="아이디어 제목">
       </div>
       <div>
+        <label class="text-sm font-medium block mb-1">링크 <span class="text-xs text-botanical-sage">(선택)</span></label>
+        <input type="text" id="new-idea-link" class="w-full px-3 py-2 rounded-xl border border-botanical-stone focus:outline-none" placeholder="https://...">
+      </div>
+      <div>
         <label class="text-sm font-medium block mb-1">상세 내용 <span class="text-xs text-botanical-sage">(선택)</span></label>
         <textarea id="new-idea-description" rows="3" class="w-full px-3 py-2 rounded-xl border border-botanical-stone focus:outline-none resize-none" placeholder="간단한 설명"></textarea>
       </div>
@@ -2238,6 +2267,10 @@ function editIdea(ideaId) {
         <input type="text" id="edit-idea-title" value="${idea.title}" class="w-full px-3 py-2 rounded-xl border border-botanical-stone focus:outline-none" placeholder="아이디어 제목">
       </div>
       <div>
+        <label class="text-sm font-medium block mb-1">링크 <span class="text-xs text-botanical-sage">(선택)</span></label>
+        <input type="text" id="edit-idea-link" value="${idea.link || ''}" class="w-full px-3 py-2 rounded-xl border border-botanical-stone focus:outline-none" placeholder="https://...">
+      </div>
+      <div>
         <label class="text-sm font-medium block mb-1">상세 내용 <span class="text-xs text-botanical-sage">(선택)</span></label>
         <textarea id="edit-idea-description" rows="3" class="w-full px-3 py-2 rounded-xl border border-botanical-stone focus:outline-none resize-none" placeholder="간단한 설명">${idea.description || ''}</textarea>
       </div>
@@ -2262,6 +2295,7 @@ function deleteIdea(ideaId) {
 function saveNewIdea() {
   const category = document.getElementById('new-idea-category').value;
   const title = document.getElementById('new-idea-title').value;
+  const link = document.getElementById('new-idea-link').value;
   const description = document.getElementById('new-idea-description').value;
 
   if (!title) {
@@ -2276,6 +2310,7 @@ function saveNewIdea() {
     id: `i_${Date.now()}`,
     category: category,
     title: title,
+    link: link,
     description: description,
     createdAt: new Date().toISOString(),
     createdBy: 'user'
@@ -2291,6 +2326,7 @@ function saveNewIdea() {
 function saveIdea(ideaId) {
   const category = document.getElementById('edit-idea-category').value;
   const title = document.getElementById('edit-idea-title').value;
+  const link = document.getElementById('edit-idea-link').value;
   const description = document.getElementById('edit-idea-description').value;
 
   if (!title) {
@@ -2306,11 +2342,83 @@ function saveIdea(ideaId) {
 
   idea.category = category;
   idea.title = title;
+  idea.link = link;
   idea.description = description;
 
   saveAllData();
   closeCalendarPopup();
   renderDashboard();
+}
+
+// 아이디어 → 플래너 이동
+function moveIdeaToPlanner(ideaId) {
+  const idea = plansData._ideas?.find(i => i.id === ideaId);
+  if (!idea) return;
+
+  // 현재 날짜 기준 +4주 옵션 생성
+  const today = new Date();
+  const options = [];
+  for (let i = 0; i < 4; i++) {
+    const targetDate = new Date(today);
+    targetDate.setDate(today.getDate() + i * 7);
+    const year = targetDate.getFullYear();
+    const month = targetDate.getMonth() + 1;
+    const weekOfMonth = Math.ceil(targetDate.getDate() / 7);
+    const monthStr = `${year}-${String(month).padStart(2, '0')}`;
+    options.push({ monthStr, week: weekOfMonth, label: `${month}월 ${weekOfMonth}주차` });
+  }
+
+  const popup = document.getElementById('calendar-popup');
+  const popupContent = document.getElementById('popup-content');
+
+  popupContent.innerHTML = `
+    <div class="flex items-center justify-between mb-4">
+      <h3 class="font-semibold text-lg">플래너로 이동</h3>
+      <button onclick="closeCalendarPopup()" class="text-botanical-sage hover:text-botanical-fg">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18M6 6l12 12"/></svg>
+      </button>
+    </div>
+    <p class="text-sm text-botanical-sage mb-4">"${idea.title}"을(를) 어느 주차로 이동할까요?</p>
+    <div class="space-y-2">
+      ${options.map(opt => `
+        <button onclick="confirmMoveToPlanner('${ideaId}', '${opt.monthStr}', ${opt.week})" class="w-full py-3 px-4 text-left rounded-xl border border-botanical-stone hover:border-botanical-sage hover:bg-botanical-cream/50 transition-all">
+          <span class="font-medium">${opt.label}</span>
+        </button>
+      `).join('')}
+    </div>
+  `;
+
+  popup.classList.remove('hidden');
+}
+
+function confirmMoveToPlanner(ideaId, monthStr, week) {
+  const idea = plansData._ideas?.find(i => i.id === ideaId);
+  if (!idea) return;
+
+  // 플래너 데이터 구조 확인
+  if (!plansData[monthStr]) plansData[monthStr] = { plans: [], ideas: [] };
+
+  // 새 플랜 생성
+  const newPlan = {
+    id: `p_${Date.now()}`,
+    week: week,
+    category: idea.category,
+    title: idea.title,
+    link: idea.link || '',
+    description: idea.description || '',
+    createdAt: new Date().toISOString(),
+    createdBy: 'user'
+  };
+
+  plansData[monthStr].plans.push(newPlan);
+
+  // 아이디어에서 삭제
+  plansData._ideas = plansData._ideas.filter(i => i.id !== ideaId);
+
+  saveAllData();
+  closeCalendarPopup();
+  renderDashboard();
+  alert('플래너로 이동되었습니다');
 }
 
 // ========== Content List ==========
