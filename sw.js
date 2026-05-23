@@ -1,4 +1,4 @@
-const CACHE_VERSION = 'v11';
+const CACHE_VERSION = 'v12';
 const CACHE_NAME = `yudit-studio-${CACHE_VERSION}`;
 
 // 캐시할 파일 목록
