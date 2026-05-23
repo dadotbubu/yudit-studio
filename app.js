@@ -2999,8 +2999,8 @@ function renderContentForm(content) {
                 const singleFields = [
                   ['url', '링크', 'url', '인스타 URL'],
                   ['title', '제목', 'text', ''],
-                  ['hook', '첫 3초 훅킹 멘트, 장면 (1~2줄)', 'textarea', ''],
-                  ['followers', '계정 팔로워 수', 'text', ''],
+                  ['hook', '>3초 후킹', 'textarea', ''],
+                  ['followers', '팔로워 수', 'text', ''],
                 ];
                 const doubleFields = [
                   [['views', '조회수', 'text', ''], ['likes', '좋아요', 'text', '']],
@@ -3016,11 +3016,11 @@ function renderContentForm(content) {
                   if (type === 'url') {
                     // URL 타입은 별도 3열 구조 (라벨 | URL | 버튼들)
                     html += `<tr class="border-b border-botanical-stone">
-                      <td class="px-2 md:px-4 py-2 md:py-3 bg-botanical-cream/30 font-medium text-[10px] md:text-sm leading-tight md:leading-normal break-keep align-top">${label}</td>
+                      <td class="px-2 md:px-4 py-2 md:py-3 bg-botanical-cream/30 font-medium w-14 md:w-24 text-[10px] md:text-sm leading-tight md:leading-normal break-keep align-top">${label}</td>
                       <td class="px-2 md:px-4 py-2 md:py-3 text-xs md:text-sm" colspan="2">
                         <input type="text" value="${content.reference?.[field] ?? ''}" placeholder="${ph}" oninput="updateReference(${content.id}, '${field}', this.value)" class="w-full bg-transparent focus:outline-none truncate">
                       </td>
-                      <td class="px-2 md:px-4 py-2 md:py-3 whitespace-nowrap">
+                      <td class="px-2 py-2 md:py-3 whitespace-nowrap">
                         <div class="flex items-center gap-1">
                           ${openLinkBtn(content.reference?.[field])}
                           ${copyLinkBtn(content.reference?.[field])}
@@ -3030,7 +3030,7 @@ function renderContentForm(content) {
                     </tr>`;
                   } else {
                     html += `<tr class="border-b border-botanical-stone">
-                      <td class="px-2 md:px-4 py-2 md:py-3 bg-botanical-cream/30 font-medium w-36 md:w-1/3 text-[10px] md:text-sm leading-tight md:leading-normal break-keep align-top">${label}</td>
+                      <td class="px-2 md:px-4 py-2 md:py-3 bg-botanical-cream/30 font-medium w-14 md:w-24 text-[10px] md:text-sm leading-tight md:leading-normal break-keep align-top">${label}</td>
                       <td class="px-2 md:px-4 py-2 md:py-3 text-xs md:text-sm" colspan="3">${
                         type === 'textarea'
                           ? `<textarea rows="1" oninput="autoResize(this);updateReference(${content.id}, '${field}', this.value)" placeholder="${ph}" class="auto-grow unified-text w-full bg-transparent focus:outline-none resize-none overflow-hidden break-words" style="min-height: 24px; word-break: break-word;">${content.reference?.[field] ?? ''}</textarea>`
@@ -3043,11 +3043,11 @@ function renderContentForm(content) {
                 // Double-column fields
                 doubleFields.forEach(([[field1, label1, type1, ph1], [field2, label2, type2, ph2]], i) => {
                   html += `<tr class="border-b border-botanical-stone">
-                    <td class="px-2 md:px-3 py-2 md:py-3 bg-botanical-cream/30 font-medium text-[10px] md:text-xs leading-tight md:leading-normal break-keep align-top">${label1}</td>
-                    <td class="px-2 md:px-3 py-2 md:py-3 text-xs md:text-sm">
+                    <td class="px-1 md:px-3 py-2 md:py-3 bg-botanical-cream/30 font-medium w-12 md:w-20 text-[10px] md:text-xs leading-tight md:leading-normal break-keep align-top">${label1}</td>
+                    <td class="px-1 md:px-3 py-2 md:py-3 text-xs md:text-sm">
                       <input type="${type1}" value="${content.reference?.[field1] ?? ''}" placeholder="${ph1}" oninput="updateReference(${content.id}, '${field1}', this.value)" class="w-full bg-transparent focus:outline-none">
                     </td>
-                    <td class="px-2 md:px-3 py-2 md:py-3 bg-botanical-cream/30 font-medium text-[10px] md:text-xs leading-tight md:leading-normal break-keep align-top">${label2}</td>
+                    <td class="px-1 md:px-3 py-2 md:py-3 bg-botanical-cream/30 font-medium w-12 md:w-20 text-[10px] md:text-xs leading-tight md:leading-normal break-keep align-top">${label2}</td>
                     <td class="px-2 md:px-3 py-2 md:py-3 text-xs md:text-sm">
                       <input type="${type2}" value="${content.reference?.[field2] ?? ''}" placeholder="${ph2}" oninput="updateReference(${content.id}, '${field2}', this.value)" class="w-full bg-transparent focus:outline-none">
                     </td>
@@ -3057,7 +3057,7 @@ function renderContentForm(content) {
                 // Last field
                 const [field, label, type, ph] = lastField;
                 html += `<tr>
-                  <td class="px-2 md:px-4 py-2 md:py-3 bg-botanical-cream/30 font-medium w-36 md:w-1/3 text-[10px] md:text-sm leading-tight md:leading-normal break-keep align-top">${label}</td>
+                  <td class="px-2 md:px-4 py-2 md:py-3 bg-botanical-cream/30 font-medium w-14 md:w-24 text-[10px] md:text-sm leading-tight md:leading-normal break-keep align-top">${label}</td>
                   <td class="px-2 md:px-4 py-2 md:py-3 text-xs md:text-sm" colspan="3">
                     <textarea rows="1" oninput="autoResize(this);updateReference(${content.id}, '${field}', this.value)" placeholder="${ph}" class="auto-grow unified-text w-full bg-transparent focus:outline-none resize-none overflow-hidden break-words" style="min-height: 24px; word-break: break-word;">${content.reference?.[field] ?? ''}</textarea>
                   </td>
