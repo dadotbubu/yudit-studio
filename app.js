@@ -564,6 +564,24 @@ async function loadData() {
       localStorage.setItem('yudit_ideaMilestoneRemoved', 'true');
     }
 
+    // 일회성 마이그레이션: 월별 아이디어 → 전역 아이디어로 이동
+    if (!localStorage.getItem('yudit_ideasGlobalMigrated') && plansData) {
+      if (!plansData._ideas) plansData._ideas = [];
+      let migrated = 0;
+      Object.keys(plansData).forEach(key => {
+        if (key !== '_ideas' && plansData[key] && plansData[key].ideas && plansData[key].ideas.length > 0) {
+          plansData._ideas.push(...plansData[key].ideas);
+          migrated += plansData[key].ideas.length;
+          plansData[key].ideas = [];
+        }
+      });
+      if (migrated > 0) {
+        console.log(`📦 월별 아이디어 ${migrated}개 → 전역으로 마이그레이션 완료`);
+        saveAllData();
+      }
+      localStorage.setItem('yudit_ideasGlobalMigrated', 'true');
+    }
+
     // 매일 최초 실행 시 중복 데이터 감지 (비동기, 블로킹 안 함)
     maybeCheckDuplicates();
 
@@ -1701,10 +1719,12 @@ function renderDashboard() {
   // plansData 초기화 (null 체크)
   if (!plansData) plansData = {};
 
-  // 해당 월의 plans, ideas 가져오기
+  // 해당 월의 plans 가져오기
   const monthData = plansData[dashMonthStr] || { plans: [], ideas: [] };
   const monthPlans = monthData.plans || [];
-  const monthIdeas = monthData.ideas || [];
+
+  // 전역 아이디어 가져오기 (월과 무관)
+  const allIdeas = plansData._ideas || [];
 
   // 주차별로 plans 그룹화 (1~4주차)
   const plansByWeek = { 1: [], 2: [], 3: [], 4: [] };
@@ -1820,22 +1840,21 @@ function renderDashboard() {
 
     <!-- 아이디어 탭 -->
     <div id="planner-ideas-tab" class="${plannerSubTab === 'ideas' ? '' : 'hidden'}">
-      <div class="flex items-center justify-between mb-6">
-        <h2 class="text-lg font-semibold">${dashY}년 ${dashM}월</h2>
+      <div class="flex items-center justify-end mb-6">
         <button onclick="addIdea()" class="px-5 py-2.5 rounded-full bg-botanical-fg text-white text-sm font-medium hover:bg-opacity-90 transition-all">
           + 아이디어 추가
         </button>
       </div>
 
       <div class="bg-white rounded-2xl p-4 shadow-sm">
-        ${monthIdeas.length > 0 ? `
+        ${allIdeas.length > 0 ? `
           <div class="space-y-2">
-            ${monthIdeas.map(idea => `
+            ${allIdeas.map(idea => `
               <div class="p-3 rounded-lg border border-botanical-stone hover:border-botanical-sage transition-all">
                 <div class="flex items-start justify-between gap-3">
                   <div class="flex-1 min-w-0">
                     <div class="flex items-center gap-2 mb-1">
-                      <span class="inline-block w-24 text-center px-2 py-0.5 rounded-md text-xs font-medium bg-botanical-cream text-botanical-sage">${idea.category}</span>
+                      <span class="inline-block px-2 py-0.5 rounded-md text-xs font-medium bg-botanical-cream text-botanical-sage whitespace-nowrap">${idea.category}</span>
                       <h4 class="text-sm font-medium text-botanical-fg truncate">${idea.title}</h4>
                     </div>
                     ${idea.description ? `<p class="text-xs text-botanical-sage line-clamp-2">${idea.description}</p>` : ''}
@@ -2179,9 +2198,9 @@ function addIdea() {
 }
 
 function editIdea(ideaId) {
-  if (!plansData || !plansData[dashSelectedMonth] || !plansData[dashSelectedMonth].ideas) return;
+  if (!plansData || !plansData._ideas) return;
 
-  const idea = plansData[dashSelectedMonth].ideas.find(i => i.id === ideaId);
+  const idea = plansData._ideas.find(i => i.id === ideaId);
   if (!idea) {
     alert('아이디어를 찾을 수 없습니다');
     return;
@@ -2225,9 +2244,9 @@ function editIdea(ideaId) {
 
 function deleteIdea(ideaId) {
   if (confirm('이 아이디어를 삭제하시겠습니까?')) {
-    if (!plansData || !plansData[dashSelectedMonth] || !plansData[dashSelectedMonth].ideas) return;
+    if (!plansData || !plansData._ideas) return;
 
-    plansData[dashSelectedMonth].ideas = plansData[dashSelectedMonth].ideas.filter(idea => idea.id !== ideaId);
+    plansData._ideas = plansData._ideas.filter(idea => idea.id !== ideaId);
 
     saveAllData();
     renderDashboard();
@@ -2245,10 +2264,10 @@ function saveNewIdea() {
   }
 
   if (!plansData) plansData = {};
-  if (!plansData[dashSelectedMonth]) plansData[dashSelectedMonth] = { plans: [], ideas: [] };
+  if (!plansData._ideas) plansData._ideas = [];
 
   const newIdea = {
-    id: `i_${dashSelectedMonth}_${String(plansData[dashSelectedMonth].ideas.length + 1).padStart(3, '0')}`,
+    id: `i_${Date.now()}`,
     category: category,
     title: title,
     description: description,
@@ -2256,7 +2275,7 @@ function saveNewIdea() {
     createdBy: 'user'
   };
 
-  plansData[dashSelectedMonth].ideas.push(newIdea);
+  plansData._ideas.push(newIdea);
 
   saveAllData();
   closeCalendarPopup();
@@ -2273,7 +2292,7 @@ function saveIdea(ideaId) {
     return;
   }
 
-  const idea = plansData[dashSelectedMonth].ideas.find(i => i.id === ideaId);
+  const idea = plansData._ideas.find(i => i.id === ideaId);
   if (!idea) {
     alert('아이디어를 찾을 수 없습니다');
     return;
@@ -2886,11 +2905,13 @@ function renderContentForm(content) {
                       type === 'textarea'
                         ? `<textarea rows="1" oninput="autoResize(this);updateReference(${content.id}, '${field}', this.value)" placeholder="${ph}" class="auto-grow unified-text w-full bg-transparent focus:outline-none resize-none overflow-hidden break-words" style="min-height: 24px; word-break: break-word;">${content.reference?.[field] ?? ''}</textarea>`
                         : type === 'url'
-                        ? `<div class="flex items-center gap-1">
-                            <input type="text" value="${content.reference?.[field] ?? ''}" placeholder="${ph}" oninput="updateReference(${content.id}, '${field}', this.value)" class="flex-1 min-w-0 bg-transparent focus:outline-none">
-                            ${openLinkBtn(content.reference?.[field])}
-                            ${copyLinkBtn(content.reference?.[field])}
-                            <a href="${DEFAULT_TRANSCRIPT_LINK}" target="_blank" class="px-1.5 text-xs text-botanical-terracotta border border-botanical-terracotta/40 rounded-lg hover:bg-botanical-terracotta/10 flex items-center shrink-0">대본</a>
+                        ? `<div class="flex flex-wrap items-center gap-1">
+                            <input type="text" value="${content.reference?.[field] ?? ''}" placeholder="${ph}" oninput="updateReference(${content.id}, '${field}', this.value)" class="w-full md:flex-1 md:w-auto min-w-0 bg-transparent focus:outline-none">
+                            <div class="flex items-center gap-1">
+                              ${openLinkBtn(content.reference?.[field])}
+                              ${copyLinkBtn(content.reference?.[field])}
+                              <a href="${DEFAULT_TRANSCRIPT_LINK}" target="_blank" class="px-1.5 text-xs text-botanical-terracotta border border-botanical-terracotta/40 rounded-lg hover:bg-botanical-terracotta/10 flex items-center shrink-0">대본</a>
+                            </div>
                           </div>`
                         : `<input type="${type}" value="${content.reference?.[field] ?? ''}" placeholder="${ph}" oninput="updateReference(${content.id}, '${field}', this.value)" class="w-full bg-transparent focus:outline-none">`
                     }</td>
