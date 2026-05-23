@@ -2906,7 +2906,7 @@ function renderContentForm(content) {
                         ? `<textarea rows="1" oninput="autoResize(this);updateReference(${content.id}, '${field}', this.value)" placeholder="${ph}" class="auto-grow unified-text w-full bg-transparent focus:outline-none resize-none overflow-hidden break-words" style="min-height: 24px; word-break: break-word;">${content.reference?.[field] ?? ''}</textarea>`
                         : type === 'url'
                         ? `<div class="flex items-center gap-1">
-                            <input type="text" value="${content.reference?.[field] ?? ''}" placeholder="${ph}" oninput="updateReference(${content.id}, '${field}', this.value)" class="flex-1 min-w-0 bg-transparent focus:outline-none truncate">
+                            <input type="text" value="${content.reference?.[field] ?? ''}" placeholder="${ph}" oninput="updateReference(${content.id}, '${field}', this.value)" class="min-w-0 bg-transparent focus:outline-none truncate" style="flex: 1 1 0; max-width: calc(100% - 110px);">
                             <div class="flex items-center gap-1 shrink-0">
                               ${openLinkBtn(content.reference?.[field])}
                               ${copyLinkBtn(content.reference?.[field])}

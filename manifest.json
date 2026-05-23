@@ -2,7 +2,7 @@
   "name": "yudit studio",
   "short_name": "yudit",
   "description": "Content Calendar & Management",
-  "start_url": "./?v=10",
+  "start_url": "./?v=11",
   "display": "standalone",
   "background_color": "#F9F8F4",
   "theme_color": "#F9F8F4",
