@@ -1864,25 +1864,18 @@ function renderDashboard() {
           <div class="space-y-3">
             ${allIdeas.map(idea => `
               <div class="p-3 rounded-lg border border-botanical-stone hover:border-botanical-sage transition-all">
-                <div class="flex items-center gap-2 mb-2">
+                <div class="flex items-center justify-between mb-1">
                   <span class="inline-block px-2 py-0.5 rounded-md text-xs font-medium bg-botanical-cream text-botanical-sage whitespace-nowrap">${idea.category}</span>
-                  <h4 class="text-sm font-medium text-botanical-fg truncate flex-1">${idea.title}</h4>
-                </div>
-                ${idea.link ? `
-                  <div class="flex items-center gap-2 mb-2">
-                    <span class="text-xs text-botanical-sage truncate flex-1">${idea.link}</span>
-                    ${openLinkBtn(idea.link)}
-                    ${copyLinkBtn(idea.link)}
+                  <div class="flex items-center gap-2">
+                    <button onclick="moveIdeaToPlanner('${idea.id}')" class="text-xs text-blue-500 hover:text-blue-700 transition-all">이동</button>
+                    <span class="text-botanical-stone">|</span>
+                    <button onclick="editIdea('${idea.id}')" class="text-xs text-botanical-sage hover:text-botanical-fg transition-all">수정</button>
+                    <span class="text-botanical-stone">|</span>
+                    <button onclick="deleteIdea('${idea.id}')" class="text-xs text-botanical-terracotta hover:text-red-600 transition-all">삭제</button>
                   </div>
-                ` : ''}
-                ${idea.description ? `<p class="text-xs text-botanical-sage line-clamp-2 mb-2">${idea.description}</p>` : ''}
-                <div class="flex items-center gap-2 pt-2 border-t border-botanical-stone/50">
-                  <button onclick="moveIdeaToPlanner('${idea.id}')" class="text-xs text-blue-500 hover:text-blue-700 transition-all">이동</button>
-                  <span class="text-botanical-stone">|</span>
-                  <button onclick="editIdea('${idea.id}')" class="text-xs text-botanical-sage hover:text-botanical-fg transition-all">수정</button>
-                  <span class="text-botanical-stone">|</span>
-                  <button onclick="deleteIdea('${idea.id}')" class="text-xs text-botanical-terracotta hover:text-red-600 transition-all">삭제</button>
                 </div>
+                <h4 class="text-sm font-medium text-botanical-fg truncate">${idea.title}</h4>
+                ${idea.description ? `<p class="text-xs text-botanical-sage truncate">${idea.description}</p>` : ''}
               </div>
             `).join('')}
           </div>
