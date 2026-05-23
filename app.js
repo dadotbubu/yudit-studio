@@ -2905,12 +2905,12 @@ function renderContentForm(content) {
                       type === 'textarea'
                         ? `<textarea rows="1" oninput="autoResize(this);updateReference(${content.id}, '${field}', this.value)" placeholder="${ph}" class="auto-grow unified-text w-full bg-transparent focus:outline-none resize-none overflow-hidden break-words" style="min-height: 24px; word-break: break-word;">${content.reference?.[field] ?? ''}</textarea>`
                         : type === 'url'
-                        ? `<div class="flex flex-wrap items-center gap-1">
-                            <input type="text" value="${content.reference?.[field] ?? ''}" placeholder="${ph}" oninput="updateReference(${content.id}, '${field}', this.value)" class="w-full md:flex-1 md:w-auto min-w-0 bg-transparent focus:outline-none">
-                            <div class="flex items-center gap-1">
+                        ? `<div class="flex items-center gap-1">
+                            <input type="text" value="${content.reference?.[field] ?? ''}" placeholder="${ph}" oninput="updateReference(${content.id}, '${field}', this.value)" class="flex-1 min-w-0 bg-transparent focus:outline-none truncate">
+                            <div class="flex items-center gap-1 shrink-0">
                               ${openLinkBtn(content.reference?.[field])}
                               ${copyLinkBtn(content.reference?.[field])}
-                              <a href="${DEFAULT_TRANSCRIPT_LINK}" target="_blank" class="px-1.5 text-xs text-botanical-terracotta border border-botanical-terracotta/40 rounded-lg hover:bg-botanical-terracotta/10 flex items-center shrink-0">대본</a>
+                              <a href="${DEFAULT_TRANSCRIPT_LINK}" target="_blank" class="px-1.5 text-xs text-botanical-terracotta border border-botanical-terracotta/40 rounded-lg hover:bg-botanical-terracotta/10 flex items-center">대본</a>
                             </div>
                           </div>`
                         : `<input type="${type}" value="${content.reference?.[field] ?? ''}" placeholder="${ph}" oninput="updateReference(${content.id}, '${field}', this.value)" class="w-full bg-transparent focus:outline-none">`
