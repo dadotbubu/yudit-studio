@@ -337,5 +337,12 @@
   </div>
 
   <script src="app.js?v=11"></script>
+  <script>
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('./sw.js?v=11').then(() => {
+        console.log('SW registered');
+      });
+    }
+  </script>
 </body>
 </html>
