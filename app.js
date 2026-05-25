@@ -5739,49 +5739,45 @@ function renderPerformance() {
         </select>
       </div>
 
-      <!-- 월간 트렌드 (1월→12월 순서) -->
+      <!-- 월간 트렌드 (막대 그래프, 12개월 한눈에) -->
       <div class="bg-white rounded-2xl p-6 shadow-sm mb-6">
         <h3 class="font-medium mb-4">팔로워 월간 트렌드</h3>
         ${(() => {
-          // 해당 연도의 1~12월 데이터 준비
           const yearStr = String(perfSelectedYear);
           const yearMonths = [];
           for (let m = 1; m <= 12; m++) {
             const monthKey = `${yearStr}-${String(m).padStart(2, '0')}`;
             const monthData = monthlyData.find(d => d.month === monthKey);
-            // 해당 월의 마지막 daily 데이터에서 총 팔로워 가져오기
             const monthDailyData = dailyData.filter(d => d.date.startsWith(monthKey));
             const lastDay = monthDailyData.sort((a, b) => b.date.localeCompare(a.date))[0];
             const totalFollowers = lastDay?.count || 0;
             const change = monthData?.change || 0;
             const daysInMonth = new Date(perfSelectedYear, m, 0).getDate();
             const dailyAvg = change !== 0 ? Math.round(change / daysInMonth) : 0;
-            yearMonths.push({ month: m, monthKey, totalFollowers, change, dailyAvg });
+            yearMonths.push({ month: m, monthKey, totalFollowers, change, dailyAvg, hasData: totalFollowers > 0 || change !== 0 });
           }
-          // 데이터 있는 월만 필터
-          const hasData = yearMonths.filter(m => m.totalFollowers > 0 || m.change !== 0);
-          if (hasData.length === 0) return `<p class="text-sm text-botanical-sage text-center py-8">팔로워 데이터가 없습니다</p>`;
+          const hasAnyData = yearMonths.some(m => m.hasData);
+          if (!hasAnyData) return `<p class="text-sm text-botanical-sage text-center py-8">팔로워 데이터가 없습니다</p>`;
+          const maxFollowers = Math.max(...yearMonths.map(m => m.totalFollowers), 1);
           return `
-            <div class="overflow-x-auto">
-              <div class="flex gap-3 min-w-max">
-                ${yearMonths.map(m => {
-                  const hasMonthData = m.totalFollowers > 0 || m.change !== 0;
-                  if (!hasMonthData) return `
-                    <div class="flex-shrink-0 w-16 text-center opacity-30">
-                      <div class="text-xs text-botanical-sage mb-1">${m.month}월</div>
-                      <div class="text-sm text-botanical-sage">-</div>
+            <div class="grid grid-cols-6 md:grid-cols-12 gap-1">
+              ${yearMonths.map(m => {
+                const barHeight = m.hasData ? Math.max((m.totalFollowers / maxFollowers) * 80, 8) : 0;
+                const isCurrentMonth = m.monthKey === perfSelectedMonth;
+                const barColor = isCurrentMonth ? '#C17F59' : '#8C9A84';
+                return `
+                  <div class="flex flex-col items-center">
+                    <div class="w-full h-20 flex items-end justify-center mb-1">
+                      ${m.hasData ? `<div class="w-full max-w-[24px] rounded-t" style="height: ${barHeight}px; background-color: ${barColor};"></div>` : ''}
                     </div>
-                  `;
-                  return `
-                    <div class="flex-shrink-0 w-20 text-center p-2 rounded-lg ${m.monthKey === perfSelectedMonth ? 'bg-botanical-cream' : ''}">
-                      <div class="text-xs font-medium text-botanical-fg mb-1">${m.month}월</div>
-                      <div class="text-sm font-semibold text-botanical-fg">${m.totalFollowers.toLocaleString()}</div>
-                      <div class="text-xs ${m.change > 0 ? 'text-emerald-600' : m.change < 0 ? 'text-red-500' : 'text-botanical-sage'}">${m.change > 0 ? '+' : ''}${m.change.toLocaleString()}</div>
-                      <div class="text-[10px] text-botanical-sage mt-1">일평균 ${m.dailyAvg > 0 ? '+' : ''}${m.dailyAvg}</div>
-                    </div>
-                  `;
-                }).join('')}
-              </div>
+                    <div class="text-[10px] ${isCurrentMonth ? 'font-bold text-botanical-fg' : 'text-botanical-sage'}">${m.month}월</div>
+                    ${m.hasData ? `
+                      <div class="text-[10px] font-medium text-botanical-fg">${(m.totalFollowers/1000).toFixed(1)}k</div>
+                      <div class="text-[9px] ${m.change > 0 ? 'text-emerald-600' : 'text-botanical-sage'}">${m.change > 0 ? '+' : ''}${m.change.toLocaleString()}</div>
+                    ` : `<div class="text-[10px] text-botanical-sage/50">-</div>`}
+                  </div>
+                `;
+              }).join('')}
             </div>
           `;
         })()}
