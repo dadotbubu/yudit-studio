@@ -219,6 +219,30 @@ function getUploadDate(content) {
   return (content?.milestones || []).find(m => m.status === '업로드완료')?.date || '';
 }
 
+// 플래너 제목: 연동된 콘텐츠가 있으면 콘텐츠 제목 사용 (양방향 연동)
+function getPlanDisplayTitle(plan) {
+  if (plan.linkedContentId) {
+    const content = contentsData?.contents?.find(c => c.id === plan.linkedContentId);
+    if (content && content.title) return content.title;
+  }
+  return plan.title || '';
+}
+
+// 콘텐츠 제목 → 플래너 제목 동기화
+function syncTitleToPlan(contentId, title) {
+  const content = contentsData?.contents?.find(c => c.id === contentId);
+  if (!content?.linkedPlanId) return;
+  // 모든 월의 plans에서 찾기
+  for (const month of Object.keys(plansData || {})) {
+    const plan = plansData[month]?.plans?.find(p => p.id === content.linkedPlanId);
+    if (plan) {
+      plan.title = title;
+      markDirty('plans');
+      return;
+    }
+  }
+}
+
 // 링크 열기 버튼 — URL 있으면 활성 <a>, 없으면 회색 disabled <span>
 function openLinkBtn(url) {
   const base = 'px-2 py-1 text-xs border rounded-lg whitespace-nowrap';
@@ -1920,7 +1944,7 @@ function renderDashboard() {
                   <div class="mb-2">
                     <span class="inline-block px-2 py-0.5 rounded-md text-xs font-medium bg-botanical-cream text-botanical-sage">${plan.category}</span>
                   </div>
-                  <h4 class="text-base font-semibold text-botanical-fg mb-2">${plan.title}</h4>
+                  <h4 class="text-base font-semibold text-botanical-fg mb-2">${getPlanDisplayTitle(plan)}</h4>
                   ${plan.link ? `
                     <div class="flex items-center gap-2 mb-2">
                       <span class="text-xs text-botanical-sage truncate flex-1">${plan.link}</span>
@@ -1934,7 +1958,7 @@ function renderDashboard() {
                       수정
                     </button>
                     <button onclick="startContentFromPlan('${plan.id}')" class="flex-1 px-2 py-1.5 rounded-lg text-xs font-medium bg-botanical-fg text-white hover:bg-opacity-90 transition-all">
-                      제작 시작 →
+                      ${plan.linkedContentId ? '바로가기 →' : '제작 시작 →'}
                     </button>
                   </div>
                 </div>
@@ -2242,6 +2266,12 @@ function startContentFromPlan(planId) {
     return;
   }
 
+  // 이미 연동된 콘텐츠가 있으면 바로가기
+  if (plan.linkedContentId) {
+    goToLinkedContent(plan.linkedContentId);
+    return;
+  }
+
   const contentId = Date.now();
   const newContent = {
     id: contentId,
@@ -2260,6 +2290,7 @@ function startContentFromPlan(planId) {
     caption: '',
     dm: '',
     shareLinks: [],
+    linkedPlanId: planId, // 플래너 연동
     checklist: [
       {item: '레퍼런스 분석', checked: false},
       {item: '훅 확정', checked: false},
@@ -2271,12 +2302,30 @@ function startContentFromPlan(planId) {
     ]
   };
 
+  // 플래너에 연동 정보 저장
+  plan.linkedContentId = contentId;
+
   contentsData.contents.unshift(newContent);
+  markDirty('plans');
   saveAllData();
 
   switchTab('content');
   renderContentList();
 
+  setTimeout(() => {
+    toggleContentForm(contentId);
+  }, 100);
+}
+
+// 연동된 콘텐츠로 이동
+function goToLinkedContent(contentId) {
+  const content = contentsData.contents.find(c => c.id === contentId);
+  if (!content) {
+    alert('연동된 콘텐츠를 찾을 수 없습니다');
+    return;
+  }
+  switchTab('content');
+  renderContentList();
   setTimeout(() => {
     toggleContentForm(contentId);
   }, 100);
@@ -2548,15 +2597,15 @@ function renderContentList() {
     return ref.startsWith(monthStr);
   });
 
-  // 3) 정렬: 업로드 완료된 것은 맨 아래로, 업로드 완료끼리는 최신순, 나머지는 등록 순
+  // 3) 정렬: 업로드 완료된 것은 맨 위로 (업로드일 최신순), 나머지는 등록 순
   filteredContents.sort((a, b) => {
     const aCompleted = a.status === '업로드완료' ? 1 : 0;
     const bCompleted = b.status === '업로드완료' ? 1 : 0;
-    if (aCompleted !== bCompleted) return aCompleted - bCompleted;
+    if (aCompleted !== bCompleted) return bCompleted - aCompleted; // 완료된 것이 위로
     // 업로드 완료끼리는 uploadDate 최신순
     if (aCompleted && bCompleted) {
-      const aDate = a.uploadDate || '';
-      const bDate = b.uploadDate || '';
+      const aDate = getUploadDate(a) || '';
+      const bDate = getUploadDate(b) || '';
       if (aDate !== bDate) return bDate.localeCompare(aDate); // 내림차순
     }
     // 나머지는 id 순서 유지 (등록 순)
@@ -3108,7 +3157,7 @@ function renderContentForm(content) {
                   if (type === 'url') {
                     // URL 타입은 별도 3열 구조 (라벨 | URL | 버튼들)
                     html += `<tr class="border-b border-botanical-stone">
-                      <td class="px-2 md:px-4 py-2 md:py-3 bg-botanical-cream/30 font-medium w-14 md:w-24 text-[10px] md:text-sm leading-tight md:leading-normal break-keep align-top">${label}</td>
+                      <td class="px-2 md:px-4 py-2 md:py-3 bg-botanical-cream/30 font-medium w-14 md:w-24 text-[10px] md:text-xs leading-tight md:leading-normal break-keep align-top">${label}</td>
                       <td class="px-2 md:px-4 py-2 md:py-3 text-xs md:text-sm" colspan="2">
                         <input type="text" value="${content.reference?.[field] ?? ''}" placeholder="${ph}" oninput="updateReference(${content.id}, '${field}', this.value)" class="w-full bg-transparent focus:outline-none truncate">
                       </td>
@@ -3122,7 +3171,7 @@ function renderContentForm(content) {
                     </tr>`;
                   } else {
                     html += `<tr class="border-b border-botanical-stone">
-                      <td class="px-2 md:px-4 py-2 md:py-3 bg-botanical-cream/30 font-medium w-14 md:w-24 text-[10px] md:text-sm leading-tight md:leading-normal break-keep align-top">${label}</td>
+                      <td class="px-2 md:px-4 py-2 md:py-3 bg-botanical-cream/30 font-medium w-14 md:w-24 text-[10px] md:text-xs leading-tight md:leading-normal break-keep align-top">${label}</td>
                       <td class="px-2 md:px-4 py-2 md:py-3 text-xs md:text-sm" colspan="3">${
                         type === 'textarea'
                           ? `<textarea rows="1" oninput="autoResize(this);updateReference(${content.id}, '${field}', this.value)" placeholder="${ph}" class="auto-grow unified-text w-full bg-transparent focus:outline-none resize-none overflow-hidden break-words" style="min-height: 24px; word-break: break-word;">${content.reference?.[field] ?? ''}</textarea>`
@@ -3149,7 +3198,7 @@ function renderContentForm(content) {
                 // Last field
                 const [field, label, type, ph] = lastField;
                 html += `<tr>
-                  <td class="px-2 md:px-4 py-2 md:py-3 bg-botanical-cream/30 font-medium w-14 md:w-24 text-[10px] md:text-sm leading-tight md:leading-normal break-keep align-top">${label}</td>
+                  <td class="px-2 md:px-4 py-2 md:py-3 bg-botanical-cream/30 font-medium w-14 md:w-24 text-[10px] md:text-xs leading-tight md:leading-normal break-keep align-top">${label}</td>
                   <td class="px-2 md:px-4 py-2 md:py-3 text-xs md:text-sm" colspan="3">
                     <textarea rows="1" oninput="autoResize(this);updateReference(${content.id}, '${field}', this.value)" placeholder="${ph}" class="auto-grow unified-text w-full bg-transparent focus:outline-none resize-none overflow-hidden break-words" style="min-height: 24px; word-break: break-word;">${content.reference?.[field] ?? ''}</textarea>
                   </td>
@@ -3501,8 +3550,8 @@ async function pruneAutoBackups() {
   } catch (e) { console.warn('백업 정리 실패:', e); }
 }
 
-// 수동 저장 버튼 (헤더)
-function manualSaveAll() {
+// 저장 + 백업 통합 버튼 (헤더)
+async function saveAndBackup() {
   // 모든 데이터 dirty 표시 후 저장
   markDirty('calendar');
   markDirty('contents');
@@ -3510,8 +3559,9 @@ function manualSaveAll() {
   markDirty('revenue');
   markDirty('memos');
   markDirty('plans');
-  saveAllData();
-  showMemoSaveToast('전체 저장 완료');
+  await saveAllData();
+  // 백업도 함께
+  await manualBackup();
 }
 
 // 수동 백업 버튼 (헤더) — 최근 5개만 유지
@@ -4767,6 +4817,8 @@ function updateContentTitle(contentId, value) {
         if (item.contentId === contentId) item.brand = value || '무제';
       });
     });
+    // 플래너 연동: 콘텐츠 제목 → 플래너 제목 동기화
+    syncTitleToPlan(contentId, value);
     // 목록 헤더의 제목 스팬만 국소 업데이트 (re-render 없이 포커스 유지)
     const titleEl = document.querySelector(`[data-content-title="${contentId}"]`);
     if (titleEl) titleEl.textContent = value || '무제';
@@ -4791,6 +4843,8 @@ function setFinalVersion(contentId, versionIdx) {
       if (item.contentId === contentId) item.brand = verTitle || '무제';
     });
   });
+  // 플래너 연동
+  syncTitleToPlan(contentId, verTitle);
   saveAllData();
   renderContentList();
   reopenForm(contentId);
@@ -5664,33 +5718,26 @@ function renderPerformance() {
         </select>
       </div>
 
-      <!-- 월간 트렌드 (가로 막대형) -->
+      <!-- 월간 트렌드 (세로 막대형, 최신월 왼쪽) -->
       <div class="bg-white rounded-2xl p-6 shadow-sm mb-6">
         <h3 class="font-medium mb-4">팔로워 월간 트렌드</h3>
         ${monthlyData.length > 0 ? (() => {
-          const recent6 = monthlyData.slice(-6);
-          const maxCount = Math.max(...recent6.map(d => d.count || 0));
-          const avgChange = recent6.length > 0 ? Math.round(recent6.reduce((sum, d) => sum + d.change, 0) / recent6.length) : 0;
+          const recent6 = monthlyData.slice(-6).reverse(); // 최신월이 먼저
+          const maxChange = Math.max(...recent6.map(d => Math.abs(d.change || 0)), 1);
+          const avgChange = recent6.length > 0 ? Math.round(recent6.reduce((sum, d) => sum + (d.change || 0), 0) / recent6.length) : 0;
           const currentMonthStr = perfSelectedMonth;
           return `
-            <div class="space-y-3 mb-4">
-              ${recent6.map((d, idx) => {
+            <div class="flex items-end justify-between gap-2 h-40 mb-4">
+              ${recent6.map(d => {
                 const isCurrentMonth = d.month === currentMonthStr;
-                const count = d.count || 0;
                 const change = d.change || 0;
-                const width = maxCount > 0 ? (count / maxCount) * 100 : 0;
+                const height = Math.max((Math.abs(change) / maxChange) * 100, 5);
                 const barColor = isCurrentMonth ? '#2D3A31' : '#8C9A84';
                 return `
-                  <div>
-                    <div class="flex items-center justify-between mb-1">
-                      <span class="text-sm ${isCurrentMonth ? 'font-semibold text-botanical-fg' : 'text-botanical-sage'}">${d.month.slice(5)}월</span>
-                      <span class="text-sm ${isCurrentMonth ? 'font-semibold text-botanical-fg' : 'font-medium'}">${count.toLocaleString()}명</span>
-                    </div>
-                    <div class="h-8 bg-botanical-stone rounded-lg overflow-hidden relative">
-                      <div class="absolute top-0 left-0 h-full flex items-center justify-end pr-2" style="width: ${width}%; background-color: ${barColor};">
-                        <span class="text-xs text-white font-medium">${change > 0 ? '+' : ''}${change.toLocaleString()}</span>
-                      </div>
-                    </div>
+                  <div class="flex-1 flex flex-col items-center">
+                    <span class="text-xs font-medium mb-1 ${change > 0 ? 'text-emerald-600' : change < 0 ? 'text-red-500' : 'text-botanical-sage'}">${change > 0 ? '+' : ''}${change.toLocaleString()}</span>
+                    <div class="w-full rounded-t-lg" style="height: ${height}%; background-color: ${barColor};"></div>
+                    <span class="text-xs mt-2 ${isCurrentMonth ? 'font-semibold text-botanical-fg' : 'text-botanical-sage'}">${d.month.slice(5)}월</span>
                   </div>
                 `;
               }).join('')}
@@ -6787,7 +6834,8 @@ function onMemoTabDrop(e, targetTabId) {
 function copyMemoAll(id) {
   const memo = memosData.memos.find(m => m.id === id);
   if (!memo) return;
-  const text = (memo.title ? memo.title + '\n\n' : '') + (memo.content || '');
+  // 본문만 복사 (제목 제외)
+  const text = memo.content || '';
   navigator.clipboard.writeText(text).then(() => {
     showMemoSaveToast('복사됨');
   });
