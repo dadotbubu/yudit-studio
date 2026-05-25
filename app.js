@@ -5760,10 +5760,10 @@ function renderPerformance() {
           if (!hasAnyData) return `<p class="text-sm text-botanical-sage text-center py-8">팔로워 데이터가 없습니다</p>`;
           const maxFollowers = Math.max(...yearMonths.map(m => m.totalFollowers), 1);
           const isPC = window.innerWidth >= 768;
-          const barMaxHeight = isPC ? 120 : 80;
-          const fontSize = isPC ? '13px' : '10px';
-          const smallFontSize = isPC ? '11px' : '9px';
-          const barMaxWidth = isPC ? '32px' : '20px';
+          const barMaxHeight = isPC ? 160 : 80;
+          const fontSize = isPC ? '14px' : '10px';
+          const smallFontSize = isPC ? '12px' : '9px';
+          const barMaxWidth = isPC ? '40px' : '20px';
           return `
             <div style="display: grid; grid-template-columns: repeat(12, 1fr); gap: ${isPC ? '8px' : '4px'};">
               ${yearMonths.map(m => {
