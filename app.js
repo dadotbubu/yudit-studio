@@ -2597,12 +2597,12 @@ function renderContentList() {
     return ref.startsWith(monthStr);
   });
 
-  // 3) 정렬: 업로드 완료된 것은 맨 위로 (업로드일 최신순), 나머지는 등록 순
+  // 3) 정렬: 업로드 완료된 것은 맨 아래로, 업로드 완료끼리는 최신순 (위로), 나머지는 등록 순
   filteredContents.sort((a, b) => {
     const aCompleted = a.status === '업로드완료' ? 1 : 0;
     const bCompleted = b.status === '업로드완료' ? 1 : 0;
-    if (aCompleted !== bCompleted) return bCompleted - aCompleted; // 완료된 것이 위로
-    // 업로드 완료끼리는 uploadDate 최신순
+    if (aCompleted !== bCompleted) return aCompleted - bCompleted; // 완료된 것이 아래로
+    // 업로드 완료끼리는 uploadDate 최신순 (위로)
     if (aCompleted && bCompleted) {
       const aDate = getUploadDate(a) || '';
       const bDate = getUploadDate(b) || '';
