@@ -1832,9 +1832,15 @@ function changeDashMonth(monthStr) {
 
 // 플래너 서브탭 상태
 let plannerSubTab = 'plans'; // 'plans' or 'ideas'
+let ideaCategoryFilter = 'all'; // 'all', 'Career Guide', 'AI Work', 'Money Log', 'Life Style'
 
 function switchPlannerTab(tab) {
   plannerSubTab = tab;
+  renderDashboard();
+}
+
+function switchIdeaCategory(cat) {
+  ideaCategoryFilter = cat;
   renderDashboard();
 }
 
@@ -1949,7 +1955,6 @@ function renderDashboard() {
                     <div class="flex items-center gap-2 mb-2">
                       <span class="text-xs text-botanical-sage truncate flex-1">${plan.link}</span>
                       ${openLinkBtn(plan.link)}
-                      ${copyLinkBtn(plan.link)}
                     </div>
                   ` : ''}
                   ${plan.description ? `<p class="text-xs text-botanical-sage leading-relaxed mb-3">${plan.description.split('\n').map(line => line.trim()).filter(line => line).join('<br>')}</p>` : ''}
@@ -1975,38 +1980,49 @@ function renderDashboard() {
 
     <!-- 아이디어 탭 -->
     <div id="planner-ideas-tab" class="${plannerSubTab === 'ideas' ? '' : 'hidden'}">
-      <div class="flex items-center justify-end mb-6">
-        <button onclick="addIdea()" class="px-5 py-2.5 rounded-full bg-botanical-fg text-white text-sm font-medium hover:bg-opacity-90 transition-all">
-          + 아이디어 추가
+      <div class="flex items-center justify-between mb-4">
+        <div class="flex gap-1 bg-botanical-stone p-1 rounded-full overflow-x-auto">
+          <button onclick="switchIdeaCategory('all')" class="px-3 py-1 rounded-full text-xs font-medium whitespace-nowrap ${ideaCategoryFilter === 'all' ? 'bg-botanical-fg text-white' : 'text-botanical-sage hover:text-botanical-fg'}">전체</button>
+          ${categories.map(cat => `
+            <button onclick="switchIdeaCategory('${cat}')" class="px-3 py-1 rounded-full text-xs font-medium whitespace-nowrap ${ideaCategoryFilter === cat ? 'bg-botanical-fg text-white' : 'text-botanical-sage hover:text-botanical-fg'}">${cat.replace(' ', '')}</button>
+          `).join('')}
+        </div>
+        <button onclick="addIdea()" class="px-4 py-2 rounded-full bg-botanical-fg text-white text-sm font-medium hover:bg-opacity-90 transition-all shrink-0">
+          + 추가
         </button>
       </div>
 
       <div class="bg-white rounded-2xl p-4 shadow-sm">
-        ${allIdeas.length > 0 ? `
-          <div class="space-y-3">
-            ${allIdeas.map(idea => `
-              <div class="p-3 rounded-lg border border-botanical-stone hover:border-botanical-sage transition-all">
-                <div class="flex items-center justify-between mb-1">
-                  <span class="inline-block px-2 py-0.5 rounded-md text-xs font-medium bg-botanical-cream text-botanical-sage whitespace-nowrap">${idea.category}</span>
-                  <div class="flex items-center gap-2">
-                    <button onclick="moveIdeaToPlanner('${idea.id}')" class="text-xs text-blue-500 hover:text-blue-700 transition-all">이동</button>
-                    <span class="text-botanical-stone">|</span>
-                    <button onclick="editIdea('${idea.id}')" class="text-xs text-botanical-sage hover:text-botanical-fg transition-all">수정</button>
-                    <span class="text-botanical-stone">|</span>
-                    <button onclick="deleteIdea('${idea.id}')" class="text-xs text-botanical-terracotta hover:text-red-600 transition-all">삭제</button>
+        ${(() => {
+          // 카테고리 필터 + 최신순 정렬
+          let filteredIdeas = ideaCategoryFilter === 'all' ? allIdeas : allIdeas.filter(i => i.category === ideaCategoryFilter);
+          filteredIdeas = [...filteredIdeas].sort((a, b) => (b.createdAt || b.id || '').localeCompare(a.createdAt || a.id || ''));
+          return filteredIdeas.length > 0 ? `
+            <div class="space-y-3">
+              ${filteredIdeas.map(idea => `
+                <div class="p-3 rounded-lg border border-botanical-stone hover:border-botanical-sage transition-all">
+                  <div class="flex items-center justify-between mb-1">
+                    <span class="inline-block px-2 py-0.5 rounded-md text-xs font-medium bg-botanical-cream text-botanical-sage whitespace-nowrap">${idea.category}</span>
+                    <div class="flex items-center gap-2">
+                      <button onclick="moveIdeaToPlanner('${idea.id}')" class="text-xs text-blue-500 hover:text-blue-700 transition-all">이동</button>
+                      <span class="text-botanical-stone">|</span>
+                      <button onclick="editIdea('${idea.id}')" class="text-xs text-botanical-sage hover:text-botanical-fg transition-all">수정</button>
+                      <span class="text-botanical-stone">|</span>
+                      <button onclick="deleteIdea('${idea.id}')" class="text-xs text-botanical-terracotta hover:text-red-600 transition-all">삭제</button>
+                    </div>
                   </div>
+                  <h4 class="text-sm font-medium text-botanical-fg truncate">${idea.title}</h4>
+                  ${idea.description ? `<p class="text-xs text-botanical-sage truncate">${idea.description}</p>` : ''}
                 </div>
-                <h4 class="text-sm font-medium text-botanical-fg truncate">${idea.title}</h4>
-                ${idea.description ? `<p class="text-xs text-botanical-sage truncate">${idea.description}</p>` : ''}
-              </div>
-            `).join('')}
-          </div>
-        ` : `
-          <div class="py-16 text-center text-botanical-sage">
-            <p class="text-base mb-2">아직 등록된 아이디어가 없습니다</p>
-            <p class="text-sm">+ 아이디어 추가 버튼을 눌러 아이디어를 등록하세요</p>
-          </div>
-        `}
+              `).join('')}
+            </div>
+          ` : `
+            <div class="py-16 text-center text-botanical-sage">
+              <p class="text-base mb-2">${ideaCategoryFilter === 'all' ? '아직 등록된 아이디어가 없습니다' : '해당 카테고리에 아이디어가 없습니다'}</p>
+              <p class="text-sm">+ 추가 버튼을 눌러 아이디어를 등록하세요</p>
+            </div>
+          `;
+        })()}
       </div>
     </div>
   `;
@@ -2307,7 +2323,11 @@ function startContentFromPlan(planId) {
 
   contentsData.contents.unshift(newContent);
   markDirty('plans');
+  markDirty('contents');
   saveAllData();
+
+  // 플래너 즉시 업데이트 (바로가기 버튼 반영)
+  renderPlanner();
 
   switchTab('content');
   renderContentList();
