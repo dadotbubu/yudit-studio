@@ -6591,16 +6591,42 @@ function editMemoTab(tabId) {
   const tab = memosData.tabs.find(t => t.id === tabId);
   if (!tab) return;
 
-  const action = prompt(`탭 "${tab.name}" 수정\n\n1. 이름 변경: 새 이름 입력\n2. 삭제: "삭제" 입력\n\n현재 이름:`);
-  if (action === null) return;
+  const popup = document.createElement('div');
+  popup.id = 'memo-tab-edit-popup';
+  popup.className = 'fixed inset-0 bg-black/40 flex items-center justify-center z-50';
+  popup.innerHTML = `
+    <div class="bg-white rounded-2xl p-4 mx-4 max-w-sm w-full shadow-xl">
+      <p class="text-sm font-semibold text-botanical-fg mb-3">"${escapeHtml(tab.name)}" 탭 수정</p>
+      <div class="space-y-2">
+        <button onclick="renameMemoTab('${tabId}')" class="w-full px-4 py-3 rounded-lg bg-botanical-cream text-botanical-fg font-medium text-sm hover:bg-botanical-sage hover:text-white transition-all text-left">
+          이름 변경
+        </button>
+        <button onclick="closeMemoTabEditPopup(); deleteMemoTab('${tabId}')" class="w-full px-4 py-3 rounded-lg bg-red-50 text-red-500 font-medium text-sm hover:bg-red-100 transition-all text-left">
+          탭 삭제
+        </button>
+      </div>
+      <button onclick="closeMemoTabEditPopup()" class="mt-3 w-full py-2 text-sm text-botanical-sage hover:text-botanical-fg transition-all">취소</button>
+    </div>
+  `;
+  popup.onclick = (e) => { if (e.target === popup) closeMemoTabEditPopup(); };
+  document.body.appendChild(popup);
+}
 
-  if (action.trim() === '삭제') {
-    deleteMemoTab(tabId);
-  } else if (action.trim()) {
-    tab.name = action.trim();
+function renameMemoTab(tabId) {
+  closeMemoTabEditPopup();
+  const tab = memosData.tabs.find(t => t.id === tabId);
+  if (!tab) return;
+
+  const newName = prompt('새 탭 이름:', tab.name);
+  if (newName && newName.trim() && newName.trim() !== tab.name) {
+    tab.name = newName.trim();
     saveAllData();
     renderMemos();
   }
+}
+
+function closeMemoTabEditPopup() {
+  document.getElementById('memo-tab-edit-popup')?.remove();
 }
 
 function moveMemoToTab(memoId) {
@@ -6662,26 +6688,54 @@ function deleteMemoTab(tabId) {
 
   const tab = memosData.tabs.find(t => t.id === tabId);
   const memosInTab = memosData.memos.filter(m => m.tabId === tabId);
+  const otherTabs = memosData.tabs.filter(t => t.id !== tabId);
 
   if (memosInTab.length > 0) {
-    const otherTabs = memosData.tabs.filter(t => t.id !== tabId);
-    const choices = otherTabs.map((t, i) => `${i + 1}. ${t.name}`).join('\n');
-    const answer = prompt(`"${tab.name}" 탭에 메모 ${memosInTab.length}개가 있습니다.\n\n메모를 어디로 이동할까요?\n${choices}\n\n또는 "삭제"를 입력하면 메모도 함께 삭제됩니다.\n\n번호 또는 "삭제" 입력:`);
+    // 메모가 있으면 이동할 탭 선택 팝업
+    const popup = document.createElement('div');
+    popup.id = 'memo-tab-delete-popup';
+    popup.className = 'fixed inset-0 bg-black/40 flex items-center justify-center z-50';
+    popup.innerHTML = `
+      <div class="bg-white rounded-2xl p-4 mx-4 max-w-sm w-full shadow-xl">
+        <p class="text-sm font-semibold text-botanical-fg mb-1">"${escapeHtml(tab.name)}" 탭 삭제</p>
+        <p class="text-xs text-botanical-sage mb-3">메모 ${memosInTab.length}개를 어디로 이동할까요?</p>
+        <div class="space-y-2">
+          ${otherTabs.map(t => `
+            <button onclick="confirmDeleteMemoTab('${tabId}', '${t.id}')" class="w-full px-4 py-2 rounded-lg bg-botanical-cream text-botanical-fg font-medium text-sm hover:bg-botanical-sage hover:text-white transition-all">
+              ${escapeHtml(t.name)}으로 이동
+            </button>
+          `).join('')}
+          <button onclick="confirmDeleteMemoTab('${tabId}', null)" class="w-full px-4 py-2 rounded-lg bg-red-50 text-red-500 font-medium text-sm hover:bg-red-100 transition-all">
+            메모도 함께 삭제
+          </button>
+        </div>
+        <button onclick="closeMemoTabDeletePopup()" class="mt-3 w-full py-2 text-sm text-botanical-sage hover:text-botanical-fg transition-all">취소</button>
+      </div>
+    `;
+    popup.onclick = (e) => { if (e.target === popup) closeMemoTabDeletePopup(); };
+    document.body.appendChild(popup);
+    return;
+  }
 
-    if (answer === null) return;
+  // 메모가 없으면 바로 삭제
+  memosData.tabs = memosData.tabs.filter(t => t.id !== tabId);
+  if (memosData.lastActiveTab === tabId) {
+    memosData.lastActiveTab = memosData.tabs[0]?.id;
+  }
+  saveAllData();
+  renderMemos();
+}
 
-    if (answer.trim() === '삭제') {
-      memosData.memos = memosData.memos.filter(m => m.tabId !== tabId);
-    } else {
-      const idx = parseInt(answer) - 1;
-      if (idx >= 0 && idx < otherTabs.length) {
-        const targetTabId = otherTabs[idx].id;
-        memosInTab.forEach(m => m.tabId = targetTabId);
-      } else {
-        alert('잘못된 선택입니다.');
-        return;
-      }
-    }
+function confirmDeleteMemoTab(tabId, targetTabId) {
+  closeMemoTabDeletePopup();
+  const memosInTab = memosData.memos.filter(m => m.tabId === tabId);
+
+  if (targetTabId) {
+    // 다른 탭으로 이동
+    memosInTab.forEach(m => m.tabId = targetTabId);
+  } else {
+    // 메모도 함께 삭제
+    memosData.memos = memosData.memos.filter(m => m.tabId !== tabId);
   }
 
   memosData.tabs = memosData.tabs.filter(t => t.id !== tabId);
@@ -6690,6 +6744,10 @@ function deleteMemoTab(tabId) {
   }
   saveAllData();
   renderMemos();
+}
+
+function closeMemoTabDeletePopup() {
+  document.getElementById('memo-tab-delete-popup')?.remove();
 }
 
 // 탭 드래그 앤 드롭
