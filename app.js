@@ -682,7 +682,18 @@ document.addEventListener('visibilitychange', async () => {
       const activeTab = document.querySelector('.tab-content.active')?.id.replace('-tab', '');
       if (activeTab === 'calendar') renderCalendar();
       if (activeTab === 'dashboard') renderDashboard();
-      if (activeTab === 'content') renderContentList();
+      if (activeTab === 'content') {
+        const savedScrollY = sessionStorage.getItem('yudit_scrollY');
+        renderContentList();
+        // 스크롤 복원 (리렌더링 후)
+        if (savedScrollY) {
+          requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+              window.scrollTo({ top: parseInt(savedScrollY), behavior: 'instant' });
+            });
+          });
+        }
+      }
       if (activeTab === 'performance' && typeof renderPerformance === 'function') renderPerformance();
       if (activeTab === 'revenue') renderRevenue();
       if (activeTab === 'memos') renderMemos();
@@ -729,12 +740,16 @@ function saveAllData() {
   saveTimer = setTimeout(async () => {
     try {
       // ★ 저장 전 충돌 검사: Supabase에 더 최신 데이터가 있는지 확인
-      const remoteLatest = await getRemoteLatestUpdatedAt();
-      if (remoteLatest && lastLoadedAt && isRemoteSignificantlyNewer(remoteLatest, lastLoadedAt)) {
-        console.warn('⚠️  충돌 감지: Supabase에 더 최신 데이터가 있음. 저장 중단.');
-        updateSaveStatus('error');
-        alert('⚠️  다른 기기에서 더 최신 데이터가 저장되었습니다.\n\n새로고침(F5)하여 최신 데이터를 불러오세요.\n\n※ 현재 작업 내용은 로컬에 백업되어 있습니다.');
-        return; // 저장 중단
+      // 단, 자기 저장 후 30초 이내면 스킵 (자기 저장을 충돌로 오인하지 않도록)
+      const now = Date.now();
+      if (now - lastOwnSaveAt > OWN_SAVE_GRACE_MS) {
+        const remoteLatest = await getRemoteLatestUpdatedAt();
+        if (remoteLatest && lastLoadedAt && isRemoteSignificantlyNewer(remoteLatest, lastLoadedAt)) {
+          console.warn('⚠️  충돌 감지: Supabase에 더 최신 데이터가 있음. 저장 중단.');
+          updateSaveStatus('error');
+          alert('⚠️  다른 기기에서 더 최신 데이터가 저장되었습니다.\n\n새로고침(F5)하여 최신 데이터를 불러오세요.\n\n※ 현재 작업 내용은 로컬에 백업되어 있습니다.');
+          return; // 저장 중단
+        }
       }
 
       await Promise.all([
