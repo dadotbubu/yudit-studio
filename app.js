@@ -734,6 +734,39 @@ document.addEventListener('visibilitychange', async () => {
 window.addEventListener('pagehide', flushSaveImmediately);
 window.addEventListener('beforeunload', flushSaveImmediately);
 window.addEventListener('focus', autoReloadFromRemote);
+// PWA 재진입 시 동기화 (bfcache에서 복원될 때)
+window.addEventListener('pageshow', async (e) => {
+  if (e.persisted) {
+    console.log('📱 bfcache에서 복원 - 동기화 시작');
+    isSyncing = true;
+    updateSaveStatus('syncing');
+    try {
+      const remote = await loadFromSupabase();
+      if (remote) {
+        if (remote.calendar) calendarData = remote.calendar;
+        if (remote.contents) contentsData = remote.contents;
+        if (remote.performance) performanceData = remote.performance;
+        if (remote.revenue) revenueData = remote.revenue;
+        if (remote.memos) memosData = remote.memos;
+        if (remote.plans) plansData = remote.plans;
+        reconcileCalendarMilestones();
+        const activeTab = document.querySelector('.tab-content.active')?.id.replace('-tab', '');
+        if (activeTab === 'calendar') renderCalendar();
+        if (activeTab === 'dashboard') renderDashboard();
+        if (activeTab === 'content') renderContentList();
+        if (activeTab === 'performance' && typeof renderPerformance === 'function') renderPerformance();
+        if (activeTab === 'revenue') renderRevenue();
+        if (activeTab === 'memos') renderMemos();
+        if (activeTab === 'planner') renderPlanner();
+        updateSaveStatus('saved');
+      }
+    } catch (e) {
+      console.warn('pageshow 동기화 실패:', e);
+    } finally {
+      isSyncing = false;
+    }
+  }
+});
 
 function saveAllData() {
   // 동기화 중에는 저장 차단 (원격 데이터 덮어쓰기 방지)
@@ -2506,12 +2539,18 @@ function renderContentList() {
     return ref.startsWith(monthStr);
   });
 
-  // 3) 정렬: 업로드 완료된 것은 맨 아래로, 나머지는 등록 순
+  // 3) 정렬: 업로드 완료된 것은 맨 아래로, 업로드 완료끼리는 최신순, 나머지는 등록 순
   filteredContents.sort((a, b) => {
     const aCompleted = a.status === '업로드완료' ? 1 : 0;
     const bCompleted = b.status === '업로드완료' ? 1 : 0;
     if (aCompleted !== bCompleted) return aCompleted - bCompleted;
-    // 같은 상태끼리는 id 순서 유지 (등록 순)
+    // 업로드 완료끼리는 uploadDate 최신순
+    if (aCompleted && bCompleted) {
+      const aDate = a.uploadDate || '';
+      const bDate = b.uploadDate || '';
+      if (aDate !== bDate) return bDate.localeCompare(aDate); // 내림차순
+    }
+    // 나머지는 id 순서 유지 (등록 순)
     return a.id - b.id;
   });
 
