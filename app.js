@@ -1984,8 +1984,8 @@ function renderDashboard() {
         <div class="flex flex-wrap gap-1.5">
           <button onclick="switchIdeaCategory('all')" class="px-3 py-1.5 rounded-lg text-xs font-medium ${ideaCategoryFilter === 'all' ? 'bg-botanical-fg text-white' : 'bg-botanical-stone text-botanical-sage hover:text-botanical-fg'}">전체</button>
           <button onclick="switchIdeaCategory('Career Guide')" class="px-3 py-1.5 rounded-lg text-xs font-medium ${ideaCategoryFilter === 'Career Guide' ? 'bg-botanical-fg text-white' : 'bg-botanical-stone text-botanical-sage hover:text-botanical-fg'}">Career</button>
-          <button onclick="switchIdeaCategory('AI Work')" class="px-3 py-1.5 rounded-lg text-xs font-medium ${ideaCategoryFilter === 'AI Work' ? 'bg-botanical-fg text-white' : 'bg-botanical-stone text-botanical-sage hover:text-botanical-fg'}">AI</button>
           <button onclick="switchIdeaCategory('Money Log')" class="px-3 py-1.5 rounded-lg text-xs font-medium ${ideaCategoryFilter === 'Money Log' ? 'bg-botanical-fg text-white' : 'bg-botanical-stone text-botanical-sage hover:text-botanical-fg'}">Money</button>
+          <button onclick="switchIdeaCategory('AI Work')" class="px-3 py-1.5 rounded-lg text-xs font-medium ${ideaCategoryFilter === 'AI Work' ? 'bg-botanical-fg text-white' : 'bg-botanical-stone text-botanical-sage hover:text-botanical-fg'}">AI</button>
           <button onclick="switchIdeaCategory('Life Style')" class="px-3 py-1.5 rounded-lg text-xs font-medium ${ideaCategoryFilter === 'Life Style' ? 'bg-botanical-fg text-white' : 'bg-botanical-stone text-botanical-sage hover:text-botanical-fg'}">Life</button>
         </div>
         <button onclick="addIdea()" class="px-3 py-1.5 rounded-lg bg-botanical-fg text-white text-xs font-medium hover:bg-opacity-90 transition-all shrink-0">
