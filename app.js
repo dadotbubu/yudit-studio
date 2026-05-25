@@ -284,12 +284,16 @@ function updateSaveStatus(status) {
   } else if (status === 'offline') {
     el.innerHTML = '<span class="text-red-500">⚠️ 오프라인 모드</span>';
     el.style.opacity = '1';
+  } else if (status === 'syncing') {
+    el.innerHTML = '<span class="text-blue-500">🔄 동기화 중…</span>';
+    el.style.opacity = '1';
   }
 }
 
 // 마지막으로 Supabase에서 로드한 시점의 max updated_at — 다른 기기 충돌 감지용
 let lastLoadedAt = null;
 let lastOwnSaveAt = 0; // 내가 마지막으로 성공 저장한 wallclock (ms) — 자기 저장 grace period
+let isSyncing = false; // 원격 동기화 중 플래그 — true면 저장 차단
 const REMOTE_DRIFT_TOLERANCE_MS = 15000; // 서버/클라 시계 오차 허용 ±15초
 const OWN_SAVE_GRACE_MS = 30000; // 자기 저장 후 30초간은 충돌 검사 스킵
 
@@ -658,9 +662,14 @@ document.addEventListener('visibilitychange', async () => {
     flushSaveImmediately();
   } else {
     // 다시 보일 때 — 무조건 최신 데이터 로드 (덮어쓰기 방지)
+    isSyncing = true; // 동기화 시작 — 저장 차단
+    updateSaveStatus('syncing');
     try {
       const remote = await loadFromSupabase();
-      if (!remote) return;
+      if (!remote) {
+        isSyncing = false;
+        return;
+      }
       if (remote.calendar) calendarData = remote.calendar;
       if (remote.contents) contentsData = remote.contents;
       if (remote.performance) performanceData = remote.performance;
@@ -677,10 +686,15 @@ document.addEventListener('visibilitychange', async () => {
       if (activeTab === 'performance' && typeof renderPerformance === 'function') renderPerformance();
       if (activeTab === 'revenue') renderRevenue();
       if (activeTab === 'memos') renderMemos();
+      if (activeTab === 'planner') renderPlanner();
 
       console.log('✅ 최신 데이터 동기화:', new Date().toLocaleTimeString());
+      updateSaveStatus('saved');
     } catch (e) {
       console.warn('동기화 실패:', e);
+      updateSaveStatus('error');
+    } finally {
+      isSyncing = false; // 동기화 완료 — 저장 허용
     }
   }
 });
@@ -689,6 +703,11 @@ window.addEventListener('beforeunload', flushSaveImmediately);
 window.addEventListener('focus', autoReloadFromRemote);
 
 function saveAllData() {
+  // 동기화 중에는 저장 차단 (원격 데이터 덮어쓰기 방지)
+  if (isSyncing) {
+    console.warn('⚠️  동기화 중: 저장 대기');
+    return;
+  }
   // 오프라인 모드(읽기 전용)에서는 저장 금지
   if (isOfflineMode) {
     console.warn('⚠️  오프라인 모드: 저장 불가');
