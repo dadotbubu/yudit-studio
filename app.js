@@ -8,6 +8,7 @@ let plansData = null;
 let selectedMemoId = null;
 let perfRecalculated = false; // 성과 데이터 재계산 완료 플래그
 let isOfflineMode = false; // 오프라인 모드 (읽기 전용)
+const dirtyTables = new Set(); // 변경된 테이블만 저장하기 위한 플래그
 
 // 카테고리 목표 설정 (localStorage에 저장)
 let categoryGoalsConfig = JSON.parse(localStorage.getItem('yudit_categoryGoals') || '{"Career Guide":2,"AI Work":2,"Money Log":2,"Life Style":2}');
@@ -355,18 +356,26 @@ async function getRemoteLatestUpdatedAt() {
   } catch (e) { return null; }
 }
 
-// 자동 동기화: 원격이 더 새 거면 silent하게 다시 로드 (충돌 배너 X)
-async function autoReloadFromRemote() {
-  if (Date.now() - lastOwnSaveAt < OWN_SAVE_GRACE_MS) return;
-  // 사용자가 입력 중이면 보류 (입력 텍스트 사라지지 않게)
-  const ae = document.activeElement;
-  if (ae && (ae.tagName === 'INPUT' || ae.tagName === 'TEXTAREA' || ae.isContentEditable)) return;
-  if (!lastLoadedAt) return;
+// 공통 동기화 함수 (중복 코드 제거)
+async function syncFromRemote(options = {}) {
+  const { showToast = true, checkNewer = true, force = false } = options;
+
+  if (!force) {
+    if (isSyncing) return false;
+    if (Date.now() - lastOwnSaveAt < OWN_SAVE_GRACE_MS) return false;
+    const ae = document.activeElement;
+    if (ae && (ae.tagName === 'INPUT' || ae.tagName === 'TEXTAREA' || ae.isContentEditable)) return false;
+  }
+
   try {
-    const latest = await getRemoteLatestUpdatedAt();
-    if (!isRemoteSignificantlyNewer(latest, lastLoadedAt)) return;
-    const remote = await loadFromSupabase(); // 내부에서 lastLoadedAt 갱신
-    if (!remote) return;
+    if (checkNewer && lastLoadedAt) {
+      const latest = await getRemoteLatestUpdatedAt();
+      if (!isRemoteSignificantlyNewer(latest, lastLoadedAt)) return false;
+    }
+
+    const remote = await loadFromSupabase();
+    if (!remote) return false;
+
     if (remote.calendar) calendarData = remote.calendar;
     if (remote.contents) contentsData = remote.contents;
     if (remote.performance) performanceData = remote.performance;
@@ -374,17 +383,29 @@ async function autoReloadFromRemote() {
     if (remote.memos) memosData = remote.memos;
     if (remote.plans) plansData = remote.plans;
     reconcileCalendarMilestones();
-    renderCalendar();
-    renderDashboard();
-    renderContentList();
-    if (typeof renderPerformance === 'function') renderPerformance();
-    renderRevenue();
-    renderMemos();
-    showMemoSaveToast('최신 데이터로 동기화됨');
-    console.log('Auto-reload 완료:', new Date().toLocaleTimeString());
+
+    // 현재 탭만 렌더링
+    const activeTab = document.querySelector('.tab-content.active')?.id.replace('-tab', '');
+    if (activeTab === 'calendar') renderCalendar();
+    else if (activeTab === 'dashboard') renderDashboard();
+    else if (activeTab === 'content') renderContentList();
+    else if (activeTab === 'performance' && typeof renderPerformance === 'function') renderPerformance();
+    else if (activeTab === 'revenue') renderRevenue();
+    else if (activeTab === 'memos') renderMemos();
+    else if (activeTab === 'planner') renderPlanner();
+
+    if (showToast) showMemoSaveToast('최신 데이터 동기화됨');
+    console.log('✅ 동기화 완료:', new Date().toLocaleTimeString());
+    return true;
   } catch (e) {
-    console.warn('Auto-reload 실패:', e);
+    console.warn('동기화 실패:', e);
+    return false;
   }
+}
+
+// 자동 동기화: 원격이 더 새 거면 silent하게 다시 로드
+async function autoReloadFromRemote() {
+  await syncFromRemote({ showToast: true, checkNewer: true });
 }
 
 // 콘텐츠 마일스톤 ↔ 캘린더 항목 정합성 재구성
@@ -677,58 +698,24 @@ function flushSaveImmediately() {
 
 document.addEventListener('visibilitychange', async () => {
   if (document.hidden) {
-    // 숨겨지기 전 스크롤 위치 저장 (콘텐츠가 열려있는 경우)
     if (sessionStorage.getItem('yudit_openContentId')) {
       sessionStorage.setItem('yudit_scrollY', window.scrollY.toString());
     }
     flushSaveImmediately();
   } else {
-    // 다시 보일 때 — 무조건 최신 데이터 로드 (덮어쓰기 방지)
-    isSyncing = true; // 동기화 시작 — 저장 차단
+    isSyncing = true;
     updateSaveStatus('syncing');
-    try {
-      const remote = await loadFromSupabase();
-      if (!remote) {
-        isSyncing = false;
-        return;
-      }
-      if (remote.calendar) calendarData = remote.calendar;
-      if (remote.contents) contentsData = remote.contents;
-      if (remote.performance) performanceData = remote.performance;
-      if (remote.revenue) revenueData = remote.revenue;
-      if (remote.memos) memosData = remote.memos;
-      if (remote.plans) plansData = remote.plans;
-      reconcileCalendarMilestones();
-
-      // 현재 탭만 다시 렌더링
-      const activeTab = document.querySelector('.tab-content.active')?.id.replace('-tab', '');
-      if (activeTab === 'calendar') renderCalendar();
-      if (activeTab === 'dashboard') renderDashboard();
-      if (activeTab === 'content') {
-        const savedScrollY = sessionStorage.getItem('yudit_scrollY');
-        renderContentList();
-        // 스크롤 복원 (리렌더링 후)
-        if (savedScrollY) {
-          requestAnimationFrame(() => {
-            requestAnimationFrame(() => {
-              window.scrollTo({ top: parseInt(savedScrollY), behavior: 'instant' });
-            });
-          });
-        }
-      }
-      if (activeTab === 'performance' && typeof renderPerformance === 'function') renderPerformance();
-      if (activeTab === 'revenue') renderRevenue();
-      if (activeTab === 'memos') renderMemos();
-      if (activeTab === 'planner') renderPlanner();
-
-      console.log('✅ 최신 데이터 동기화:', new Date().toLocaleTimeString());
-      updateSaveStatus('saved');
-    } catch (e) {
-      console.warn('동기화 실패:', e);
-      updateSaveStatus('error');
-    } finally {
-      isSyncing = false; // 동기화 완료 — 저장 허용
+    const savedScrollY = sessionStorage.getItem('yudit_scrollY');
+    const synced = await syncFromRemote({ showToast: false, checkNewer: false, force: true });
+    if (synced && savedScrollY) {
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          window.scrollTo({ top: parseInt(savedScrollY), behavior: 'instant' });
+        });
+      });
     }
+    updateSaveStatus('saved');
+    isSyncing = false;
   }
 });
 window.addEventListener('pagehide', flushSaveImmediately);
@@ -736,36 +723,9 @@ window.addEventListener('beforeunload', flushSaveImmediately);
 window.addEventListener('focus', autoReloadFromRemote);
 
 // 30초마다 자동 동기화 체크
-setInterval(async () => {
-  if (isSyncing || isOfflineMode) return;
-  if (Date.now() - lastOwnSaveAt < OWN_SAVE_GRACE_MS) return;
-  const ae = document.activeElement;
-  if (ae && (ae.tagName === 'INPUT' || ae.tagName === 'TEXTAREA' || ae.isContentEditable)) return;
-  try {
-    const latest = await getRemoteLatestUpdatedAt();
-    if (!isRemoteSignificantlyNewer(latest, lastLoadedAt)) return;
-    console.log('🔄 자동 동기화 감지');
-    const remote = await loadFromSupabase();
-    if (!remote) return;
-    if (remote.calendar) calendarData = remote.calendar;
-    if (remote.contents) contentsData = remote.contents;
-    if (remote.performance) performanceData = remote.performance;
-    if (remote.revenue) revenueData = remote.revenue;
-    if (remote.memos) memosData = remote.memos;
-    if (remote.plans) plansData = remote.plans;
-    reconcileCalendarMilestones();
-    const activeTab = document.querySelector('.tab-content.active')?.id.replace('-tab', '');
-    if (activeTab === 'calendar') renderCalendar();
-    if (activeTab === 'dashboard') renderDashboard();
-    if (activeTab === 'content') renderContentList();
-    if (activeTab === 'performance' && typeof renderPerformance === 'function') renderPerformance();
-    if (activeTab === 'revenue') renderRevenue();
-    if (activeTab === 'memos') renderMemos();
-    if (activeTab === 'planner') renderPlanner();
-    showMemoSaveToast('최신 데이터 동기화됨');
-  } catch (e) {
-    // silent fail
-  }
+setInterval(() => {
+  if (isOfflineMode) return;
+  syncFromRemote({ showToast: true, checkNewer: true });
 }, 30000);
 
 // PWA 재진입 시 동기화 (bfcache에서 복원될 때)
@@ -774,33 +734,26 @@ window.addEventListener('pageshow', async (e) => {
     console.log('📱 bfcache에서 복원 - 동기화 시작');
     isSyncing = true;
     updateSaveStatus('syncing');
-    try {
-      const remote = await loadFromSupabase();
-      if (remote) {
-        if (remote.calendar) calendarData = remote.calendar;
-        if (remote.contents) contentsData = remote.contents;
-        if (remote.performance) performanceData = remote.performance;
-        if (remote.revenue) revenueData = remote.revenue;
-        if (remote.memos) memosData = remote.memos;
-        if (remote.plans) plansData = remote.plans;
-        reconcileCalendarMilestones();
-        const activeTab = document.querySelector('.tab-content.active')?.id.replace('-tab', '');
-        if (activeTab === 'calendar') renderCalendar();
-        if (activeTab === 'dashboard') renderDashboard();
-        if (activeTab === 'content') renderContentList();
-        if (activeTab === 'performance' && typeof renderPerformance === 'function') renderPerformance();
-        if (activeTab === 'revenue') renderRevenue();
-        if (activeTab === 'memos') renderMemos();
-        if (activeTab === 'planner') renderPlanner();
-        updateSaveStatus('saved');
-      }
-    } catch (e) {
-      console.warn('pageshow 동기화 실패:', e);
-    } finally {
-      isSyncing = false;
-    }
+    await syncFromRemote({ showToast: false, checkNewer: false, force: true });
+    updateSaveStatus('saved');
+    isSyncing = false;
   }
 });
+
+// 특정 테이블만 dirty로 표시 (저장 최적화용)
+function markDirty(...tables) {
+  tables.forEach(t => dirtyTables.add(t));
+}
+
+// 전체 데이터 맵
+const dataMap = {
+  calendar: () => calendarData,
+  contents: () => contentsData,
+  performance: () => performanceData,
+  revenue: () => revenueData,
+  memos: () => memosData,
+  plans: () => plansData
+};
 
 function saveAllData() {
   // 동기화 중에는 저장 차단 (원격 데이터 덮어쓰기 방지)
@@ -815,21 +768,20 @@ function saveAllData() {
     return;
   }
 
-  // 1) localStorage 즉시 백업 (네트워크 끊겨도 잃지 않게)
-  localStorage.setItem('yudit_calendar', JSON.stringify(calendarData));
-  localStorage.setItem('yudit_contents', JSON.stringify(contentsData));
-  localStorage.setItem('yudit_performance', JSON.stringify(performanceData));
-  localStorage.setItem('yudit_revenue', JSON.stringify(revenueData));
-  localStorage.setItem('yudit_memos', JSON.stringify(memosData));
-  localStorage.setItem('yudit_plans', JSON.stringify(plansData));
+  // dirtyTables가 비어있으면 전체 저장 (기존 호환성)
+  const tablesToSave = dirtyTables.size > 0 ? [...dirtyTables] : Object.keys(dataMap);
 
-  // 2) Supabase에는 디바운스 (연속 호출 시 500ms 후 1번만)
+  // 1) localStorage 즉시 백업 (변경된 테이블만)
+  tablesToSave.forEach(key => {
+    localStorage.setItem('yudit_' + key, JSON.stringify(dataMap[key]()));
+  });
+
+  // 2) Supabase에는 디바운스 (연속 호출 시 1500ms 후 1번만)
   updateSaveStatus('saving');
   clearTimeout(saveTimer);
   saveTimer = setTimeout(async () => {
     try {
-      // ★ 저장 전 충돌 검사: Supabase에 더 최신 데이터가 있는지 확인
-      // 단, 자기 저장 후 30초 이내면 스킵 (자기 저장을 충돌로 오인하지 않도록)
+      // ★ 저장 전 충돌 검사
       const now = Date.now();
       if (now - lastOwnSaveAt > OWN_SAVE_GRACE_MS) {
         const remoteLatest = await getRemoteLatestUpdatedAt();
@@ -837,18 +789,15 @@ function saveAllData() {
           console.warn('⚠️  충돌 감지: Supabase에 더 최신 데이터가 있음. 저장 중단.');
           updateSaveStatus('error');
           alert('⚠️  다른 기기에서 더 최신 데이터가 저장되었습니다.\n\n새로고침(F5)하여 최신 데이터를 불러오세요.\n\n※ 현재 작업 내용은 로컬에 백업되어 있습니다.');
-          return; // 저장 중단
+          return;
         }
       }
 
-      await Promise.all([
-        upsertToSupabase('calendar', calendarData),
-        upsertToSupabase('contents', contentsData),
-        upsertToSupabase('performance', performanceData),
-        upsertToSupabase('revenue', revenueData),
-        upsertToSupabase('memos', memosData),
-        upsertToSupabase('plans', plansData)
-      ]);
+      // 변경된 테이블만 저장
+      const saveTargets = dirtyTables.size > 0 ? [...dirtyTables] : Object.keys(dataMap);
+      await Promise.all(saveTargets.map(key => upsertToSupabase(key, dataMap[key]())));
+      dirtyTables.clear();
+
       lastLoadedAt = new Date().toISOString();
       lastOwnSaveAt = Date.now();
       updateSaveStatus('saved');
@@ -4539,6 +4488,7 @@ function updateContentField(contentId, field, value) {
   const content = contentsData.contents.find(c => c.id === contentId);
   if (!content) return;
   content[field] = value;
+  markDirty('contents');
   saveAllData();
 }
 
@@ -6470,6 +6420,7 @@ function addMemo() {
   const newMemo = { id: now, title: '', content: '', pinned: false, tabId: activeTabId, createdAt: now, updatedAt: now };
   memosData.memos.unshift(newMemo); // 새 메모는 맨 위로
   selectedMemoId = now;
+  markDirty('memos');
   saveAllData();
   renderMemos();
   // 제목 input에 포커스
@@ -6484,6 +6435,7 @@ function updateMemo(id, field, value) {
   if (!memo) return;
   memo[field] = value;
   memo.updatedAt = Date.now();
+  markDirty('memos');
   saveAllData();
 }
 
