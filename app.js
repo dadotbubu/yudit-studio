@@ -6107,7 +6107,8 @@ function renderMemos() {
             <button onclick="toggleMemoPin(${memo.id})" title="${memo.pinned ? '고정 해제' : '상단 고정'}" class="shrink-0 ${memo.pinned ? 'text-botanical-terracotta' : 'text-botanical-sage/60'} transition-colors">${memo.pinned ? pinIconSolid : pinIconOutline}</button>
             <div class="flex items-center gap-1">
               <button onclick="copyMemoAll(${memo.id})" class="px-2 py-1 text-xs rounded border border-botanical-stone text-botanical-sage">복사</button>
-              <button onclick="mobileFinishEditMemo()" class="px-2 py-1 text-xs rounded bg-botanical-fg text-white">완료</button>
+              <button onclick="moveMemoToTab(${memo.id})" class="px-2 py-1 text-xs rounded border border-botanical-stone text-botanical-sage">이동</button>
+              <button onclick="mobileFinishEditMemo()" class="px-2 py-1 text-xs rounded bg-botanical-fg text-white">저장</button>
               <button onclick="deleteMemo(${memo.id})" title="삭제" class="p-1 rounded text-botanical-sage hover:text-red-400">${trashIcon}</button>
             </div>
           </div>
@@ -6201,20 +6202,13 @@ function renderMemos() {
     </div>
   `;
 
-  // 공통 헤더 (카운트 + 수동 저장 + 새 메모)
+  // 공통 헤더 (카운트 + 새 메모)
   const header = `
     <div class="flex items-center justify-between px-3 py-2">
-      <div class="flex items-center gap-2">
-        <span class="text-sm font-semibold text-botanical-fg">${memos.length}개</span>
-      </div>
-      <div class="flex items-center gap-1">
-        <button onclick="manualSaveMemos()" title="지금 저장 (백업용)" class="w-7 h-7 rounded-full border border-botanical-stone text-botanical-sage hover:text-botanical-fg hover:border-botanical-sage flex items-center justify-center transition-all">
-          ${saveIcon}
-        </button>
-        <button onclick="addMemo()" title="새 메모" class="w-7 h-7 rounded-full bg-botanical-fg text-white flex items-center justify-center hover:opacity-90 transition-all">
-          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
-        </button>
-      </div>
+      <span class="text-sm font-semibold text-botanical-fg">${memos.length}개</span>
+      <button onclick="addMemo()" title="새 메모" class="w-7 h-7 rounded-full bg-botanical-fg text-white flex items-center justify-center hover:opacity-90 transition-all">
+        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+      </button>
     </div>
   `;
 
@@ -6271,6 +6265,9 @@ function renderMemos() {
           <div class="flex items-center justify-between px-6 py-3 border-b border-botanical-stone">
             <span class="text-xs text-botanical-sage">편집 중 · 자동 저장</span>
             <div class="flex gap-1">
+              <button onclick="moveMemoToTab(${selected.id})" title="탭 이동" class="p-1.5 rounded text-botanical-sage hover:text-botanical-fg transition-all">
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+              </button>
               <button onclick="copyMemoAll(${selected.id})" title="전체 복사" class="p-1.5 rounded text-botanical-sage hover:text-botanical-fg transition-all">
                 <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg>
               </button>
@@ -6319,8 +6316,8 @@ function mobileFinishEditMemo() {
   if (_memoInlineSaveTimer) {
     clearTimeout(_memoInlineSaveTimer);
     _memoInlineSaveTimer = null;
-    saveAllData();
   }
+  saveAllData(); // 항상 저장
   renderMemos();
 }
 
@@ -6530,6 +6527,37 @@ function editMemoTab(tabId) {
     tab.name = action.trim();
     saveAllData();
     renderMemos();
+  }
+}
+
+function moveMemoToTab(memoId) {
+  const memo = memosData.memos.find(m => m.id === memoId);
+  if (!memo) return;
+
+  const currentTab = memosData.tabs.find(t => t.id === memo.tabId);
+  const otherTabs = memosData.tabs.filter(t => t.id !== memo.tabId);
+
+  if (otherTabs.length === 0) {
+    alert('이동할 다른 탭이 없습니다.');
+    return;
+  }
+
+  const choices = otherTabs.map((t, i) => `${i + 1}. ${t.name}`).join('\n');
+  const answer = prompt(`"${memo.title || '제목 없음'}" 메모를 어디로 이동할까요?\n\n현재: ${currentTab?.name || '없음'}\n\n${choices}\n\n번호 입력:`);
+
+  if (answer === null) return;
+
+  const idx = parseInt(answer) - 1;
+  if (idx >= 0 && idx < otherTabs.length) {
+    memo.tabId = otherTabs[idx].id;
+    memo.updatedAt = Date.now();
+    selectedMemoId = null;
+    mobileEditingMemoId = null;
+    saveAllData();
+    renderMemos();
+    showMemoSaveToast(`"${otherTabs[idx].name}" 탭으로 이동됨`);
+  } else {
+    alert('잘못된 선택입니다.');
   }
 }
 
