@@ -597,7 +597,7 @@ async function loadData() {
       const defaultTabs = [
         { id: 'tab_plan', name: '기획', order: 0 },
         { id: 'tab_hook', name: '후킹', order: 1 },
-        { id: 'tab_memo', name: '메모', order: 2 }
+        { id: 'tab_memo', name: '노트', order: 2 }
       ];
       if (!memosData.tabs || memosData.tabs.length === 0) {
         memosData.tabs = defaultTabs;
@@ -6064,7 +6064,7 @@ function renderMemos() {
     memosData.tabs = [
       { id: 'tab_plan', name: '기획', order: 0 },
       { id: 'tab_hook', name: '후킹', order: 1 },
-      { id: 'tab_memo', name: '메모', order: 2 }
+      { id: 'tab_memo', name: '노트', order: 2 }
     ];
   }
   if (!memosData.lastActiveTab) memosData.lastActiveTab = 'tab_memo';
