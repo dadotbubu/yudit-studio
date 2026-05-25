@@ -5760,21 +5760,21 @@ function renderPerformance() {
           if (!hasAnyData) return `<p class="text-sm text-botanical-sage text-center py-8">팔로워 데이터가 없습니다</p>`;
           const maxFollowers = Math.max(...yearMonths.map(m => m.totalFollowers), 1);
           return `
-            <div class="grid grid-cols-6 md:grid-cols-12 gap-1">
+            <div style="display: grid; grid-template-columns: repeat(12, 1fr); gap: 4px;">
               ${yearMonths.map(m => {
                 const barHeight = m.hasData ? Math.max((m.totalFollowers / maxFollowers) * 80, 8) : 0;
                 const isCurrentMonth = m.monthKey === perfSelectedMonth;
                 const barColor = isCurrentMonth ? '#C17F59' : '#8C9A84';
                 return `
-                  <div class="flex flex-col items-center">
-                    <div class="w-full h-20 flex items-end justify-center mb-1">
-                      ${m.hasData ? `<div class="w-full max-w-[24px] rounded-t" style="height: ${barHeight}px; background-color: ${barColor};"></div>` : ''}
+                  <div style="display: flex; flex-direction: column; align-items: center;">
+                    <div style="width: 100%; height: 80px; display: flex; align-items: flex-end; justify-content: center; margin-bottom: 4px;">
+                      ${m.hasData ? `<div style="width: 100%; max-width: 20px; height: ${barHeight}px; background-color: ${barColor}; border-radius: 3px 3px 0 0;"></div>` : ''}
                     </div>
-                    <div class="text-[10px] ${isCurrentMonth ? 'font-bold text-botanical-fg' : 'text-botanical-sage'}">${m.month}월</div>
+                    <div style="font-size: 10px; ${isCurrentMonth ? 'font-weight: 700; color: #2D3A31;' : 'color: #8C9A84;'}">${m.month}월</div>
                     ${m.hasData ? `
-                      <div class="text-[10px] font-medium text-botanical-fg">${(m.totalFollowers/1000).toFixed(1)}k</div>
-                      <div class="text-[9px] ${m.change > 0 ? 'text-emerald-600' : 'text-botanical-sage'}">${m.change > 0 ? '+' : ''}${m.change.toLocaleString()}</div>
-                    ` : `<div class="text-[10px] text-botanical-sage/50">-</div>`}
+                      <div style="font-size: 10px; font-weight: 500; color: #2D3A31;">${(m.totalFollowers/1000).toFixed(1)}k</div>
+                      <div style="font-size: 9px; color: ${m.change > 0 ? '#059669' : '#8C9A84'};">${m.change > 0 ? '+' : ''}${m.change.toLocaleString()}</div>
+                    ` : `<div style="font-size: 10px; color: rgba(140,154,132,0.5);">-</div>`}
                   </div>
                 `;
               }).join('')}
