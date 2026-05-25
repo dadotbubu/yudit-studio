@@ -2004,9 +2004,9 @@ function renderDashboard() {
                   <div class="flex items-center justify-between mb-1">
                     <span class="inline-block px-2 py-0.5 rounded-md text-xs font-medium bg-botanical-cream text-botanical-sage whitespace-nowrap">${idea.category}</span>
                     <div class="flex items-center gap-2">
-                      <button onclick="moveIdeaToPlanner('${idea.id}')" class="text-xs text-blue-500 hover:text-blue-700 transition-all">이동</button>
-                      <span class="text-botanical-stone">|</span>
                       <button onclick="editIdea('${idea.id}')" class="text-xs text-botanical-sage hover:text-botanical-fg transition-all">수정</button>
+                      <span class="text-botanical-stone">|</span>
+                      <button onclick="moveIdeaToPlanner('${idea.id}')" class="text-xs text-blue-500 hover:text-blue-700 transition-all">이동</button>
                       <span class="text-botanical-stone">|</span>
                       <button onclick="deleteIdea('${idea.id}')" class="text-xs text-botanical-terracotta hover:text-red-600 transition-all">삭제</button>
                     </div>
