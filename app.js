@@ -6534,7 +6534,6 @@ function moveMemoToTab(memoId) {
   const memo = memosData.memos.find(m => m.id === memoId);
   if (!memo) return;
 
-  const currentTab = memosData.tabs.find(t => t.id === memo.tabId);
   const otherTabs = memosData.tabs.filter(t => t.id !== memo.tabId);
 
   if (otherTabs.length === 0) {
@@ -6542,23 +6541,44 @@ function moveMemoToTab(memoId) {
     return;
   }
 
-  const choices = otherTabs.map((t, i) => `${i + 1}. ${t.name}`).join('\n');
-  const answer = prompt(`"${memo.title || '제목 없음'}" 메모를 어디로 이동할까요?\n\n현재: ${currentTab?.name || '없음'}\n\n${choices}\n\n번호 입력:`);
+  // 팝업 UI 생성
+  const popup = document.createElement('div');
+  popup.id = 'memo-move-popup';
+  popup.className = 'fixed inset-0 bg-black/40 flex items-center justify-center z-50';
+  popup.innerHTML = `
+    <div class="bg-white rounded-2xl p-4 mx-4 max-w-sm w-full shadow-xl">
+      <p class="text-sm font-semibold text-botanical-fg mb-3">어디로 이동할까요?</p>
+      <div class="flex flex-wrap gap-2">
+        ${otherTabs.map(t => `
+          <button onclick="confirmMoveMemoToTab(${memoId}, '${t.id}')" class="px-4 py-2 rounded-lg bg-botanical-cream text-botanical-fg font-medium text-sm hover:bg-botanical-sage hover:text-white transition-all">
+            ${escapeHtml(t.name)}
+          </button>
+        `).join('')}
+      </div>
+      <button onclick="closeMemoMovePopup()" class="mt-3 w-full py-2 text-sm text-botanical-sage hover:text-botanical-fg transition-all">취소</button>
+    </div>
+  `;
+  popup.onclick = (e) => { if (e.target === popup) closeMemoMovePopup(); };
+  document.body.appendChild(popup);
+}
 
-  if (answer === null) return;
+function confirmMoveMemoToTab(memoId, targetTabId) {
+  const memo = memosData.memos.find(m => m.id === memoId);
+  const targetTab = memosData.tabs.find(t => t.id === targetTabId);
+  if (!memo || !targetTab) return;
 
-  const idx = parseInt(answer) - 1;
-  if (idx >= 0 && idx < otherTabs.length) {
-    memo.tabId = otherTabs[idx].id;
-    memo.updatedAt = Date.now();
-    selectedMemoId = null;
-    mobileEditingMemoId = null;
-    saveAllData();
-    renderMemos();
-    showMemoSaveToast(`"${otherTabs[idx].name}" 탭으로 이동됨`);
-  } else {
-    alert('잘못된 선택입니다.');
-  }
+  memo.tabId = targetTabId;
+  memo.updatedAt = Date.now();
+  selectedMemoId = null;
+  mobileEditingMemoId = null;
+  closeMemoMovePopup();
+  saveAllData();
+  renderMemos();
+  showMemoSaveToast(`"${targetTab.name}" 탭으로 이동됨`);
+}
+
+function closeMemoMovePopup() {
+  document.getElementById('memo-move-popup')?.remove();
 }
 
 function deleteMemoTab(tabId) {
