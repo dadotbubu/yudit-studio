@@ -559,7 +559,7 @@ async function loadData() {
       }
 
       // 로드 후 오늘 날짜 자동 스냅샷 (하루 1회)
-      maybeCreateDailySnapshot(remote);
+      maybeCreateHourlySnapshot(remote);
     } else {
       // Supabase에 아직 데이터 없음 → localStorage에 있으면 마이그레이션
       const savedContents = localStorage.getItem('yudit_contents');
@@ -2800,7 +2800,6 @@ function renderContentForm(content) {
             <p class="text-sm font-semibold text-botanical-fg">기본 정보</p>
             <span class="text-xs text-botanical-sage/70">(일정 포함 · 자동 저장 중)</span>
           </div>
-          <button onclick="saveCheckpoint(${content.id}, '기본정보', this)" title="체크포인트 저장 (되돌리기 지점 생성)" class="px-3 py-1 bg-botanical-fg text-white rounded-lg text-xs font-medium hover:bg-botanical-fg/90 transition-all">저장</button>
         </div>
         <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
           <div>
@@ -3067,10 +3066,7 @@ function renderContentForm(content) {
             <span class="w-6 h-6 rounded-full bg-botanical-sage/20 text-botanical-sage text-xs flex items-center justify-center">1</span>
             레퍼런스 분석
           </h3>
-          <div class="flex items-center gap-2">
-            <span class="text-xs text-botanical-sage">선택사항</span>
-            <button onclick="saveCheckpoint(${content.id}, '레퍼런스분석', this)" title="체크포인트 저장" class="px-3 py-1 bg-botanical-fg text-white rounded-lg text-xs font-medium hover:bg-botanical-fg/90 transition-all">저장</button>
-          </div>
+          <span class="text-xs text-botanical-sage">선택사항</span>
         </div>
 
         <div class="mb-5 p-4 bg-botanical-cream/50 rounded-lg">
@@ -3227,9 +3223,8 @@ function renderContentForm(content) {
           </div>
         </div>
 
-        <!-- 저장 + 버전 선택 (썸네일/대본 바로 위) -->
+        <!-- 버전 선택 (썸네일/대본 바로 위) -->
         <div class="flex flex-wrap gap-2 items-center mb-4 pb-3 border-b border-botanical-stone relative">
-          <button onclick="saveCheckpoint(${content.id}, '촬영및대본', this)" title="체크포인트 저장 (체크리스트 포함)" class="px-3 py-1 bg-botanical-fg text-white rounded-lg text-xs font-medium hover:bg-botanical-fg/90 transition-all">저장</button>
           ${scriptVersions.map((_, i) => {
             const isActive = i === currentVer;
             const canDelete = scriptVersions.length > 1;
@@ -3317,10 +3312,7 @@ function renderContentForm(content) {
             <span class="w-6 h-6 rounded-full bg-botanical-sage/20 text-botanical-sage text-xs flex items-center justify-center">3</span>
             캡션 작성
           </h3>
-          <div class="flex gap-2">
-            <button onclick="copyCaption(${content.id})" class="px-3 py-1 rounded-full text-xs border border-botanical-stone hover:bg-botanical-cream transition-all">캡션 복사</button>
-            <button onclick="saveCheckpoint(${content.id}, '캡션', this)" title="체크포인트 저장" class="px-3 py-1 bg-botanical-fg text-white rounded-lg text-xs font-medium hover:bg-botanical-fg/90 transition-all">저장</button>
-          </div>
+          <button onclick="copyCaption(${content.id})" class="px-3 py-1 rounded-full text-xs border border-botanical-stone hover:bg-botanical-cream transition-all">캡션 복사</button>
         </div>
         <textarea id="caption-${content.id}" rows="3" oninput="autoResize(this);updateContentField(${content.id}, 'caption', this.value)" placeholder="인스타그램 캡션 입력..." class="auto-grow unified-text w-full px-3 py-2 rounded-lg border border-botanical-stone focus:outline-none focus:border-botanical-sage resize-none overflow-hidden">${content.caption || ''}</textarea>
       </div>
@@ -3335,7 +3327,6 @@ function renderContentForm(content) {
           <div class="flex gap-2">
             <button onclick="copyShareLink(${content.id})" class="px-3 py-1 rounded-full text-xs border border-botanical-stone hover:bg-botanical-cream transition-all">링크 복사</button>
             <button onclick="copyDM(${content.id})" class="px-3 py-1 rounded-full text-xs border border-botanical-stone hover:bg-botanical-cream transition-all">DM 복사</button>
-            <button onclick="saveCheckpoint(${content.id}, '공유&DM', this)" title="체크포인트 저장" class="px-3 py-1 bg-botanical-fg text-white rounded-lg text-xs font-medium hover:bg-botanical-fg/90 transition-all">저장</button>
           </div>
         </div>
         <div class="mb-4 flex gap-2">
@@ -3459,94 +3450,55 @@ function toggleContentForm(id) {
 }
 
 // ========== 자동 스냅샷 백업 ==========
-// 매일 1회, 로드 시점의 전체 데이터를 backup_YYYYMMDD 키로 저장.
-// 최근 30개 유지, 자동 복구용.
-async function maybeCreateDailySnapshot(remote) {
+// 1시간마다 자동 백업, 최근 5개만 유지
+// 키 형식: backup_auto_YYYYMMDD_HH
+async function maybeCreateHourlySnapshot(remote) {
   try {
-    const today = new Date().toISOString().slice(0, 10).replace(/-/g, '');
-    const key = `backup_${today}`;
-    // 이미 오늘 스냅샷 있으면 스킵
+    const now = new Date();
+    const dateStr = now.toISOString().slice(0, 10).replace(/-/g, '');
+    const hour = String(now.getHours()).padStart(2, '0');
+    const key = `backup_auto_${dateStr}_${hour}`;
+    // 이미 이번 시간 스냅샷 있으면 스킵
     const existing = await fetch(`${SUPABASE_URL}/rest/v1/${SUPABASE_TABLE}?select=key&key=eq.${key}`, {
       headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
     });
     const rows = await existing.json();
     if (rows.length > 0) return;
-    // remote에 들어있는 내용 그대로 스냅샷
+    // 스냅샷 저장
     await upsertToSupabase(key, {
-      snapshotAt: new Date().toISOString(),
+      snapshotAt: now.toISOString(),
       calendar: remote.calendar,
       contents: remote.contents,
       performance: remote.performance,
       revenue: remote.revenue,
-      memos: remote.memos
+      memos: remote.memos,
+      plans: remote.plans
     });
-    console.log(`📸 일간 스냅샷 저장: ${key}`);
-    // 30일 이전 스냅샷 삭제
-    pruneOldSnapshots();
+    console.log(`📸 자동 백업: ${key}`);
+    // 최근 5개만 유지
+    pruneAutoBackups();
   } catch (e) {
-    console.warn('스냅샷 저장 실패 (무시):', e);
+    console.warn('자동 백업 실패 (무시):', e);
   }
 }
 
-async function pruneOldSnapshots() {
+// 자동 백업 최근 5개만 유지
+async function pruneAutoBackups() {
   try {
-    const res = await fetch(`${SUPABASE_URL}/rest/v1/${SUPABASE_TABLE}?select=key&key=like.backup_*`, {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/${SUPABASE_TABLE}?select=key&key=like.backup_auto_*&order=key.desc`, {
       headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
     });
     const rows = await res.json();
-    const cutoff = new Date();
-    cutoff.setDate(cutoff.getDate() - 30);
-    const cutoffKey = 'backup_' + cutoff.toISOString().slice(0, 10).replace(/-/g, '');
-    const toDelete = rows.map(r => r.key).filter(k => k < cutoffKey);
+    // 5개 초과분 삭제
+    const toDelete = rows.slice(5).map(r => r.key);
     for (const k of toDelete) {
       await fetch(`${SUPABASE_URL}/rest/v1/${SUPABASE_TABLE}?key=eq.${k}`, {
         method: 'DELETE',
         headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
       });
     }
-  } catch (e) { console.warn('스냅샷 정리 실패:', e); }
-}
-
-// 체크포인트 저장 — 각 섹션 [저장] 버튼 누르면 해당 시점 전체 데이터 Supabase 스냅샷
-// 자동 저장은 이미 돌고 있음. 이 버튼은 "이 시점으로 되돌릴 수 있게 점 찍어두기".
-async function saveCheckpoint(contentId, section, btn) {
-  // 저장 직전에 현재 폼의 모든 data-field 값을 강제 캡처 (혹시 input 이벤트 놓친 필드 있을까 봐)
-  const topInfo = document.getElementById('top-info-' + contentId);
-  if (topInfo) {
-    topInfo.querySelectorAll('[data-field]').forEach(el => autoSaveTopField(el, contentId));
-  }
-  clearTimeout(saveTimer);
-  updateSaveStatus('saving');
-  try {
-    await Promise.all([
-      upsertToSupabase('calendar', calendarData),
-      upsertToSupabase('contents', contentsData),
-      upsertToSupabase('performance', performanceData),
-      upsertToSupabase('revenue', revenueData),
-      upsertToSupabase('memos', memosData)
-    ]);
-    const ts = new Date().toISOString().replace(/[:.]/g, '-');
-    const content = contentsData.contents.find(c => c.id === contentId);
-    const title = content?.keywords || content?.title || '콘텐츠';
-    await upsertToSupabase(`checkpoint_${ts}`, {
-      savedAt: new Date().toISOString(),
-      section,
-      contentId,
-      contentTitle: title,
-      calendar: calendarData,
-      contents: contentsData,
-      performance: performanceData,
-      revenue: revenueData,
-      memos: memosData
-    });
-    updateSaveStatus('saved');
-    // 목록 행 데이터 갱신 (상태/카테고리/조회수 등 새로 반영)
-    renderContentList();
-    reopenForm(contentId);
-  } catch (e) {
-    alert('체크포인트 저장 실패: ' + e.message);
-    updateSaveStatus('error');
-  }
+    if (toDelete.length > 0) console.log(`🗑️ 오래된 자동 백업 ${toDelete.length}개 삭제`);
+  } catch (e) { console.warn('백업 정리 실패:', e); }
 }
 
 // 수동 저장 버튼 (헤더)
@@ -3562,12 +3514,16 @@ function manualSaveAll() {
   showMemoSaveToast('전체 저장 완료');
 }
 
-// 수동 백업 버튼 (헤더) — backup_manual 키로 저장, 이전 수동 백업 덮어씀
+// 수동 백업 버튼 (헤더) — 최근 5개만 유지
+// 키 형식: backup_manual_YYYYMMDD_HHMMSS
 async function manualBackup() {
   try {
     updateSaveStatus('saving');
-    await upsertToSupabase('backup_manual', {
-      snapshotAt: new Date().toISOString(),
+    const now = new Date();
+    const ts = now.toISOString().replace(/[-:]/g, '').slice(0, 15).replace('T', '_');
+    const key = `backup_manual_${ts}`;
+    await upsertToSupabase(key, {
+      snapshotAt: now.toISOString(),
       calendar: calendarData,
       contents: contentsData,
       performance: performanceData,
@@ -3577,11 +3533,31 @@ async function manualBackup() {
     });
     updateSaveStatus('saved');
     showMemoSaveToast('📸 수동 백업 완료');
-    console.log('📸 수동 백업 저장: backup_manual');
+    console.log(`📸 수동 백업: ${key}`);
+    // 최근 5개만 유지
+    pruneManualBackups();
   } catch (e) {
     updateSaveStatus('error');
     alert('백업 실패: ' + e.message);
   }
+}
+
+// 수동 백업 최근 5개만 유지
+async function pruneManualBackups() {
+  try {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/${SUPABASE_TABLE}?select=key&key=like.backup_manual_*&order=key.desc`, {
+      headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
+    });
+    const rows = await res.json();
+    const toDelete = rows.slice(5).map(r => r.key);
+    for (const k of toDelete) {
+      await fetch(`${SUPABASE_URL}/rest/v1/${SUPABASE_TABLE}?key=eq.${k}`, {
+        method: 'DELETE',
+        headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
+      });
+    }
+    if (toDelete.length > 0) console.log(`🗑️ 오래된 수동 백업 ${toDelete.length}개 삭제`);
+  } catch (e) { console.warn('수동 백업 정리 실패:', e); }
 }
 
 // JSON 다운로드 (수동 백업)
@@ -3610,35 +3586,43 @@ async function showBackups() {
       headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
     });
     const rows = await res.json();
-    if (rows.length === 0) { alert('저장된 백업이 없습니다'); return; }
-    const lines = rows.map(r => {
-      const key = r.key.replace('backup_', '');
+    // backup_before_restore_ 제외
+    const backups = rows.filter(r => !r.key.startsWith('backup_before_restore_'));
+    if (backups.length === 0) { alert('저장된 백업이 없습니다'); return; }
+
+    const lines = backups.map((r, i) => {
+      const key = r.key;
       const contentsCount = r.data?.contents?.contents?.length || 0;
       const memosCount = r.data?.memos?.memos?.length || 0;
-      if (key === 'manual') {
-        const time = r.data?.snapshotAt ? new Date(r.data.snapshotAt).toLocaleString('ko') : '시간 미상';
-        return `[수동] ${time} — 콘텐츠 ${contentsCount}개 / 메모 ${memosCount}개`;
+      const time = r.data?.snapshotAt ? new Date(r.data.snapshotAt).toLocaleString('ko') : '';
+      let label = '';
+      if (key.startsWith('backup_auto_')) {
+        label = `[자동] ${time}`;
+      } else if (key.startsWith('backup_manual_')) {
+        label = `[수동] ${time}`;
+      } else {
+        // 레거시 형식 (backup_YYYYMMDD)
+        const d = key.replace('backup_', '');
+        label = `[구] ${d.slice(0,4)}-${d.slice(4,6)}-${d.slice(6,8)}`;
       }
-      const dateStr = `${key.slice(0,4)}-${key.slice(4,6)}-${key.slice(6,8)}`;
-      return `${dateStr} — 콘텐츠 ${contentsCount}개 / 메모 ${memosCount}개`;
+      return `${i + 1}. ${label} — 콘텐츠 ${contentsCount} / 메모 ${memosCount}`;
     }).join('\n');
-    const choice = prompt(`📸 과거 백업 목록\n\n${lines}\n\n복원할 날짜를 YYYYMMDD 형식으로 입력 (예: 20260423).\n수동 백업 복원은 "manual" 입력. 취소하려면 빈 값.`);
+
+    const choice = prompt(`📸 백업 목록 (자동 5개 / 수동 5개 유지)\n\n${lines}\n\n복원할 번호 입력 (1~${backups.length}). 취소하려면 빈 값.`);
     if (!choice) return;
-    const targetKey = `backup_${choice}`;
-    const target = rows.find(r => r.key === targetKey);
-    if (!target) { alert('해당 백업을 찾을 수 없습니다'); return; }
-    const displayName = choice === 'manual' ? '수동 백업' : `${choice.slice(0,4)}-${choice.slice(4,6)}-${choice.slice(6,8)}`;
-    if (!confirm(`⚠️ ${displayName}으로 되돌립니다. 현재 데이터는 덮어써집니다. 계속?`)) return;
-    // 현재 상태 한번 더 백업 (직전 상태로 되돌릴 수 있게)
-    await upsertToSupabase(`backup_before_restore_${Date.now()}`, {
-      snapshotAt: new Date().toISOString(),
-      calendar: calendarData, contents: contentsData, performance: performanceData, revenue: revenueData, memos: memosData
-    });
+    const idx = parseInt(choice, 10) - 1;
+    if (isNaN(idx) || idx < 0 || idx >= backups.length) { alert('잘못된 번호입니다'); return; }
+    const target = backups[idx];
+    const displayTime = target.data?.snapshotAt ? new Date(target.data.snapshotAt).toLocaleString('ko') : target.key;
+    if (!confirm(`⚠️ "${displayTime}" 백업으로 되돌립니다.\n현재 데이터는 덮어써집니다. 계속?`)) return;
+
     calendarData = target.data.calendar || calendarData;
     contentsData = target.data.contents || contentsData;
     performanceData = target.data.performance || performanceData;
     revenueData = target.data.revenue || revenueData;
     memosData = target.data.memos || memosData;
+    plansData = target.data.plans || plansData;
+    markDirty('calendar'); markDirty('contents'); markDirty('performance'); markDirty('revenue'); markDirty('memos'); markDirty('plans');
     saveAllData();
     alert('✓ 복원 완료. 새로고침 됩니다.');
     setTimeout(() => location.reload(), 500);
