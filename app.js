@@ -380,7 +380,13 @@ async function syncFromRemote(options = {}) {
     if (remote.contents) contentsData = remote.contents;
     if (remote.performance) performanceData = remote.performance;
     if (remote.revenue) revenueData = remote.revenue;
-    if (remote.memos) memosData = remote.memos;
+    if (remote.memos) {
+      memosData = remote.memos;
+      // tabId 없는 메모 자동 할당
+      let migrated = 0;
+      memosData.memos?.forEach(m => { if (!m.tabId) { m.tabId = 'tab_memo'; migrated++; } });
+      if (migrated > 0) { markDirty('memos'); saveAllData(); }
+    }
     if (remote.plans) plansData = remote.plans;
     reconcileCalendarMilestones();
 
@@ -536,6 +542,22 @@ async function loadData() {
       plansData = remote.plans || {};
       console.log('Supabase에서 데이터 로드됨');
 
+      // tabId 없는 메모 마이그레이션 (영구 저장)
+      if (memosData.memos?.length > 0) {
+        let migrated = 0;
+        memosData.memos.forEach(m => {
+          if (!m.tabId) {
+            m.tabId = 'tab_memo';
+            migrated++;
+          }
+        });
+        if (migrated > 0) {
+          console.log(`메모 ${migrated}개에 tabId 할당 → 저장 중...`);
+          markDirty('memos');
+          saveAllData();
+        }
+      }
+
       // 로드 후 오늘 날짜 자동 스냅샷 (하루 1회)
       maybeCreateDailySnapshot(remote);
     } else {
@@ -548,6 +570,10 @@ async function loadData() {
         revenueData = JSON.parse(localStorage.getItem('yudit_revenue') || '{"summary":{"thisMonth":0,"thisYear":0},"byType":{"ad":{},"sales":{},"sponsor":{}},"tax":{},"monthly":[],"items":{"ad":[],"sales":[],"sponsor":[]}}');
         memosData = JSON.parse(localStorage.getItem('yudit_memos') || '{"memos":[]}');
         plansData = JSON.parse(localStorage.getItem('yudit_plans') || '{}');
+        // tabId 없는 메모 마이그레이션
+        if (memosData.memos?.length > 0) {
+          memosData.memos.forEach(m => { if (!m.tabId) m.tabId = 'tab_memo'; });
+        }
         console.log('localStorage에서 로드 → Supabase로 마이그레이션 중...');
         await Promise.all([
           upsertToSupabase('calendar', calendarData),
