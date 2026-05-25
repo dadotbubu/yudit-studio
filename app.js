@@ -592,6 +592,28 @@ async function loadData() {
       localStorage.setItem('yudit_ideasGlobalMigrated', 'true');
     }
 
+    // 일회성 마이그레이션: 메모 탭 구조 추가
+    if (!localStorage.getItem('yudit_memoTabsMigrated') && memosData) {
+      const defaultTabs = [
+        { id: 'tab_plan', name: '기획', order: 0 },
+        { id: 'tab_hook', name: '후킹', order: 1 },
+        { id: 'tab_memo', name: '메모', order: 2 }
+      ];
+      if (!memosData.tabs || memosData.tabs.length === 0) {
+        memosData.tabs = defaultTabs;
+        memosData.lastActiveTab = 'tab_memo';
+        // 기존 메모들을 '메모' 탭으로 이동
+        if (memosData.memos) {
+          memosData.memos.forEach(m => {
+            if (!m.tabId) m.tabId = 'tab_memo';
+          });
+        }
+        console.log('📑 메모 탭 구조 마이그레이션 완료');
+        saveAllData();
+      }
+      localStorage.setItem('yudit_memoTabsMigrated', 'true');
+    }
+
     // 매일 최초 실행 시 중복 데이터 감지 (비동기, 블로킹 안 함)
     maybeCheckDuplicates();
 
@@ -6036,7 +6058,24 @@ function isMobileViewport() {
 
 function renderMemos() {
   if (!memosData) memosData = { memos: [] };
-  const memos = memosData.memos || [];
+
+  // 탭 초기화
+  if (!memosData.tabs || memosData.tabs.length === 0) {
+    memosData.tabs = [
+      { id: 'tab_plan', name: '기획', order: 0 },
+      { id: 'tab_hook', name: '후킹', order: 1 },
+      { id: 'tab_memo', name: '메모', order: 2 }
+    ];
+  }
+  if (!memosData.lastActiveTab) memosData.lastActiveTab = 'tab_memo';
+
+  // 탭 정렬
+  const sortedTabs = [...memosData.tabs].sort((a, b) => a.order - b.order);
+  const activeTabId = memosData.lastActiveTab;
+
+  // 현재 탭의 메모만 필터링
+  const allMemos = memosData.memos || [];
+  const memos = allMemos.filter(m => m.tabId === activeTabId);
 
   if (memos.length === 0) {
     selectedMemoId = null;
@@ -6142,9 +6181,29 @@ function renderMemos() {
 
   const selected = memos.find(m => m.id === selectedMemoId);
 
+  // 탭 바 (드래그로 순서 변경, 롱프레스로 수정/삭제)
+  const tabBar = `
+    <div class="flex items-center gap-1 px-3 py-2 border-b border-botanical-stone bg-botanical-cream/30 overflow-x-auto">
+      ${sortedTabs.map(tab => `
+        <button onclick="switchMemoTab('${tab.id}')"
+                ondblclick="editMemoTab('${tab.id}')"
+                draggable="true"
+                ondragstart="onMemoTabDragStart(event, '${tab.id}')"
+                ondragover="onMemoTabDragOver(event, '${tab.id}')"
+                ondrop="onMemoTabDrop(event, '${tab.id}')"
+                class="px-3 py-1.5 text-sm font-medium rounded-lg whitespace-nowrap transition-all ${tab.id === activeTabId ? 'bg-botanical-fg text-white' : 'text-botanical-sage hover:bg-botanical-stone/30'}">
+          ${escapeHtml(tab.name)}
+        </button>
+      `).join('')}
+      <button onclick="addMemoTab()" title="탭 추가" class="p-1.5 text-botanical-sage hover:text-botanical-fg transition-all">
+        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+      </button>
+    </div>
+  `;
+
   // 공통 헤더 (카운트 + 수동 저장 + 새 메모)
   const header = `
-    <div class="flex items-center justify-between px-3 py-3 border-b border-botanical-stone">
+    <div class="flex items-center justify-between px-3 py-2">
       <div class="flex items-center gap-2">
         <span class="text-sm font-semibold text-botanical-fg">${memos.length}개</span>
       </div>
@@ -6166,6 +6225,7 @@ function renderMemos() {
   // === 모바일: 단일 컬럼, 아이템 탭으로 인라인 편집 ===
   const mobileHTML = `
     <div class="md:hidden bg-white rounded-2xl shadow-sm border border-botanical-stone">
+      ${tabBar}
       ${header}
       <div class="p-2 space-y-0.5">
         ${memos.length === 0 ? emptyList : `
@@ -6187,6 +6247,7 @@ function renderMemos() {
   const pcHTML = `
     <div class="hidden md:flex gap-0 bg-white rounded-2xl shadow-sm border border-botanical-stone overflow-hidden" style="height: calc(100vh - 220px); min-height: 500px;">
       <aside class="shrink-0 border-r border-botanical-stone flex flex-col" style="width: 440px;">
+        ${tabBar}
         ${header}
         <div class="flex-1 overflow-y-auto p-2">
           ${memos.length === 0 ? emptyList : `
@@ -6334,8 +6395,9 @@ function selectMemo(id) {
 function addMemo() {
   if (!memosData) memosData = { memos: [] };
   if (!memosData.memos) memosData.memos = [];
+  const activeTabId = memosData.lastActiveTab || 'tab_memo';
   const now = Date.now();
-  const newMemo = { id: now, title: '', content: '', pinned: false, createdAt: now, updatedAt: now };
+  const newMemo = { id: now, title: '', content: '', pinned: false, tabId: activeTabId, createdAt: now, updatedAt: now };
   memosData.memos.unshift(newMemo); // 새 메모는 맨 위로
   selectedMemoId = now;
   saveAllData();
@@ -6431,6 +6493,116 @@ function toggleMemoPin(id) {
   if (!memo) return;
   memo.pinned = !memo.pinned;
   memo.updatedAt = Date.now();
+  saveAllData();
+  renderMemos();
+}
+
+// === 메모 탭 관련 함수 ===
+function switchMemoTab(tabId) {
+  memosData.lastActiveTab = tabId;
+  selectedMemoId = null;
+  mobileEditingMemoId = null;
+  saveAllData();
+  renderMemos();
+}
+
+function addMemoTab() {
+  const name = prompt('새 탭 이름을 입력하세요:');
+  if (!name || !name.trim()) return;
+  const maxOrder = Math.max(0, ...memosData.tabs.map(t => t.order));
+  const newTab = { id: 'tab_' + Date.now(), name: name.trim(), order: maxOrder + 1 };
+  memosData.tabs.push(newTab);
+  memosData.lastActiveTab = newTab.id;
+  saveAllData();
+  renderMemos();
+}
+
+function editMemoTab(tabId) {
+  const tab = memosData.tabs.find(t => t.id === tabId);
+  if (!tab) return;
+
+  const action = prompt(`탭 "${tab.name}" 수정\n\n1. 이름 변경: 새 이름 입력\n2. 삭제: "삭제" 입력\n\n현재 이름:`);
+  if (action === null) return;
+
+  if (action.trim() === '삭제') {
+    deleteMemoTab(tabId);
+  } else if (action.trim()) {
+    tab.name = action.trim();
+    saveAllData();
+    renderMemos();
+  }
+}
+
+function deleteMemoTab(tabId) {
+  if (memosData.tabs.length <= 1) {
+    alert('최소 1개의 탭은 있어야 합니다.');
+    return;
+  }
+
+  const tab = memosData.tabs.find(t => t.id === tabId);
+  const memosInTab = memosData.memos.filter(m => m.tabId === tabId);
+
+  if (memosInTab.length > 0) {
+    const otherTabs = memosData.tabs.filter(t => t.id !== tabId);
+    const choices = otherTabs.map((t, i) => `${i + 1}. ${t.name}`).join('\n');
+    const answer = prompt(`"${tab.name}" 탭에 메모 ${memosInTab.length}개가 있습니다.\n\n메모를 어디로 이동할까요?\n${choices}\n\n또는 "삭제"를 입력하면 메모도 함께 삭제됩니다.\n\n번호 또는 "삭제" 입력:`);
+
+    if (answer === null) return;
+
+    if (answer.trim() === '삭제') {
+      memosData.memos = memosData.memos.filter(m => m.tabId !== tabId);
+    } else {
+      const idx = parseInt(answer) - 1;
+      if (idx >= 0 && idx < otherTabs.length) {
+        const targetTabId = otherTabs[idx].id;
+        memosInTab.forEach(m => m.tabId = targetTabId);
+      } else {
+        alert('잘못된 선택입니다.');
+        return;
+      }
+    }
+  }
+
+  memosData.tabs = memosData.tabs.filter(t => t.id !== tabId);
+  if (memosData.lastActiveTab === tabId) {
+    memosData.lastActiveTab = memosData.tabs[0]?.id;
+  }
+  saveAllData();
+  renderMemos();
+}
+
+// 탭 드래그 앤 드롭
+let draggedTabId = null;
+function onMemoTabDragStart(e, tabId) {
+  draggedTabId = tabId;
+  e.dataTransfer.effectAllowed = 'move';
+}
+function onMemoTabDragOver(e, tabId) {
+  if (!draggedTabId || draggedTabId === tabId) return;
+  e.preventDefault();
+  e.dataTransfer.dropEffect = 'move';
+}
+function onMemoTabDrop(e, targetTabId) {
+  e.preventDefault();
+  if (!draggedTabId || draggedTabId === targetTabId) {
+    draggedTabId = null;
+    return;
+  }
+
+  const tabs = memosData.tabs;
+  const fromIdx = tabs.findIndex(t => t.id === draggedTabId);
+  const toIdx = tabs.findIndex(t => t.id === targetTabId);
+  if (fromIdx === -1 || toIdx === -1) {
+    draggedTabId = null;
+    return;
+  }
+
+  // 순서 재배치
+  const [moved] = tabs.splice(fromIdx, 1);
+  tabs.splice(toIdx, 0, moved);
+  tabs.forEach((t, i) => t.order = i);
+
+  draggedTabId = null;
   saveAllData();
   renderMemos();
 }
