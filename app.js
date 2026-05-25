@@ -1980,14 +1980,15 @@ function renderDashboard() {
 
     <!-- 아이디어 탭 -->
     <div id="planner-ideas-tab" class="${plannerSubTab === 'ideas' ? '' : 'hidden'}">
-      <div class="flex items-center justify-between mb-4">
-        <div class="flex gap-1 bg-botanical-stone p-1 rounded-full overflow-x-auto">
-          <button onclick="switchIdeaCategory('all')" class="px-3 py-1 rounded-full text-xs font-medium whitespace-nowrap ${ideaCategoryFilter === 'all' ? 'bg-botanical-fg text-white' : 'text-botanical-sage hover:text-botanical-fg'}">전체</button>
-          ${categories.map(cat => `
-            <button onclick="switchIdeaCategory('${cat}')" class="px-3 py-1 rounded-full text-xs font-medium whitespace-nowrap ${ideaCategoryFilter === cat ? 'bg-botanical-fg text-white' : 'text-botanical-sage hover:text-botanical-fg'}">${cat.replace(' ', '')}</button>
-          `).join('')}
+      <div class="flex items-center justify-between gap-3 mb-4">
+        <div class="flex flex-wrap gap-1.5">
+          <button onclick="switchIdeaCategory('all')" class="px-3 py-1.5 rounded-lg text-xs font-medium ${ideaCategoryFilter === 'all' ? 'bg-botanical-fg text-white' : 'bg-botanical-stone text-botanical-sage hover:text-botanical-fg'}">전체</button>
+          <button onclick="switchIdeaCategory('Career Guide')" class="px-3 py-1.5 rounded-lg text-xs font-medium ${ideaCategoryFilter === 'Career Guide' ? 'bg-botanical-fg text-white' : 'bg-botanical-stone text-botanical-sage hover:text-botanical-fg'}">Career</button>
+          <button onclick="switchIdeaCategory('AI Work')" class="px-3 py-1.5 rounded-lg text-xs font-medium ${ideaCategoryFilter === 'AI Work' ? 'bg-botanical-fg text-white' : 'bg-botanical-stone text-botanical-sage hover:text-botanical-fg'}">AI</button>
+          <button onclick="switchIdeaCategory('Money Log')" class="px-3 py-1.5 rounded-lg text-xs font-medium ${ideaCategoryFilter === 'Money Log' ? 'bg-botanical-fg text-white' : 'bg-botanical-stone text-botanical-sage hover:text-botanical-fg'}">Money</button>
+          <button onclick="switchIdeaCategory('Life Style')" class="px-3 py-1.5 rounded-lg text-xs font-medium ${ideaCategoryFilter === 'Life Style' ? 'bg-botanical-fg text-white' : 'bg-botanical-stone text-botanical-sage hover:text-botanical-fg'}">Life</button>
         </div>
-        <button onclick="addIdea()" class="px-4 py-2 rounded-full bg-botanical-fg text-white text-sm font-medium hover:bg-opacity-90 transition-all shrink-0">
+        <button onclick="addIdea()" class="px-3 py-1.5 rounded-lg bg-botanical-fg text-white text-xs font-medium hover:bg-opacity-90 transition-all shrink-0">
           + 추가
         </button>
       </div>
