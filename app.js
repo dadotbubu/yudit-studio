@@ -6096,8 +6096,11 @@ function renderMemos() {
   const sortedTabs = [...memosData.tabs].sort((a, b) => a.order - b.order);
   const activeTabId = memosData.lastActiveTab;
 
-  // 현재 탭의 메모만 필터링
+  // tabId 없는 메모는 기본 탭('tab_memo')으로 자동 할당
   const allMemos = memosData.memos || [];
+  allMemos.forEach(m => {
+    if (!m.tabId) m.tabId = 'tab_memo';
+  });
   const memos = allMemos.filter(m => m.tabId === activeTabId);
 
   if (memos.length === 0) {
