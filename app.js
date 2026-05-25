@@ -6067,6 +6067,7 @@ function renderMemos() {
           <div class="flex items-center justify-between gap-2 mb-2">
             <button onclick="toggleMemoPin(${memo.id})" title="${memo.pinned ? '고정 해제' : '상단 고정'}" class="shrink-0 ${memo.pinned ? 'text-botanical-terracotta' : 'text-botanical-sage/60'} transition-colors">${memo.pinned ? pinIconSolid : pinIconOutline}</button>
             <div class="flex items-center gap-1">
+              <button onclick="copyMemoAll(${memo.id})" class="px-2 py-1 text-xs rounded border border-botanical-stone text-botanical-sage">복사</button>
               <button onclick="mobileFinishEditMemo()" class="px-2 py-1 text-xs rounded bg-botanical-fg text-white">완료</button>
               <button onclick="deleteMemo(${memo.id})" title="삭제" class="p-1 rounded text-botanical-sage hover:text-red-400">${trashIcon}</button>
             </div>
@@ -6209,6 +6210,9 @@ function renderMemos() {
           <div class="flex items-center justify-between px-6 py-3 border-b border-botanical-stone">
             <span class="text-xs text-botanical-sage">편집 중 · 자동 저장</span>
             <div class="flex gap-1">
+              <button onclick="copyMemoAll(${selected.id})" title="전체 복사" class="p-1.5 rounded text-botanical-sage hover:text-botanical-fg transition-all">
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg>
+              </button>
               <button onclick="toggleMemoPin(${selected.id})" title="${selected.pinned ? '고정 해제' : '상단 고정'}" class="p-1.5 rounded ${selected.pinned ? 'text-botanical-terracotta' : 'text-botanical-sage hover:text-botanical-fg'} transition-all">
                 ${selected.pinned ? pinIconSolid : pinIconOutline}
               </button>
@@ -6429,6 +6433,15 @@ function toggleMemoPin(id) {
   memo.updatedAt = Date.now();
   saveAllData();
   renderMemos();
+}
+
+function copyMemoAll(id) {
+  const memo = memosData.memos.find(m => m.id === id);
+  if (!memo) return;
+  const text = (memo.title ? memo.title + '\n\n' : '') + (memo.content || '');
+  navigator.clipboard.writeText(text).then(() => {
+    showMemoSaveToast('복사됨');
+  });
 }
 
 function deleteMemo(id) {
