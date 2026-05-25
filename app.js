@@ -422,7 +422,6 @@ async function syncFromRemote(options = {}) {
     else if (activeTab === 'performance' && typeof renderPerformance === 'function') renderPerformance();
     else if (activeTab === 'revenue') renderRevenue();
     else if (activeTab === 'memos') renderMemos();
-    else if (activeTab === 'planner') renderPlanner();
 
     if (showToast) showMemoSaveToast('최신 데이터 동기화됨');
     console.log('✅ 동기화 완료:', new Date().toLocaleTimeString());
@@ -2328,7 +2327,7 @@ function startContentFromPlan(planId) {
   saveAllData();
 
   // 플래너 즉시 업데이트 (바로가기 버튼 반영)
-  renderPlanner();
+  renderDashboard();
 
   switchTab('content');
   renderContentList();
