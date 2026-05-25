@@ -5738,36 +5738,52 @@ function renderPerformance() {
         </select>
       </div>
 
-      <!-- 월간 트렌드 (세로 막대형, 최신월 왼쪽) -->
+      <!-- 월간 트렌드 (1월→12월 순서) -->
       <div class="bg-white rounded-2xl p-6 shadow-sm mb-6">
         <h3 class="font-medium mb-4">팔로워 월간 트렌드</h3>
-        ${monthlyData.length > 0 ? (() => {
-          const recent6 = monthlyData.slice(-6).reverse(); // 최신월이 먼저
-          const maxChange = Math.max(...recent6.map(d => Math.abs(d.change || 0)), 1);
-          const avgChange = recent6.length > 0 ? Math.round(recent6.reduce((sum, d) => sum + (d.change || 0), 0) / recent6.length) : 0;
-          const currentMonthStr = perfSelectedMonth;
+        ${(() => {
+          // 해당 연도의 1~12월 데이터 준비
+          const yearStr = String(perfSelectedYear);
+          const yearMonths = [];
+          for (let m = 1; m <= 12; m++) {
+            const monthKey = `${yearStr}-${String(m).padStart(2, '0')}`;
+            const monthData = monthlyData.find(d => d.month === monthKey);
+            // 해당 월의 마지막 daily 데이터에서 총 팔로워 가져오기
+            const monthDailyData = dailyData.filter(d => d.date.startsWith(monthKey));
+            const lastDay = monthDailyData.sort((a, b) => b.date.localeCompare(a.date))[0];
+            const totalFollowers = lastDay?.count || 0;
+            const change = monthData?.change || 0;
+            const daysInMonth = new Date(perfSelectedYear, m, 0).getDate();
+            const dailyAvg = change !== 0 ? Math.round(change / daysInMonth) : 0;
+            yearMonths.push({ month: m, monthKey, totalFollowers, change, dailyAvg });
+          }
+          // 데이터 있는 월만 필터
+          const hasData = yearMonths.filter(m => m.totalFollowers > 0 || m.change !== 0);
+          if (hasData.length === 0) return `<p class="text-sm text-botanical-sage text-center py-8">팔로워 데이터가 없습니다</p>`;
           return `
-            <div class="flex items-end justify-between gap-2 h-40 mb-4">
-              ${recent6.map(d => {
-                const isCurrentMonth = d.month === currentMonthStr;
-                const change = d.change || 0;
-                const height = Math.max((Math.abs(change) / maxChange) * 100, 5);
-                const barColor = isCurrentMonth ? '#2D3A31' : '#8C9A84';
-                return `
-                  <div class="flex-1 flex flex-col items-center">
-                    <span class="text-xs font-medium mb-1 ${change > 0 ? 'text-emerald-600' : change < 0 ? 'text-red-500' : 'text-botanical-sage'}">${change > 0 ? '+' : ''}${change.toLocaleString()}</span>
-                    <div class="w-full rounded-t-lg" style="height: ${height}%; background-color: ${barColor};"></div>
-                    <span class="text-xs mt-2 ${isCurrentMonth ? 'font-semibold text-botanical-fg' : 'text-botanical-sage'}">${d.month.slice(5)}월</span>
-                  </div>
-                `;
-              }).join('')}
-            </div>
-            <div class="pt-3 border-t border-botanical-stone text-xs text-right">
-              <span class="text-botanical-sage">최근 6개월 평균 증가</span>
-              <span class="ml-2 font-semibold text-botanical-fg">${avgChange > 0 ? '+' : ''}${avgChange.toLocaleString()}명/월</span>
+            <div class="overflow-x-auto">
+              <div class="flex gap-3 min-w-max">
+                ${yearMonths.map(m => {
+                  const hasMonthData = m.totalFollowers > 0 || m.change !== 0;
+                  if (!hasMonthData) return `
+                    <div class="flex-shrink-0 w-16 text-center opacity-30">
+                      <div class="text-xs text-botanical-sage mb-1">${m.month}월</div>
+                      <div class="text-sm text-botanical-sage">-</div>
+                    </div>
+                  `;
+                  return `
+                    <div class="flex-shrink-0 w-20 text-center p-2 rounded-lg ${m.monthKey === perfSelectedMonth ? 'bg-botanical-cream' : ''}">
+                      <div class="text-xs font-medium text-botanical-fg mb-1">${m.month}월</div>
+                      <div class="text-sm font-semibold text-botanical-fg">${m.totalFollowers.toLocaleString()}</div>
+                      <div class="text-xs ${m.change > 0 ? 'text-emerald-600' : m.change < 0 ? 'text-red-500' : 'text-botanical-sage'}">${m.change > 0 ? '+' : ''}${m.change.toLocaleString()}</div>
+                      <div class="text-[10px] text-botanical-sage mt-1">일평균 ${m.dailyAvg > 0 ? '+' : ''}${m.dailyAvg}</div>
+                    </div>
+                  `;
+                }).join('')}
+              </div>
             </div>
           `;
-        })() : `<p class="text-sm text-botanical-sage text-center py-8">팔로워 데이터가 없습니다</p>`}
+        })()}
       </div>
 
       <!-- 월간 콘텐츠 성과 비교 -->
