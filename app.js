@@ -734,6 +734,40 @@ document.addEventListener('visibilitychange', async () => {
 window.addEventListener('pagehide', flushSaveImmediately);
 window.addEventListener('beforeunload', flushSaveImmediately);
 window.addEventListener('focus', autoReloadFromRemote);
+
+// 30초마다 자동 동기화 체크
+setInterval(async () => {
+  if (isSyncing || isOfflineMode) return;
+  if (Date.now() - lastOwnSaveAt < OWN_SAVE_GRACE_MS) return;
+  const ae = document.activeElement;
+  if (ae && (ae.tagName === 'INPUT' || ae.tagName === 'TEXTAREA' || ae.isContentEditable)) return;
+  try {
+    const latest = await getRemoteLatestUpdatedAt();
+    if (!isRemoteSignificantlyNewer(latest, lastLoadedAt)) return;
+    console.log('🔄 자동 동기화 감지');
+    const remote = await loadFromSupabase();
+    if (!remote) return;
+    if (remote.calendar) calendarData = remote.calendar;
+    if (remote.contents) contentsData = remote.contents;
+    if (remote.performance) performanceData = remote.performance;
+    if (remote.revenue) revenueData = remote.revenue;
+    if (remote.memos) memosData = remote.memos;
+    if (remote.plans) plansData = remote.plans;
+    reconcileCalendarMilestones();
+    const activeTab = document.querySelector('.tab-content.active')?.id.replace('-tab', '');
+    if (activeTab === 'calendar') renderCalendar();
+    if (activeTab === 'dashboard') renderDashboard();
+    if (activeTab === 'content') renderContentList();
+    if (activeTab === 'performance' && typeof renderPerformance === 'function') renderPerformance();
+    if (activeTab === 'revenue') renderRevenue();
+    if (activeTab === 'memos') renderMemos();
+    if (activeTab === 'planner') renderPlanner();
+    showMemoSaveToast('최신 데이터 동기화됨');
+  } catch (e) {
+    // silent fail
+  }
+}, 30000);
+
 // PWA 재진입 시 동기화 (bfcache에서 복원될 때)
 window.addEventListener('pageshow', async (e) => {
   if (e.persisted) {
