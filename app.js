@@ -3549,6 +3549,41 @@ async function saveCheckpoint(contentId, section, btn) {
   }
 }
 
+// 수동 저장 버튼 (헤더)
+function manualSaveAll() {
+  // 모든 데이터 dirty 표시 후 저장
+  markDirty('calendar');
+  markDirty('contents');
+  markDirty('performance');
+  markDirty('revenue');
+  markDirty('memos');
+  markDirty('plans');
+  saveAllData();
+  showMemoSaveToast('전체 저장 완료');
+}
+
+// 수동 백업 버튼 (헤더) — backup_manual 키로 저장, 이전 수동 백업 덮어씀
+async function manualBackup() {
+  try {
+    updateSaveStatus('saving');
+    await upsertToSupabase('backup_manual', {
+      snapshotAt: new Date().toISOString(),
+      calendar: calendarData,
+      contents: contentsData,
+      performance: performanceData,
+      revenue: revenueData,
+      memos: memosData,
+      plans: plansData
+    });
+    updateSaveStatus('saved');
+    showMemoSaveToast('📸 수동 백업 완료');
+    console.log('📸 수동 백업 저장: backup_manual');
+  } catch (e) {
+    updateSaveStatus('error');
+    alert('백업 실패: ' + e.message);
+  }
+}
+
 // JSON 다운로드 (수동 백업)
 function exportBackup() {
   const payload = {
@@ -3577,18 +3612,23 @@ async function showBackups() {
     const rows = await res.json();
     if (rows.length === 0) { alert('저장된 백업이 없습니다'); return; }
     const lines = rows.map(r => {
-      const date = r.key.replace('backup_', '');
-      const dateStr = `${date.slice(0,4)}-${date.slice(4,6)}-${date.slice(6,8)}`;
+      const key = r.key.replace('backup_', '');
       const contentsCount = r.data?.contents?.contents?.length || 0;
       const memosCount = r.data?.memos?.memos?.length || 0;
+      if (key === 'manual') {
+        const time = r.data?.snapshotAt ? new Date(r.data.snapshotAt).toLocaleString('ko') : '시간 미상';
+        return `[수동] ${time} — 콘텐츠 ${contentsCount}개 / 메모 ${memosCount}개`;
+      }
+      const dateStr = `${key.slice(0,4)}-${key.slice(4,6)}-${key.slice(6,8)}`;
       return `${dateStr} — 콘텐츠 ${contentsCount}개 / 메모 ${memosCount}개`;
     }).join('\n');
-    const choice = prompt(`📸 과거 백업 목록 (최근 30일)\n\n${lines}\n\n복원할 날짜를 YYYYMMDD 형식으로 입력 (예: 20260423). 취소하려면 빈 값.`);
+    const choice = prompt(`📸 과거 백업 목록\n\n${lines}\n\n복원할 날짜를 YYYYMMDD 형식으로 입력 (예: 20260423).\n수동 백업 복원은 "manual" 입력. 취소하려면 빈 값.`);
     if (!choice) return;
     const targetKey = `backup_${choice}`;
     const target = rows.find(r => r.key === targetKey);
-    if (!target) { alert('해당 날짜 백업을 찾을 수 없습니다'); return; }
-    if (!confirm(`⚠️ ${choice.slice(0,4)}-${choice.slice(4,6)}-${choice.slice(6,8)} 백업으로 되돌립니다. 현재 데이터는 덮어써집니다. 계속?`)) return;
+    if (!target) { alert('해당 백업을 찾을 수 없습니다'); return; }
+    const displayName = choice === 'manual' ? '수동 백업' : `${choice.slice(0,4)}-${choice.slice(4,6)}-${choice.slice(6,8)}`;
+    if (!confirm(`⚠️ ${displayName}으로 되돌립니다. 현재 데이터는 덮어써집니다. 계속?`)) return;
     // 현재 상태 한번 더 백업 (직전 상태로 되돌릴 수 있게)
     await upsertToSupabase(`backup_before_restore_${Date.now()}`, {
       snapshotAt: new Date().toISOString(),
