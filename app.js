@@ -42,10 +42,10 @@ const saveScrollPosition = () => {
 function pad2(n) { return String(n).padStart(2, '0'); }
 function ym(y, m) { return `${y}-${pad2(m)}`; }
 
-// 시작 기준월 = 2026-04 (스튜디오 사용 시작 시점, 이전 월은 표시 안 함)
+// 시작 기준월 = 2026-03 (스튜디오 사용 시작 시점, 이전 월은 표시 안 함)
 // 상단(가장 최신) = 오늘의 실제 월. 달력이 다음 달로 넘어가면 자동 반영.
-// 하단(가장 과거) = 2026-04.
-const MONTH_SELECT_START = '2026-04'; // 최저월
+// 하단(가장 과거) = 2026-03.
+const MONTH_SELECT_START = '2026-03'; // 최저월
 function getMonthOptions(selectedMonth) {
   const [startY, startM] = MONTH_SELECT_START.split('-').map(Number);
   const realNow = new Date();
