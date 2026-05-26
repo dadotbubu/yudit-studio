@@ -1948,15 +1948,15 @@ function renderDashboard() {
                 const linkedContent = plan.linkedContentId && contentsData && contentsData.contents
                   ? contentsData.contents.find(c => String(c.id) === String(plan.linkedContentId))
                   : null;
-                const typeTag = linkedContent
-                  ? (linkedContent.isRevenue
-                    ? '<span class="inline-block px-2 py-0.5 rounded-md text-xs font-medium" style="background-color: #FEE2E2; color: #DC2626;">수익</span>'
-                    : '<span class="inline-block px-2 py-0.5 rounded-md text-xs font-medium" style="background-color: #DBEAFE; color: #2563EB;">일반</span>')
-                  : '';
+                const isRevenue = linkedContent ? linkedContent.isRevenue : false;
+                const typeTag = isRevenue
+                  ? '<span class="inline-block px-2 py-0.5 rounded-md text-xs font-medium" style="background-color: #FEE2E2; color: #DC2626;">수익</span>'
+                  : '<span class="inline-block px-2 py-0.5 rounded-md text-xs font-medium" style="background-color: #DBEAFE; color: #2563EB;">일반</span>';
+                const catColor = categoryColors[plan.category] || '#8C9A84';
                 return `
                 <div class="mb-3 p-4 rounded-xl border border-botanical-stone hover:border-botanical-sage transition-all">
                   <div class="mb-2 flex items-center gap-1.5">
-                    <span class="inline-block px-2 py-0.5 rounded-md text-xs font-medium bg-botanical-cream text-botanical-sage">${plan.category}</span>
+                    <span class="inline-block px-2 py-0.5 rounded-md text-xs font-medium" style="background-color: ${catColor}20; color: ${catColor};">${plan.category}</span>
                     ${typeTag}
                   </div>
                   <h4 class="text-base font-semibold text-botanical-fg mb-2">${getPlanDisplayTitle(plan)}</h4>
