@@ -1946,8 +1946,9 @@ function renderDashboard() {
 
               ${weekPlans.map(plan => `
                 <div class="mb-3 p-4 rounded-xl border border-botanical-stone hover:border-botanical-sage transition-all">
-                  <div class="mb-2">
+                  <div class="mb-2 flex items-center gap-1.5">
                     <span class="inline-block px-2 py-0.5 rounded-md text-xs font-medium bg-botanical-cream text-botanical-sage">${plan.category}</span>
+                    <span class="inline-block px-2 py-0.5 rounded-md text-xs font-medium ${plan.planType === '수익' ? 'bg-botanical-terracotta/20 text-botanical-terracotta' : 'bg-botanical-stone/50 text-botanical-sage'}">${plan.planType || '일반'}</span>
                   </div>
                   <h4 class="text-base font-semibold text-botanical-fg mb-2">${getPlanDisplayTitle(plan)}</h4>
                   ${plan.link ? `
@@ -2051,14 +2052,23 @@ function addPlanToWeek(week) {
     </div>
 
     <div class="space-y-4">
-      <div>
-        <label class="text-sm font-medium block mb-1">카테고리</label>
-        <select id="new-plan-category" class="w-full px-3 py-2 rounded-xl border border-botanical-stone focus:outline-none">
-          <option value="Career Guide">Career Guide</option>
-          <option value="AI Work">AI Work</option>
-          <option value="Money Log">Money Log</option>
-          <option value="Life Style">Life Style</option>
-        </select>
+      <div class="grid grid-cols-2 gap-3">
+        <div>
+          <label class="text-sm font-medium block mb-1">카테고리</label>
+          <select id="new-plan-category" class="w-full px-3 py-2 rounded-xl border border-botanical-stone focus:outline-none">
+            <option value="Career Guide">Career Guide</option>
+            <option value="AI Work">AI Work</option>
+            <option value="Money Log">Money Log</option>
+            <option value="Life Style">Life Style</option>
+          </select>
+        </div>
+        <div>
+          <label class="text-sm font-medium block mb-1">유형</label>
+          <select id="new-plan-type" class="w-full px-3 py-2 rounded-xl border border-botanical-stone focus:outline-none">
+            <option value="일반">일반</option>
+            <option value="수익">수익</option>
+          </select>
+        </div>
       </div>
       <div>
         <label class="text-sm font-medium block mb-1">제목</label>
@@ -2135,6 +2145,15 @@ function editPlan(planId) {
           </select>
         </div>
       </div>
+      <div class="grid grid-cols-2 gap-3">
+        <div>
+          <label class="text-sm font-medium block mb-1">유형</label>
+          <select id="edit-plan-type" class="w-full px-3 py-2 rounded-xl border border-botanical-stone focus:outline-none">
+            <option value="일반" ${(plan.planType || '일반') === '일반' ? 'selected' : ''}>일반</option>
+            <option value="수익" ${plan.planType === '수익' ? 'selected' : ''}>수익</option>
+          </select>
+        </div>
+      </div>
       <div>
         <label class="text-sm font-medium block mb-1">제목</label>
         <input type="text" id="edit-plan-title" value="${plan.title}" class="w-full px-3 py-2 rounded-xl border border-botanical-stone focus:outline-none" placeholder="계획 제목">
@@ -2160,6 +2179,7 @@ function editPlan(planId) {
 function savePlan(planId) {
   const weekValue = document.getElementById('edit-plan-week').value; // "YYYY-MM-W" 형식
   const category = document.getElementById('edit-plan-category').value;
+  const planType = document.getElementById('edit-plan-type').value;
   const title = document.getElementById('edit-plan-title').value;
   const link = document.getElementById('edit-plan-link').value;
   const description = document.getElementById('edit-plan-description').value;
@@ -2193,6 +2213,7 @@ function savePlan(planId) {
     }
     plan.week = week;
     plan.category = category;
+    plan.planType = planType;
     plan.title = title;
     plan.link = link;
     plan.description = description;
@@ -2201,6 +2222,7 @@ function savePlan(planId) {
     // 같은 월 내에서 수정
     plan.week = week;
     plan.category = category;
+    plan.planType = planType;
     plan.title = title;
     plan.link = link;
     plan.description = description;
@@ -2240,6 +2262,7 @@ function deletePlan(planId) {
 
 function saveNewPlan(week) {
   const category = document.getElementById('new-plan-category').value;
+  const planType = document.getElementById('new-plan-type').value;
   const title = document.getElementById('new-plan-title').value;
   const link = document.getElementById('new-plan-link').value;
   const description = document.getElementById('new-plan-description').value;
@@ -2258,6 +2281,7 @@ function saveNewPlan(week) {
     id: `p_${dashSelectedMonth}_${timestamp}`,
     week: week,
     category: category,
+    planType: planType,
     title: title,
     link: link,
     description: description,
