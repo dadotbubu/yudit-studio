@@ -1961,9 +1961,18 @@ function renderDashboard() {
                     <button onclick="editPlan('${plan.id}')" class="flex-1 px-2 py-1.5 rounded-lg text-xs font-medium border border-botanical-stone text-botanical-sage hover:bg-botanical-cream transition-all">
                       수정
                     </button>
-                    <button onclick="startContentFromPlan('${plan.id}')" class="flex-1 px-2 py-1.5 rounded-lg text-xs font-medium bg-botanical-fg text-white hover:bg-opacity-90 transition-all">
-                      ${plan.linkedContentId ? '바로가기 →' : '제작 시작 →'}
-                    </button>
+                    ${plan.linkedContentId ? `
+                      <button onclick="startContentFromPlan('${plan.id}')" class="flex-1 px-2 py-1.5 rounded-lg text-xs font-medium bg-botanical-fg text-white hover:bg-opacity-90 transition-all">
+                        바로가기 →
+                      </button>
+                      <button onclick="unlinkContentFromPlan('${plan.id}')" title="연동 해제" class="px-2 py-1.5 rounded-lg text-xs font-medium border border-botanical-stone text-botanical-terracotta hover:bg-red-50 transition-all">
+                        ✕
+                      </button>
+                    ` : `
+                      <button onclick="startContentFromPlan('${plan.id}')" class="flex-1 px-2 py-1.5 rounded-lg text-xs font-medium bg-botanical-fg text-white hover:bg-opacity-90 transition-all">
+                        제작 시작 →
+                      </button>
+                    `}
                   </div>
                 </div>
               `).join('')}
@@ -2355,8 +2364,36 @@ function goToLinkedContent(contentId) {
   switchTab('content');
   renderContentList();
   setTimeout(() => {
-    toggleContentForm(contentId);
+    toggleContentForm(content.id);
   }, 100);
+}
+
+// 플래너-콘텐츠 연동 해제
+function unlinkContentFromPlan(planId) {
+  if (!confirm('콘텐츠 연동을 해제하시겠습니까?\n(콘텐츠는 삭제되지 않습니다)')) return;
+
+  const numPlanId = typeof planId === 'string' ? parseInt(planId) : planId;
+  const plan = plansData[dashSelectedMonth]?.plans?.find(p => p.id === numPlanId || p.id === planId);
+  if (!plan) return;
+
+  const linkedContentId = plan.linkedContentId;
+
+  // 플랜에서 연동 해제
+  delete plan.linkedContentId;
+
+  // 콘텐츠에서도 연동 해제
+  if (linkedContentId && contentsData?.contents) {
+    const content = contentsData.contents.find(c => c.id === linkedContentId);
+    if (content) {
+      delete content.linkedPlanId;
+      markDirty('contents');
+    }
+  }
+
+  markDirty('plans');
+  saveAllData();
+  renderDashboard();
+  showMemoSaveToast('연동 해제됨');
 }
 
 function addIdea() {
@@ -3261,9 +3298,7 @@ function renderContentForm(content) {
       <div class="md:border md:border-botanical-stone md:rounded-xl p-0 md:p-5 mb-5">
         <div class="flex items-center justify-between mb-3">
           <h3 class="font-medium text-sm text-botanical-sage">작성 계획</h3>
-          <button onclick="linkPlanToContent(${content.id})" class="px-3 py-1 rounded-lg border border-botanical-stone text-xs text-botanical-sage hover:bg-botanical-cream hover:text-botanical-fg transition-all">
-            계획 연동
-          </button>
+          ${content.linkedPlanId ? `<span class="px-2 py-1 rounded-lg bg-botanical-cream text-xs text-botanical-sage">플래너 연동됨</span>` : ''}
         </div>
         <textarea
           rows="3"
