@@ -231,6 +231,30 @@
       -webkit-user-select: none;
       -webkit-touch-callout: none;
     }
+    /* 모바일 롱프레스 시 텍스트 선택 방지 (버튼, 탭, 드래그 핸들 등) */
+    button, .select-none, [draggable="true"], summary, [data-template-tab] {
+      -webkit-touch-callout: none !important;
+      -webkit-user-select: none !important;
+      user-select: none !important;
+    }
+    /* 자주 쓰는 내용 탭 - 롱프레스 시 선택 방지 */
+    [data-template-tab] {
+      touch-action: manipulation;
+    }
+    /* 자주 쓰는 내용 항목 - 버튼/드래그 핸들 선택 방지 */
+    .memo-item {
+      -webkit-touch-callout: none;
+    }
+    .memo-item button, .memo-item [draggable="true"] {
+      -webkit-user-select: none !important;
+      user-select: none !important;
+      touch-action: manipulation;
+    }
+    /* 콘텐츠 상세폼 버튼들 선택 방지 */
+    .production-form button {
+      -webkit-touch-callout: none !important;
+      -webkit-user-select: none !important;
+    }
   </style>
 </head>
 <body class="min-h-screen font-sans">
