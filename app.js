@@ -4329,22 +4329,22 @@ function renderTemplateTabEditList() {
   if (!listEl) return;
   const groups = memosData.templateGroups || [];
   listEl.innerHTML = groups.map((g, idx) => `
-    <div class="flex items-center gap-2 px-3 py-2 rounded-lg border border-botanical-stone bg-white">
-      <div class="flex flex-col gap-0.5">
+    <div class="flex items-center gap-1.5 px-2 py-2 rounded-lg border border-botanical-stone bg-white">
+      <div class="flex flex-col shrink-0">
         <button onclick="moveTemplateTabUp(${g.id})" ${idx === 0 ? 'disabled' : ''} class="p-0.5 text-botanical-sage hover:text-botanical-fg disabled:opacity-30 disabled:cursor-not-allowed">
-          <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 15l-6-6-6 6"/></svg>
+          <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M18 15l-6-6-6 6"/></svg>
         </button>
         <button onclick="moveTemplateTabDown(${g.id})" ${idx === groups.length - 1 ? 'disabled' : ''} class="p-0.5 text-botanical-sage hover:text-botanical-fg disabled:opacity-30 disabled:cursor-not-allowed">
-          <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 9l6 6 6-6"/></svg>
+          <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M6 9l6 6 6-6"/></svg>
         </button>
       </div>
-      <input type="text" value="${escapeHtml(g.name)}" maxlength="20"
+      <input type="text" value="${escapeHtml(g.name)}" maxlength="10"
              onchange="renameTemplateTabDirect(${g.id}, this.value)"
-             class="flex-1 px-2 py-1 rounded border border-botanical-stone focus:outline-none focus:border-botanical-sage text-sm"
+             class="flex-1 min-w-0 px-2 py-1 rounded border border-botanical-stone focus:outline-none focus:border-botanical-sage text-sm"
              style="font-size: 16px;">
-      <span class="text-xs text-botanical-sage/70 shrink-0">${g.items.length}개</span>
+      <span class="text-[10px] text-botanical-sage/70 shrink-0">${g.items.length}</span>
       <button onclick="deleteTemplateGroupFromEdit(${g.id})" title="삭제" class="p-1 text-botanical-sage hover:text-red-500 transition-all shrink-0">
-        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6h14z"/></svg>
+        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6h14z"/></svg>
       </button>
     </div>
   `).join('');
@@ -4418,22 +4418,22 @@ function renderMemoTabEditList() {
   listEl.innerHTML = tabs.map((tab, idx) => {
     const count = memos.filter(m => m.tabId === tab.id).length;
     return `
-      <div class="flex items-center gap-2 px-3 py-2 rounded-lg border border-botanical-stone bg-white">
-        <div class="flex flex-col gap-0.5">
+      <div class="flex items-center gap-1.5 px-2 py-2 rounded-lg border border-botanical-stone bg-white">
+        <div class="flex flex-col shrink-0">
           <button onclick="moveMemoTabUp('${tab.id}')" ${idx === 0 ? 'disabled' : ''} class="p-0.5 text-botanical-sage hover:text-botanical-fg disabled:opacity-30 disabled:cursor-not-allowed">
-            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 15l-6-6-6 6"/></svg>
+            <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M18 15l-6-6-6 6"/></svg>
           </button>
           <button onclick="moveMemoTabDown('${tab.id}')" ${idx === tabs.length - 1 ? 'disabled' : ''} class="p-0.5 text-botanical-sage hover:text-botanical-fg disabled:opacity-30 disabled:cursor-not-allowed">
-            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 9l6 6 6-6"/></svg>
+            <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M6 9l6 6 6-6"/></svg>
           </button>
         </div>
-        <input type="text" value="${escapeHtml(tab.name)}" maxlength="20"
+        <input type="text" value="${escapeHtml(tab.name)}" maxlength="10"
                onchange="renameMemoTabDirect('${tab.id}', this.value)"
-               class="flex-1 px-2 py-1 rounded border border-botanical-stone focus:outline-none focus:border-botanical-sage text-sm"
+               class="flex-1 min-w-0 px-2 py-1 rounded border border-botanical-stone focus:outline-none focus:border-botanical-sage text-sm"
                style="font-size: 16px;">
-        <span class="text-xs text-botanical-sage/70 shrink-0">${count}개</span>
+        <span class="text-[10px] text-botanical-sage/70 shrink-0">${count}</span>
         <button onclick="deleteMemoTabFromEdit('${tab.id}')" title="삭제" class="p-1 text-botanical-sage hover:text-red-500 transition-all shrink-0">
-          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6h14z"/></svg>
+          <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6h14z"/></svg>
         </button>
       </div>
     `;
