@@ -1950,8 +1950,8 @@ function renderDashboard() {
                   : null;
                 const typeTag = linkedContent
                   ? (linkedContent.isRevenue
-                    ? '<span class="inline-block px-2 py-0.5 rounded-md text-xs font-medium bg-red-100 text-red-600">수익</span>'
-                    : '<span class="inline-block px-2 py-0.5 rounded-md text-xs font-medium bg-blue-100 text-blue-600">일반</span>')
+                    ? '<span class="inline-block px-2 py-0.5 rounded-md text-xs font-medium" style="background-color: #FEE2E2; color: #DC2626;">수익</span>'
+                    : '<span class="inline-block px-2 py-0.5 rounded-md text-xs font-medium" style="background-color: #DBEAFE; color: #2563EB;">일반</span>')
                   : '';
                 return `
                 <div class="mb-3 p-4 rounded-xl border border-botanical-stone hover:border-botanical-sage transition-all">
