@@ -1944,11 +1944,20 @@ function renderDashboard() {
                 <span class="text-xs font-normal text-botanical-clay">${dashM}/${weekStart}-${dashM}/${weekEnd}</span>
               </h3>
 
-              ${weekPlans.map(plan => `
+              ${weekPlans.map(plan => {
+                const linkedContent = plan.linkedContentId && contentsData && contentsData.contents
+                  ? contentsData.contents.find(c => String(c.id) === String(plan.linkedContentId))
+                  : null;
+                const typeTag = linkedContent
+                  ? (linkedContent.isRevenue
+                    ? '<span class="inline-block px-2 py-0.5 rounded-md text-xs font-medium bg-botanical-terracotta/20 text-botanical-terracotta">수익</span>'
+                    : '<span class="inline-block px-2 py-0.5 rounded-md text-xs font-medium bg-botanical-stone/50 text-botanical-sage">일반</span>')
+                  : '';
+                return `
                 <div class="mb-3 p-4 rounded-xl border border-botanical-stone hover:border-botanical-sage transition-all">
                   <div class="mb-2 flex items-center gap-1.5">
                     <span class="inline-block px-2 py-0.5 rounded-md text-xs font-medium bg-botanical-cream text-botanical-sage">${plan.category}</span>
-                    <span class="inline-block px-2 py-0.5 rounded-md text-xs font-medium ${plan.planType === '수익' ? 'bg-botanical-terracotta/20 text-botanical-terracotta' : 'bg-botanical-stone/50 text-botanical-sage'}">${plan.planType || '일반'}</span>
+                    ${typeTag}
                   </div>
                   <h4 class="text-base font-semibold text-botanical-fg mb-2">${getPlanDisplayTitle(plan)}</h4>
                   ${plan.link ? `
@@ -1976,7 +1985,7 @@ function renderDashboard() {
                     `}
                   </div>
                 </div>
-              `).join('')}
+              `;}).join('')}
 
               <button onclick="addPlanToWeek(${week})" class="w-full py-2.5 rounded-xl border-2 border-dashed border-botanical-stone text-botanical-sage hover:border-botanical-sage hover:text-botanical-fg transition-all text-sm font-medium">
                 + 계획 추가
@@ -2052,23 +2061,14 @@ function addPlanToWeek(week) {
     </div>
 
     <div class="space-y-4">
-      <div class="grid grid-cols-2 gap-3">
-        <div>
-          <label class="text-sm font-medium block mb-1">카테고리</label>
-          <select id="new-plan-category" class="w-full px-3 py-2 rounded-xl border border-botanical-stone focus:outline-none">
-            <option value="Career Guide">Career Guide</option>
-            <option value="AI Work">AI Work</option>
-            <option value="Money Log">Money Log</option>
-            <option value="Life Style">Life Style</option>
-          </select>
-        </div>
-        <div>
-          <label class="text-sm font-medium block mb-1">유형</label>
-          <select id="new-plan-type" class="w-full px-3 py-2 rounded-xl border border-botanical-stone focus:outline-none">
-            <option value="일반">일반</option>
-            <option value="수익">수익</option>
-          </select>
-        </div>
+      <div>
+        <label class="text-sm font-medium block mb-1">카테고리</label>
+        <select id="new-plan-category" class="w-full px-3 py-2 rounded-xl border border-botanical-stone focus:outline-none">
+          <option value="Career Guide">Career Guide</option>
+          <option value="AI Work">AI Work</option>
+          <option value="Money Log">Money Log</option>
+          <option value="Life Style">Life Style</option>
+        </select>
       </div>
       <div>
         <label class="text-sm font-medium block mb-1">제목</label>
@@ -2145,15 +2145,6 @@ function editPlan(planId) {
           </select>
         </div>
       </div>
-      <div class="grid grid-cols-2 gap-3">
-        <div>
-          <label class="text-sm font-medium block mb-1">유형</label>
-          <select id="edit-plan-type" class="w-full px-3 py-2 rounded-xl border border-botanical-stone focus:outline-none">
-            <option value="일반" ${(plan.planType || '일반') === '일반' ? 'selected' : ''}>일반</option>
-            <option value="수익" ${plan.planType === '수익' ? 'selected' : ''}>수익</option>
-          </select>
-        </div>
-      </div>
       <div>
         <label class="text-sm font-medium block mb-1">제목</label>
         <input type="text" id="edit-plan-title" value="${plan.title}" class="w-full px-3 py-2 rounded-xl border border-botanical-stone focus:outline-none" placeholder="계획 제목">
@@ -2179,7 +2170,6 @@ function editPlan(planId) {
 function savePlan(planId) {
   const weekValue = document.getElementById('edit-plan-week').value; // "YYYY-MM-W" 형식
   const category = document.getElementById('edit-plan-category').value;
-  const planType = document.getElementById('edit-plan-type').value;
   const title = document.getElementById('edit-plan-title').value;
   const link = document.getElementById('edit-plan-link').value;
   const description = document.getElementById('edit-plan-description').value;
@@ -2213,7 +2203,6 @@ function savePlan(planId) {
     }
     plan.week = week;
     plan.category = category;
-    plan.planType = planType;
     plan.title = title;
     plan.link = link;
     plan.description = description;
@@ -2222,7 +2211,6 @@ function savePlan(planId) {
     // 같은 월 내에서 수정
     plan.week = week;
     plan.category = category;
-    plan.planType = planType;
     plan.title = title;
     plan.link = link;
     plan.description = description;
@@ -2262,7 +2250,6 @@ function deletePlan(planId) {
 
 function saveNewPlan(week) {
   const category = document.getElementById('new-plan-category').value;
-  const planType = document.getElementById('new-plan-type').value;
   const title = document.getElementById('new-plan-title').value;
   const link = document.getElementById('new-plan-link').value;
   const description = document.getElementById('new-plan-description').value;
@@ -2281,7 +2268,6 @@ function saveNewPlan(week) {
     id: `p_${dashSelectedMonth}_${timestamp}`,
     week: week,
     category: category,
-    planType: planType,
     title: title,
     link: link,
     description: description,
@@ -5479,21 +5465,6 @@ function showNewContentModal() {
           </select>
         </div>
       </div>
-      <div class="grid grid-cols-2 gap-3">
-        <div>
-          <label class="text-sm font-medium block mb-1">상태 <span class="text-xs text-botanical-sage">(선택)</span></label>
-          <select id="new-content-status" class="w-full px-3 rounded-xl border border-botanical-stone focus:outline-none text-sm" style="height: 42px; box-sizing: border-box;">
-            <option value="">선택 안 함</option>
-            <option value="기획중">기획중</option>
-            <option value="제작중">제작중</option>
-            <option value="업로드완료">업로드 완료</option>
-          </select>
-        </div>
-        <div>
-          <label class="text-sm font-medium block mb-1">날짜 <span class="text-xs text-botanical-sage">(선택)</span></label>
-          <input type="date" id="new-content-date" class="w-full px-3 rounded-xl border border-botanical-stone focus:outline-none text-sm" style="height: 42px; box-sizing: border-box;">
-        </div>
-      </div>
       <button onclick="saveNewContent('general')" class="w-full py-2.5 bg-botanical-fg text-white rounded-xl hover:bg-botanical-fg/90 transition-all font-medium">등록</button>
     </div>
 
@@ -5517,24 +5488,6 @@ function showNewContentModal() {
           <option value="릴스">릴스</option>
           <option value="캐러셀">캐러셀</option>
         </select>
-      </div>
-      <div class="grid grid-cols-2 gap-3">
-        <div>
-          <label class="text-sm font-medium block mb-1">상태 <span class="text-xs text-botanical-sage">(선택)</span></label>
-          <select id="new-content-rev-status" class="w-full px-3 rounded-xl border border-botanical-stone focus:outline-none text-sm" style="height: 42px; box-sizing: border-box;">
-            <option value="">선택 안 함</option>
-            <option value="계약완료">계약완료</option>
-            <option value="기획안1차공유">기획안 공유</option>
-            <option value="기획안최종컨펌">기획안 컨펌</option>
-            <option value="영상1차공유">영상 공유</option>
-            <option value="영상최종컨펌">영상 컨펌</option>
-            <option value="업로드완료">업로드 완료</option>
-          </select>
-        </div>
-        <div>
-          <label class="text-sm font-medium block mb-1">날짜 <span class="text-xs text-botanical-sage">(선택)</span></label>
-          <input type="date" id="new-content-rev-date" class="w-full px-3 rounded-xl border border-botanical-stone focus:outline-none text-sm" style="height: 42px; box-sizing: border-box;">
-        </div>
       </div>
       <button onclick="saveNewContent('revenue')" class="w-full py-2.5 bg-botanical-terracotta text-white rounded-xl hover:bg-botanical-terracotta/90 transition-all font-medium">등록</button>
     </div>
