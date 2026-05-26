@@ -4783,7 +4783,6 @@ function renderTemplateSection() {
       <div class="p-3">
         <div class="flex flex-wrap items-center gap-1.5 mb-3 pb-3 border-b border-botanical-stone">
           ${tabsHtml}
-          <button onclick="addTemplateGroup()" title="탭 추가" class="px-2.5 py-1.5 rounded-full text-xs border border-dashed border-botanical-sage text-botanical-sage hover:bg-botanical-cream/50 transition-all">+ 탭</button>
         </div>
         <button onclick="addTemplateItem()" class="mb-3 w-full px-3 py-2 rounded-lg border border-dashed border-botanical-stone text-xs text-botanical-sage hover:bg-botanical-cream/50 transition-all">+ 항목 추가 (위로)</button>
         <div class="space-y-2">${itemsHtml}</div>
@@ -6538,9 +6537,6 @@ function renderMemos() {
           ${escapeHtml(tab.name)}
         </button>
       `).join('')}
-      <button onclick="addMemoTab()" title="탭 추가" class="p-1.5 text-botanical-sage hover:text-botanical-fg transition-all">
-        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
-      </button>
       <button onclick="openMemoTabEditMode()" title="탭 편집" class="p-1.5 text-botanical-sage hover:text-botanical-fg transition-all">
         <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.85 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>
       </button>
