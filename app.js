@@ -1962,15 +1962,15 @@ function renderDashboard() {
                       수정
                     </button>
                     ${plan.linkedContentId ? `
-                      <button onclick="startContentFromPlan('${plan.id}')" class="flex-1 px-2 py-1.5 rounded-lg text-xs font-medium bg-botanical-fg text-white hover:bg-opacity-90 transition-all">
+                      <button onclick="goToLinkedContent('${plan.linkedContentId}')" class="flex-1 px-2 py-1.5 rounded-lg text-xs font-medium bg-botanical-fg text-white hover:bg-opacity-90 transition-all">
                         바로가기 →
                       </button>
                       <button onclick="unlinkContentFromPlan('${plan.id}')" title="연동 해제" class="px-2 py-1.5 rounded-lg text-xs font-medium border border-botanical-stone text-botanical-terracotta hover:bg-red-50 transition-all">
                         ✕
                       </button>
                     ` : `
-                      <button onclick="startContentFromPlan('${plan.id}')" class="flex-1 px-2 py-1.5 rounded-lg text-xs font-medium bg-botanical-fg text-white hover:bg-opacity-90 transition-all">
-                        제작 시작 →
+                      <button onclick="openLinkContentPopup('${plan.id}')" class="flex-1 px-2 py-1.5 rounded-lg text-xs font-medium bg-botanical-fg text-white hover:bg-opacity-90 transition-all">
+                        연동
                       </button>
                     `}
                   </div>
@@ -2285,73 +2285,6 @@ function handlePlanDescriptionEnter(event) {
   }
 }
 
-function startContentFromPlan(planId) {
-  if (!plansData || !plansData[dashSelectedMonth] || !plansData[dashSelectedMonth].plans) return;
-
-  // planId를 숫자로 변환 (onclick에서 문자열로 전달됨)
-  const numPlanId = typeof planId === 'string' ? parseInt(planId) : planId;
-  const plan = plansData[dashSelectedMonth].plans.find(p => p.id === numPlanId || p.id === planId);
-  if (!plan) {
-    alert('계획을 찾을 수 없습니다');
-    console.log('planId:', planId, 'numPlanId:', numPlanId, 'plans:', plansData[dashSelectedMonth].plans.map(p => p.id));
-    return;
-  }
-
-  // 이미 연동된 콘텐츠가 있으면 바로가기
-  if (plan.linkedContentId) {
-    goToLinkedContent(plan.linkedContentId);
-    return;
-  }
-
-  const contentId = Date.now();
-  const newContent = {
-    id: contentId,
-    title: plan.title,
-    type: '릴스',
-    category: plan.category,
-    status: '기획중',
-    uploadDate: '',
-    isRevenue: false,
-    milestones: [],
-    url: '',
-    performance: { views: null, likes: null, shares: null, comments: null, saves: null },
-    reference: { link: plan.link || '', links: [], analysis: '' },
-    planDetail: plan.description || '',
-    script: { versions: [], currentVersion: 0 },
-    caption: '',
-    dm: '',
-    shareLinks: [],
-    linkedPlanId: planId, // 플래너 연동
-    checklist: [
-      {item: '레퍼런스 분석', checked: false},
-      {item: '훅 확정', checked: false},
-      {item: '대본 작성', checked: false},
-      {item: '촬영', checked: false},
-      {item: '편집', checked: false},
-      {item: '자막 확인', checked: false},
-      {item: '업로드', checked: false}
-    ]
-  };
-
-  // 플래너에 연동 정보 저장
-  plan.linkedContentId = contentId;
-
-  contentsData.contents.unshift(newContent);
-  markDirty('plans');
-  markDirty('contents');
-  saveAllData();
-
-  // 플래너 즉시 업데이트 (바로가기 버튼 반영)
-  renderDashboard();
-
-  switchTab('content');
-  renderContentList();
-
-  setTimeout(() => {
-    toggleContentForm(contentId);
-  }, 100);
-}
-
 // 연동된 콘텐츠로 이동
 function goToLinkedContent(contentId) {
   const numId = parseInt(contentId);
@@ -2394,6 +2327,81 @@ function unlinkContentFromPlan(planId) {
   saveAllData();
   renderDashboard();
   showMemoSaveToast('연동 해제됨');
+}
+
+// 콘텐츠 연동 팝업 열기
+function openLinkContentPopup(planId) {
+  const numPlanId = typeof planId === 'string' ? parseInt(planId) : planId;
+  const plan = plansData[dashSelectedMonth]?.plans?.find(p => p.id === numPlanId || p.id === planId);
+  if (!plan) return;
+
+  // 이미 연동된 콘텐츠 제외, 미연동 콘텐츠만 표시
+  const availableContents = (contentsData?.contents || []).filter(c => !c.linkedPlanId);
+
+  if (availableContents.length === 0) {
+    alert('연동 가능한 콘텐츠가 없습니다.\n콘텐츠 탭에서 먼저 콘텐츠를 등록해주세요.');
+    return;
+  }
+
+  const popup = document.getElementById('calendar-popup');
+  const popupContent = document.getElementById('popup-content');
+
+  popupContent.innerHTML = `
+    <div class="flex items-center justify-between mb-4">
+      <h3 class="font-semibold text-lg">콘텐츠 연동</h3>
+      <button onclick="closeCalendarPopup()" class="text-botanical-sage hover:text-botanical-fg">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18M6 6l12 12"/></svg>
+      </button>
+    </div>
+    <p class="text-sm text-botanical-sage mb-3">연동할 콘텐츠를 선택하세요</p>
+    <div class="space-y-2 max-h-[60vh] overflow-y-auto">
+      ${availableContents.map(content => `
+        <button onclick="linkContentToPlan('${planId}', ${content.id})" class="w-full p-3 rounded-lg border border-botanical-stone hover:border-botanical-sage cursor-pointer transition-all text-left">
+          <div class="flex items-center justify-between gap-2 mb-1">
+            <span class="inline-block px-2 py-0.5 rounded-md text-xs font-medium bg-botanical-cream text-botanical-sage">${content.category || '미분류'}</span>
+            <span class="text-xs text-botanical-sage">${content.status || ''}</span>
+          </div>
+          <h4 class="text-sm font-semibold text-botanical-fg truncate">${content.title || '제목 없음'}</h4>
+        </button>
+      `).join('')}
+    </div>
+  `;
+
+  popup.classList.remove('hidden');
+}
+
+// 콘텐츠-플랜 연동 실행
+function linkContentToPlan(planId, contentId) {
+  const numPlanId = typeof planId === 'string' ? parseInt(planId) : planId;
+  const numContentId = typeof contentId === 'string' ? parseInt(contentId) : contentId;
+
+  const plan = plansData[dashSelectedMonth]?.plans?.find(p => p.id === numPlanId || p.id === planId);
+  const content = contentsData?.contents?.find(c => c.id === numContentId || c.id === contentId);
+
+  if (!plan || !content) {
+    alert('연동 실패: 플랜 또는 콘텐츠를 찾을 수 없습니다');
+    return;
+  }
+
+  // 연동 ID 설정
+  plan.linkedContentId = content.id;
+  content.linkedPlanId = plan.id;
+
+  // 제목: 콘텐츠 → 플랜 (바로 덮어씌움)
+  plan.title = content.title;
+
+  // 설명: 플랜 → 콘텐츠 복사 (기존 내용에 추가하지 않고 덮어씀)
+  if (plan.description) {
+    content.planDetail = plan.description;
+  }
+
+  markDirty('plans');
+  markDirty('contents');
+  saveAllData();
+
+  closeCalendarPopup();
+  renderDashboard();
+  showMemoSaveToast('연동 완료');
 }
 
 function addIdea() {
