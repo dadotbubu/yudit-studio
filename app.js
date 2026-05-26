@@ -2339,9 +2339,11 @@ function startContentFromPlan(planId) {
 
 // 연동된 콘텐츠로 이동
 function goToLinkedContent(contentId) {
-  const content = contentsData.contents.find(c => c.id === contentId);
+  const numId = parseInt(contentId);
+  const content = contentsData.contents.find(c => c.id === numId || c.id === contentId);
   if (!content) {
     alert('연동된 콘텐츠를 찾을 수 없습니다');
+    console.log('찾는 ID:', contentId, '타입:', typeof contentId, '콘텐츠 ID들:', contentsData.contents.map(c => c.id));
     return;
   }
   switchTab('content');
@@ -5975,44 +5977,69 @@ function renderPerformance() {
       </div>
 
       <!-- 월간 콘텐츠 성과 비교 -->
-      <div class="bg-white rounded-2xl p-6 shadow-sm mb-6">
+      <div class="bg-white rounded-2xl p-4 md:p-6 shadow-sm mb-6">
         <h3 class="font-medium mb-4">월간 콘텐츠 성과 비교</h3>
-        <div class="border border-botanical-stone rounded-xl overflow-x-auto">
-          <table class="w-full text-sm md:text-base">
-            <thead>
-              <tr class="bg-botanical-cream/50">
-                <th class="px-4 py-3 text-left font-medium whitespace-nowrap">월</th>
-                <th class="px-4 py-3 text-center font-medium whitespace-nowrap">총 조회</th>
-                <th class="px-4 py-3 text-center font-medium whitespace-nowrap">총 저장</th>
-                <th class="px-4 py-3 text-center font-medium whitespace-nowrap">총 공유</th>
-                <th class="px-4 py-3 text-center font-medium whitespace-nowrap">저장율</th>
-                <th class="px-4 py-3 text-center font-medium whitespace-nowrap">공유율</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${Object.keys(performanceData.monthly || {}).length > 0 ?
-                Object.entries(performanceData.monthly).filter(([m]) => m.startsWith(String(perfSelectedYear))).reverse().map(([month, data], idx) => {
-                  const totalViews = data.totalViews || 0;
-                  const totalSaves = data.totalSaves || 0;
-                  const totalShares = data.totalShares || 0;
-                  const saveRate = totalViews > 0 ? ((totalSaves / totalViews) * 100).toFixed(1) : '-';
-                  const shareRate = totalViews > 0 ? ((totalShares / totalViews) * 100).toFixed(1) : '-';
-                  return `
-                  <tr class="border-t border-botanical-stone ${idx === 0 ? 'bg-botanical-terracotta/5' : ''}">
-                    <td class="px-4 py-4 font-semibold">${month.slice(5)}월</td>
-                    <td class="px-4 py-4 text-center font-medium">${toK(totalViews)}</td>
-                    <td class="px-4 py-4 text-center font-medium">${toK(totalSaves)}</td>
-                    <td class="px-4 py-4 text-center font-medium">${toK(totalShares)}</td>
-                    <td class="px-4 py-4 text-center font-medium">${saveRate}${saveRate !== '-' ? '%' : ''}</td>
-                    <td class="px-4 py-4 text-center font-medium">${shareRate}${shareRate !== '-' ? '%' : ''}</td>
-                  </tr>
+        ${(() => {
+          const monthlyEntries = Object.entries(performanceData.monthly || {}).filter(([m]) => m.startsWith(String(perfSelectedYear))).reverse();
+          if (monthlyEntries.length === 0) return `<p class="text-sm text-botanical-sage text-center py-4">데이터가 없습니다</p>`;
+          return `
+            <!-- 모바일: 카드 레이아웃 -->
+            <div class="md:hidden space-y-3">
+              ${monthlyEntries.map(([month, data], idx) => {
+                const totalViews = data.totalViews || 0;
+                const totalSaves = data.totalSaves || 0;
+                const totalShares = data.totalShares || 0;
+                const saveRate = totalViews > 0 ? ((totalSaves / totalViews) * 100).toFixed(1) : '-';
+                const shareRate = totalViews > 0 ? ((totalShares / totalViews) * 100).toFixed(1) : '-';
+                return `
+                  <div class="p-3 rounded-xl border border-botanical-stone ${idx === 0 ? 'bg-botanical-terracotta/5' : ''}">
+                    <div class="font-semibold text-sm mb-2">${month.slice(5)}월</div>
+                    <div class="grid grid-cols-4 gap-2 text-center text-xs">
+                      <div><div class="text-botanical-sage">조회</div><div class="font-medium">${toK(totalViews)}</div></div>
+                      <div><div class="text-botanical-sage">저장</div><div class="font-medium">${toK(totalSaves)}</div></div>
+                      <div><div class="text-botanical-sage">공유</div><div class="font-medium">${toK(totalShares)}</div></div>
+                      <div><div class="text-botanical-sage">저장율</div><div class="font-medium">${saveRate}${saveRate !== '-' ? '%' : ''}</div></div>
+                    </div>
+                  </div>
                 `;
-                }).join('') :
-                `<tr><td colspan="6" class="px-4 py-4 text-center text-botanical-sage">데이터가 없습니다</td></tr>`
-              }
-            </tbody>
-          </table>
-        </div>
+              }).join('')}
+            </div>
+            <!-- PC: 테이블 -->
+            <div class="hidden md:block border border-botanical-stone rounded-xl overflow-hidden">
+              <table class="w-full text-base">
+                <thead>
+                  <tr class="bg-botanical-cream/50">
+                    <th class="px-4 py-3 text-left font-medium">월</th>
+                    <th class="px-4 py-3 text-center font-medium">총 조회</th>
+                    <th class="px-4 py-3 text-center font-medium">총 저장</th>
+                    <th class="px-4 py-3 text-center font-medium">총 공유</th>
+                    <th class="px-4 py-3 text-center font-medium">저장율</th>
+                    <th class="px-4 py-3 text-center font-medium">공유율</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${monthlyEntries.map(([month, data], idx) => {
+                    const totalViews = data.totalViews || 0;
+                    const totalSaves = data.totalSaves || 0;
+                    const totalShares = data.totalShares || 0;
+                    const saveRate = totalViews > 0 ? ((totalSaves / totalViews) * 100).toFixed(1) : '-';
+                    const shareRate = totalViews > 0 ? ((totalShares / totalViews) * 100).toFixed(1) : '-';
+                    return `
+                      <tr class="border-t border-botanical-stone ${idx === 0 ? 'bg-botanical-terracotta/5' : ''}">
+                        <td class="px-4 py-4 font-semibold">${month.slice(5)}월</td>
+                        <td class="px-4 py-4 text-center font-medium">${toK(totalViews)}</td>
+                        <td class="px-4 py-4 text-center font-medium">${toK(totalSaves)}</td>
+                        <td class="px-4 py-4 text-center font-medium">${toK(totalShares)}</td>
+                        <td class="px-4 py-4 text-center font-medium">${saveRate}${saveRate !== '-' ? '%' : ''}</td>
+                        <td class="px-4 py-4 text-center font-medium">${shareRate}${shareRate !== '-' ? '%' : ''}</td>
+                      </tr>
+                    `;
+                  }).join('')}
+                </tbody>
+              </table>
+            </div>
+          `;
+        })()}
       </div>
     </div>
   `;
