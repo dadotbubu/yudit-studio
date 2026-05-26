@@ -5147,7 +5147,28 @@ function updatePlanDetail(contentId, value) {
   const content = contentsData.contents.find(c => c.id === contentId);
   if (!content) return;
   content.planDetail = value;
+
+  // 연동된 플랜에도 동기화
+  syncPlanDetailToPlan(contentId, value);
+
   saveAllData();
+}
+
+// 콘텐츠 작성계획 → 플랜 description 동기화
+function syncPlanDetailToPlan(contentId, planDetail) {
+  const content = contentsData?.contents?.find(c => c.id === contentId);
+  if (!content?.linkedPlanId) return;
+
+  const numPlanId = typeof content.linkedPlanId === 'string' ? parseInt(content.linkedPlanId) : content.linkedPlanId;
+
+  for (const month of Object.keys(plansData || {})) {
+    const plan = plansData[month]?.plans?.find(p => p.id === numPlanId || p.id === content.linkedPlanId);
+    if (plan) {
+      plan.description = planDetail;
+      markDirty('plans');
+      return;
+    }
+  }
 }
 
 function linkPlanToContent(contentId) {
