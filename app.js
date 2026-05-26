@@ -4303,6 +4303,195 @@ function saveReorderTabs() {
   renderMemos();
 }
 
+// === 자주 쓰는 내용 탭 편집 모드 ===
+function openTemplateTabEditMode() {
+  closeTabModal();
+  const modal = document.createElement('div');
+  modal.id = 'tab-modal';
+  modal.className = 'fixed inset-0 z-[80] flex items-end md:items-center justify-center';
+  modal.innerHTML = `
+    <div class="absolute inset-0 bg-black/30" onclick="closeTabModal(); renderMemos();"></div>
+    <div class="relative bg-white rounded-t-2xl md:rounded-2xl shadow-xl w-full md:max-w-md md:mx-4 p-5 max-h-[80vh] overflow-y-auto">
+      <h3 class="text-base font-semibold mb-4">탭 편집</h3>
+      <div id="template-tab-edit-list" class="space-y-2 mb-4"></div>
+      <button onclick="addTemplateGroup(); renderTemplateTabEditList();" class="w-full px-3 py-2 rounded-lg border border-dashed border-botanical-stone text-sm text-botanical-sage hover:bg-botanical-cream/50 transition-all mb-4">+ 탭 추가</button>
+      <div class="flex justify-end">
+        <button onclick="closeTabModal(); renderMemos();" class="px-4 py-2 rounded-lg bg-botanical-fg text-white text-sm hover:opacity-90">완료</button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(modal);
+  renderTemplateTabEditList();
+}
+
+function renderTemplateTabEditList() {
+  const listEl = document.getElementById('template-tab-edit-list');
+  if (!listEl) return;
+  const groups = memosData.templateGroups || [];
+  listEl.innerHTML = groups.map((g, idx) => `
+    <div class="flex items-center gap-2 px-3 py-2 rounded-lg border border-botanical-stone bg-white">
+      <div class="flex flex-col gap-0.5">
+        <button onclick="moveTemplateTabUp(${g.id})" ${idx === 0 ? 'disabled' : ''} class="p-0.5 text-botanical-sage hover:text-botanical-fg disabled:opacity-30 disabled:cursor-not-allowed">
+          <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 15l-6-6-6 6"/></svg>
+        </button>
+        <button onclick="moveTemplateTabDown(${g.id})" ${idx === groups.length - 1 ? 'disabled' : ''} class="p-0.5 text-botanical-sage hover:text-botanical-fg disabled:opacity-30 disabled:cursor-not-allowed">
+          <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 9l6 6 6-6"/></svg>
+        </button>
+      </div>
+      <input type="text" value="${escapeHtml(g.name)}" maxlength="20"
+             onchange="renameTemplateTabDirect(${g.id}, this.value)"
+             class="flex-1 px-2 py-1 rounded border border-botanical-stone focus:outline-none focus:border-botanical-sage text-sm"
+             style="font-size: 16px;">
+      <span class="text-xs text-botanical-sage/70 shrink-0">${g.items.length}개</span>
+      <button onclick="deleteTemplateGroupFromEdit(${g.id})" title="삭제" class="p-1 text-botanical-sage hover:text-red-500 transition-all shrink-0">
+        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6h14z"/></svg>
+      </button>
+    </div>
+  `).join('');
+}
+
+function moveTemplateTabUp(id) {
+  const arr = memosData.templateGroups;
+  const idx = arr.findIndex(g => g.id === id);
+  if (idx <= 0) return;
+  [arr[idx - 1], arr[idx]] = [arr[idx], arr[idx - 1]];
+  saveAllData();
+  renderTemplateTabEditList();
+}
+
+function moveTemplateTabDown(id) {
+  const arr = memosData.templateGroups;
+  const idx = arr.findIndex(g => g.id === id);
+  if (idx < 0 || idx >= arr.length - 1) return;
+  [arr[idx], arr[idx + 1]] = [arr[idx + 1], arr[idx]];
+  saveAllData();
+  renderTemplateTabEditList();
+}
+
+function renameTemplateTabDirect(id, newName) {
+  const g = memosData.templateGroups.find(x => x.id === id);
+  if (!g || !newName.trim()) return;
+  g.name = newName.trim();
+  saveAllData();
+}
+
+function deleteTemplateGroupFromEdit(id) {
+  const g = memosData.templateGroups.find(x => x.id === id);
+  if (!g) return;
+  if (g.items.length > 0) {
+    if (!confirm(`"${g.name}" 탭에 ${g.items.length}개 항목이 있습니다. 삭제할까요?`)) return;
+  }
+  memosData.templateGroups = memosData.templateGroups.filter(x => x.id !== id);
+  if (memosData.activeTemplateGroupId === id) {
+    memosData.activeTemplateGroupId = memosData.templateGroups[0]?.id || null;
+  }
+  saveAllData();
+  renderTemplateTabEditList();
+}
+
+// === 메모 탭 편집 모드 ===
+function openMemoTabEditMode() {
+  closeTabModal();
+  const modal = document.createElement('div');
+  modal.id = 'tab-modal';
+  modal.className = 'fixed inset-0 z-[80] flex items-end md:items-center justify-center';
+  modal.innerHTML = `
+    <div class="absolute inset-0 bg-black/30" onclick="closeTabModal(); renderMemos();"></div>
+    <div class="relative bg-white rounded-t-2xl md:rounded-2xl shadow-xl w-full md:max-w-md md:mx-4 p-5 max-h-[80vh] overflow-y-auto">
+      <h3 class="text-base font-semibold mb-4">탭 편집</h3>
+      <div id="memo-tab-edit-list" class="space-y-2 mb-4"></div>
+      <button onclick="addMemoTab(); renderMemoTabEditList();" class="w-full px-3 py-2 rounded-lg border border-dashed border-botanical-stone text-sm text-botanical-sage hover:bg-botanical-cream/50 transition-all mb-4">+ 탭 추가</button>
+      <div class="flex justify-end">
+        <button onclick="closeTabModal(); renderMemos();" class="px-4 py-2 rounded-lg bg-botanical-fg text-white text-sm hover:opacity-90">완료</button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(modal);
+  renderMemoTabEditList();
+}
+
+function renderMemoTabEditList() {
+  const listEl = document.getElementById('memo-tab-edit-list');
+  if (!listEl) return;
+  const tabs = [...(memosData.tabs || [])].sort((a, b) => a.order - b.order);
+  const memos = memosData.memos || [];
+  listEl.innerHTML = tabs.map((tab, idx) => {
+    const count = memos.filter(m => m.tabId === tab.id).length;
+    return `
+      <div class="flex items-center gap-2 px-3 py-2 rounded-lg border border-botanical-stone bg-white">
+        <div class="flex flex-col gap-0.5">
+          <button onclick="moveMemoTabUp('${tab.id}')" ${idx === 0 ? 'disabled' : ''} class="p-0.5 text-botanical-sage hover:text-botanical-fg disabled:opacity-30 disabled:cursor-not-allowed">
+            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 15l-6-6-6 6"/></svg>
+          </button>
+          <button onclick="moveMemoTabDown('${tab.id}')" ${idx === tabs.length - 1 ? 'disabled' : ''} class="p-0.5 text-botanical-sage hover:text-botanical-fg disabled:opacity-30 disabled:cursor-not-allowed">
+            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 9l6 6 6-6"/></svg>
+          </button>
+        </div>
+        <input type="text" value="${escapeHtml(tab.name)}" maxlength="20"
+               onchange="renameMemoTabDirect('${tab.id}', this.value)"
+               class="flex-1 px-2 py-1 rounded border border-botanical-stone focus:outline-none focus:border-botanical-sage text-sm"
+               style="font-size: 16px;">
+        <span class="text-xs text-botanical-sage/70 shrink-0">${count}개</span>
+        <button onclick="deleteMemoTabFromEdit('${tab.id}')" title="삭제" class="p-1 text-botanical-sage hover:text-red-500 transition-all shrink-0">
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6h14z"/></svg>
+        </button>
+      </div>
+    `;
+  }).join('');
+}
+
+function moveMemoTabUp(id) {
+  const tabs = memosData.tabs || [];
+  const sorted = [...tabs].sort((a, b) => a.order - b.order);
+  const idx = sorted.findIndex(t => t.id === id);
+  if (idx <= 0) return;
+  const prevOrder = sorted[idx - 1].order;
+  sorted[idx - 1].order = sorted[idx].order;
+  sorted[idx].order = prevOrder;
+  saveAllData();
+  renderMemoTabEditList();
+}
+
+function moveMemoTabDown(id) {
+  const tabs = memosData.tabs || [];
+  const sorted = [...tabs].sort((a, b) => a.order - b.order);
+  const idx = sorted.findIndex(t => t.id === id);
+  if (idx < 0 || idx >= sorted.length - 1) return;
+  const nextOrder = sorted[idx + 1].order;
+  sorted[idx + 1].order = sorted[idx].order;
+  sorted[idx].order = nextOrder;
+  saveAllData();
+  renderMemoTabEditList();
+}
+
+function renameMemoTabDirect(id, newName) {
+  const tab = (memosData.tabs || []).find(t => t.id === id);
+  if (!tab || !newName.trim()) return;
+  tab.name = newName.trim();
+  saveAllData();
+}
+
+function deleteMemoTabFromEdit(id) {
+  const tabs = memosData.tabs || [];
+  if (tabs.length <= 1) {
+    alert('최소 1개의 탭이 필요합니다.');
+    return;
+  }
+  const tab = tabs.find(t => t.id === id);
+  if (!tab) return;
+  const memos = (memosData.memos || []).filter(m => m.tabId === id);
+  if (memos.length > 0) {
+    if (!confirm(`"${tab.name}" 탭에 ${memos.length}개 메모가 있습니다. 삭제할까요?\n(메모도 함께 삭제됩니다)`)) return;
+    memosData.memos = memosData.memos.filter(m => m.tabId !== id);
+  }
+  memosData.tabs = tabs.filter(t => t.id !== id);
+  if (memosData.lastActiveTab === id) {
+    memosData.lastActiveTab = memosData.tabs[0]?.id || 'tab_memo';
+  }
+  saveAllData();
+  renderMemoTabEditList();
+}
+
 // === 항목 터치 드래그 (iOS Safari가 native HTML5 drag 미지원) ===
 let _touchDrag = null;
 function onTemplateItemTouchStart(e, id) {
@@ -4526,18 +4715,12 @@ function renderTemplateSection() {
   const saveIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>`;
   const trashIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6h14z"/></svg>`;
 
-  // 탭 (클릭=선택, 우클릭/꾹누르기=메뉴 — 이름/순서/삭제)
+  // 탭 (클릭=선택, 편집은 상단 연필 버튼)
   const tabsHtml = groups.map(g => {
     const isActive = g.id === active.id;
     return `
       <span data-template-tab="${g.id}"
             onclick="selectTemplateGroup(${g.id})"
-            oncontextmenu="event.preventDefault(); showTabActionMenu(${g.id});"
-            onpointerdown="startTabLongpress(${g.id})"
-            onpointerup="cancelTabLongpress()"
-            onpointerleave="cancelTabLongpress()"
-            onpointermove="cancelTabLongpress()"
-            title="클릭=선택 / 우클릭(PC)·꾹누르기(모바일)=이름·순서·삭제"
             class="inline-flex items-center px-3 py-1.5 rounded-full text-xs md:text-sm cursor-pointer select-none ${isActive ? 'bg-botanical-fg text-white' : 'bg-botanical-cream/50 text-botanical-sage hover:text-botanical-fg'}">
         ${escapeHtml(g.name)}
       </span>
@@ -4588,9 +4771,14 @@ function renderTemplateSection() {
         <span class="text-sm font-semibold text-botanical-fg flex items-center gap-2">
           📌 자주 쓰는 내용 <span class="text-xs text-botanical-sage font-normal">(${active.items.length})</span>
         </span>
-        <button onclick="event.preventDefault(); event.stopPropagation(); manualSaveTemplates();" title="지금 저장 (백업용)" class="w-7 h-7 rounded-full border border-botanical-stone text-botanical-sage hover:text-botanical-fg hover:border-botanical-sage flex items-center justify-center transition-all">
-          ${saveIcon}
-        </button>
+        <div class="flex items-center gap-1">
+          <button onclick="event.preventDefault(); event.stopPropagation(); openTemplateTabEditMode();" title="탭 편집" class="w-7 h-7 rounded-full border border-botanical-stone text-botanical-sage hover:text-botanical-fg hover:border-botanical-sage flex items-center justify-center transition-all">
+            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.85 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>
+          </button>
+          <button onclick="event.preventDefault(); event.stopPropagation(); manualSaveTemplates();" title="지금 저장 (백업용)" class="w-7 h-7 rounded-full border border-botanical-stone text-botanical-sage hover:text-botanical-fg hover:border-botanical-sage flex items-center justify-center transition-all">
+            ${saveIcon}
+          </button>
+        </div>
       </summary>
       <div class="p-3">
         <div class="flex flex-wrap items-center gap-1.5 mb-3 pb-3 border-b border-botanical-stone">
@@ -6346,17 +6534,15 @@ function renderMemos() {
     <div class="flex items-center gap-1 px-3 py-2 border-b border-botanical-stone bg-botanical-cream/30 overflow-x-auto">
       ${sortedTabs.map(tab => `
         <button onclick="switchMemoTab('${tab.id}')"
-                ondblclick="editMemoTab('${tab.id}')"
-                draggable="true"
-                ondragstart="onMemoTabDragStart(event, '${tab.id}')"
-                ondragover="onMemoTabDragOver(event, '${tab.id}')"
-                ondrop="onMemoTabDrop(event, '${tab.id}')"
                 class="px-3 py-1.5 text-sm font-medium rounded-lg whitespace-nowrap transition-all ${tab.id === activeTabId ? 'bg-botanical-fg text-white' : 'text-botanical-sage hover:bg-botanical-stone/30'}">
           ${escapeHtml(tab.name)}
         </button>
       `).join('')}
       <button onclick="addMemoTab()" title="탭 추가" class="p-1.5 text-botanical-sage hover:text-botanical-fg transition-all">
         <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+      </button>
+      <button onclick="openMemoTabEditMode()" title="탭 편집" class="p-1.5 text-botanical-sage hover:text-botanical-fg transition-all">
+        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.85 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>
       </button>
     </div>
   `;
