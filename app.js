@@ -125,10 +125,10 @@ function getContentRefDate(content) {
 
 const categoryColors = {
   // 일반 카테고리
-  'Career Guide': '#879483',
-  'AI Work': '#5C6B5A',
-  'Money Log': '#C1725D',
-  'Life Style': '#7BA3A8',
+  'Career Guide': '#4A6FA5',  // 차분한 파란색
+  'AI Work': '#7B5EA7',       // 보라색
+  'Money Log': '#D97746',     // 주황색
+  'Life Style': '#2A9D8F',    // 청록색
   // 수익 카테고리
   '광고': '#9B6B8C',
   '판매': '#6B8E8E',
