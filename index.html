@@ -84,6 +84,11 @@
     @media (min-width: 768px) {
       .script-table textarea.script-cell { font-size: 14px; }
     }
+    /* 구간(MAIN 1,2,3) 모바일 폰트 사이즈 축소 */
+    .script-table .section-input { font-size: 12px; }
+    @media (min-width: 768px) {
+      .script-table .section-input { font-size: 14px; }
+    }
     /* 본문 입력 통일 (레퍼런스/캡션/DM/대본/메모/자주쓰는내용) — 모바일 13px, PC 14px, 줄간격 1.5 */
     .unified-text {
       font-size: 13px !important;
@@ -134,9 +139,9 @@
     @media (min-width: 768px) {
       .dialogue-cell:hover .dialogue-menu-btn { opacity: 1; }
     }
-    /* 모바일: 항상 숨김 (롱프레스로만 메뉴 표시) */
+    /* 모바일: 항상 표시 (롱프레스 대신 탭으로 메뉴) */
     @media (max-width: 767px) {
-      .dialogue-menu-btn { display: none; }
+      .dialogue-menu-btn { opacity: 1; }
     }
     .dialogue-menu-btn:hover {
       background: white;
