@@ -5444,8 +5444,8 @@ function showNewContentModal() {
     <!-- General form -->
     <div id="content-form-general" class="content-form space-y-4">
       <div>
-        <label class="text-sm font-medium block mb-1">키워드</label>
-        <input type="text" id="new-content-title" class="w-full px-3 py-2 rounded-xl border border-botanical-stone focus:outline-none" placeholder="캘린더 표시용 키워드">
+        <label class="text-sm font-medium block mb-1">제목</label>
+        <input type="text" id="new-content-title" class="w-full px-3 py-2 rounded-xl border border-botanical-stone focus:outline-none" placeholder="콘텐츠 제목">
       </div>
       <div class="grid grid-cols-2 gap-3">
         <div>
@@ -5537,18 +5537,18 @@ function saveNewContent(formType) {
     title = document.getElementById('new-content-brand').value;
     category = selectedRevenueContentType;
     type = document.getElementById('new-content-revenue-type').value;
-    selectedStatus = document.getElementById('new-content-rev-status').value;
-    selectedDate = document.getElementById('new-content-rev-date').value;
+    selectedStatus = document.getElementById('new-content-rev-status')?.value || '';
+    selectedDate = document.getElementById('new-content-rev-date')?.value || '';
   } else {
     title = document.getElementById('new-content-title').value;
     category = document.getElementById('new-content-category').value;
     type = document.getElementById('new-content-type').value;
-    selectedStatus = document.getElementById('new-content-status').value;
-    selectedDate = document.getElementById('new-content-date').value;
+    selectedStatus = document.getElementById('new-content-status')?.value || '';
+    selectedDate = document.getElementById('new-content-date')?.value || '';
   }
 
   if (!title) {
-    alert(formType === 'revenue' ? '브랜드명을 입력하세요' : '키워드를 입력하세요');
+    alert(formType === 'revenue' ? '브랜드명을 입력하세요' : '제목을 입력하세요');
     return;
   }
 
