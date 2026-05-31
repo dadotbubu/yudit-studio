@@ -2920,7 +2920,7 @@ function renderContentForm(content) {
   // 컬럼 너비 복원 (사용자가 드래그해서 저장한 값)
   const colW = content.script?.columnWidths || {};
   const isMobile = window.innerWidth < 768;
-  const colSection = colW.section ?? (isMobile ? 20 : 100);
+  const colSection = colW.section ?? (isMobile ? 40 : 100);
   const colDialogue = colW.dialogue ?? (isMobile ? 180 : 280);
   const colSubtitle = colW.subtitle ?? (isMobile ? 180 : 460);
 
