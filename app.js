@@ -2921,8 +2921,8 @@ function renderContentForm(content) {
   const colW = content.script?.columnWidths || {};
   const isMobile = window.innerWidth < 768;
   const colSection = colW.section ?? (isMobile ? 40 : 100);
-  const colDialogue = colW.dialogue ?? (isMobile ? 180 : 280);
-  const colSubtitle = colW.subtitle ?? (isMobile ? 180 : 460);
+  const colDialogue = colW.dialogue ?? (isMobile ? 200 : 280);
+  const colSubtitle = colW.subtitle ?? (isMobile ? 200 : 460);
 
   return `
     <div class="p-2 md:p-6 space-y-3 md:space-y-6">
