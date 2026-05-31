@@ -3413,9 +3413,11 @@ function renderContentForm(content) {
               <tbody id="script-tbody-${content.id}">
                 ${scriptRows.map((row, idx) => `
                   <tr class="border-t border-botanical-stone group">
-                    <td class="px-4 py-3 font-semibold relative">
-                      <button onclick="removeScriptRow(${content.id}, ${idx})" title="행 삭제" class="absolute bottom-1 left-1 w-5 h-5 rounded text-xs text-red-400 opacity-0 group-hover:opacity-100 hover:bg-red-50 transition-opacity">×</button>
-                      <input type="text" value="${row.section || ''}" oninput="updateScriptRow(${content.id}, ${idx}, 'section', this.value)" class="section-input w-full bg-transparent focus:outline-none font-semibold pl-5" style="color: ${sectionColors[row.section] || '#8C9A84'};">
+                    <td class="px-4 py-3 font-semibold">
+                      <div class="flex items-center gap-1">
+                        <button onclick="removeScriptRow(${content.id}, ${idx})" title="행 삭제" class="shrink-0 w-5 h-5 rounded text-xs text-red-400 opacity-0 group-hover:opacity-100 hover:bg-red-50 transition-opacity">×</button>
+                        <input type="text" value="${row.section || ''}" oninput="updateScriptRow(${content.id}, ${idx}, 'section', this.value)" class="section-input flex-1 min-w-0 bg-transparent focus:outline-none font-semibold" style="color: ${sectionColors[row.section] || '#8C9A84'};">
+                      </div>
                     </td>
                     <td class="px-4 py-3 border-l border-botanical-stone relative dialogue-cell" data-content-id="${content.id}" data-row-idx="${idx}">
                       <textarea rows="1" oninput="autoResize(this);updateScriptRow(${content.id}, ${idx}, 'dialogue', this.value)" class="script-cell w-full bg-transparent focus:outline-none resize-none overflow-hidden">${row.dialogue || ''}</textarea>
