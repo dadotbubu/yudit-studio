@@ -3398,7 +3398,7 @@ function renderContentForm(content) {
             </div>
           </div>
           <div class="border border-botanical-stone rounded-lg overflow-x-auto">
-            <table class="script-table text-xs md:text-sm min-w-[720px] md:min-w-0" data-content-id="${content.id}" style="table-layout: fixed; width: auto;">
+            <table class="script-table text-xs md:text-sm md:min-w-[720px]" data-content-id="${content.id}" style="table-layout: fixed; width: 100%;">
               <colgroup>
                 <col style="width: ${colSection}px">
                 <col style="width: ${colDialogue}px">
