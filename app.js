@@ -2919,7 +2919,6 @@ function renderContentForm(content) {
   const scriptRows = scriptVersions[currentVer].rows || [];
   // 컬럼 너비 복원 (사용자가 드래그해서 저장한 값)
   const colW = content.script?.columnWidths || {};
-  const isMobile = window.innerWidth < 768;
   const colSection = colW.section ?? 100;
   const colDialogue = colW.dialogue ?? 280;
   const colSubtitle = colW.subtitle ?? 460;
