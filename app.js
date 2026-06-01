@@ -1795,6 +1795,14 @@ function linkToContent(calendarItemId) {
 
 function goToContentExpanded(contentId) {
   closeCalendarPopup();
+  // 해당 콘텐츠의 월로 필터 변경
+  const content = contentsData.contents.find(c => c.id === contentId);
+  if (content) {
+    const refDate = getContentRefDate(content);
+    if (refDate) {
+      contentSelectedMonth = refDate.slice(0, 7);
+    }
+  }
   switchTab('content');
   setTimeout(() => {
     const form = document.getElementById('form-' + contentId);
