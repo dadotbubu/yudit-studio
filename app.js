@@ -5889,8 +5889,8 @@ function renderPerformance() {
               });
             }
 
-            // 최근 7일만 표시 (오늘 기준)
-            const days = allDays.slice(-7);
+            // 선택된 월의 모든 날짜 표시
+            const days = allDays;
             const maxCount = Math.max(0, ...days.map(d => d.count ?? 0));
             const minCount = Math.min(...days.filter(d => d.count != null).map(d => d.count), maxCount);
             const range = Math.max(1, maxCount - minCount);
