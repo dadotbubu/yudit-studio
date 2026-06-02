@@ -5863,24 +5863,21 @@ function renderPerformance() {
           `;
         })()}
 
-        <!-- Daily Graph — 선택한 월의 일별 데이터 표시 -->
+        <!-- Daily Graph — 최근 7일 데이터 표시 (월 상관없이) -->
         <div id="follower-graph-daily" class="${followerViewMode === 'daily' ? '' : 'hidden'}">
-          <p class="text-xs text-botanical-sage mb-3">${monthNum}월 일별 팔로워 추이</p>
+          <p class="text-xs text-botanical-sage mb-3">최근 7일 팔로워 추이</p>
           ${(() => {
-            // 선택한 월의 일별 데이터만 필터링
-            const monthDailyData = dailyData.filter(d => d.date.startsWith(perfSelectedMonth));
+            // 전체 일별 데이터를 날짜 맵으로
             const dateMap = {};
-            monthDailyData.forEach(d => { dateMap[d.date] = d; });
+            dailyData.forEach(d => { dateMap[d.date] = d; });
 
-            // 해당 월의 모든 날짜 생성 (1일부터 오늘 또는 말일까지)
-            const [y, m] = perfSelectedMonth.split('-').map(Number);
+            // 오늘 기준 최근 7일 날짜 생성
             const today = new Date();
-            const isCurrentMonth = today.getFullYear() === y && (today.getMonth() + 1) === m;
-            const lastDay = isCurrentMonth ? today.getDate() : new Date(y, m, 0).getDate();
-
             const allDays = [];
-            for (let day = 1; day <= lastDay; day++) {
-              const dateStr = `${perfSelectedMonth}-${String(day).padStart(2, '0')}`;
+            for (let i = 6; i >= 0; i--) {
+              const d = new Date(today);
+              d.setDate(d.getDate() - i);
+              const dateStr = d.toISOString().slice(0, 10);
               const data = dateMap[dateStr];
               allDays.push({
                 date: dateStr,
@@ -5889,7 +5886,6 @@ function renderPerformance() {
               });
             }
 
-            // 선택된 월의 모든 날짜 표시
             const days = allDays;
             const maxCount = Math.max(0, ...days.map(d => d.count ?? 0));
             const minCount = Math.min(...days.filter(d => d.count != null).map(d => d.count), maxCount);
