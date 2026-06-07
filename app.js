@@ -1558,7 +1558,7 @@ function openDateItemDetail(itemId, dateStr) {
           </div>
         </div>
         <div class="flex gap-2">
-          <button onclick="goToContentExpanded(${linkedContent.id})" class="flex-1 py-2 bg-botanical-fg text-white rounded-xl hover:bg-botanical-fg/90 transition-all">바로가기</button>
+          <button onclick="goToContentExpanded(${linkedContent.id})" class="flex-1 py-2 bg-botanical-fg text-white rounded-xl hover:bg-botanical-fg/90 transition-all">보기</button>
           <button onclick="deleteCalendarItem(${item.id})" class="px-4 py-2 border border-red-300 rounded-xl text-red-400 hover:bg-red-50 transition-all">
             <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>
           </button>
@@ -1992,7 +1992,7 @@ function renderDashboard() {
                     </button>
                     ${plan.linkedContentId ? `
                       <button onclick="goToLinkedContent('${plan.linkedContentId}')" class="flex-1 px-2 py-1.5 rounded-lg text-xs font-medium bg-botanical-fg text-white hover:bg-opacity-90 transition-all">
-                        바로가기 →
+                        보기 →
                       </button>
                       <button onclick="unlinkContentFromPlan('${plan.id}')" title="연동 해제" class="px-2 py-1.5 rounded-lg text-xs font-medium border border-botanical-stone text-botanical-terracotta hover:bg-red-50 transition-all">
                         ✕
