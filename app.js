@@ -251,6 +251,17 @@ function openLinkBtn(url) {
     : `<span class="${base} text-botanical-sage/40 border-botanical-stone/50 cursor-default">열기</span>`;
 }
 
+// 입력 필드에서 링크 열기 (계획/아이디어 모달용)
+function openPlanLinkFromInput(inputId) {
+  const input = document.getElementById(inputId);
+  const url = input?.value?.trim();
+  if (!url) {
+    alert('링크를 입력하세요');
+    return;
+  }
+  window.open(url, '_blank');
+}
+
 // 링크 복사 버튼 — URL 있으면 활성, 없으면 회색 disabled
 function copyLinkBtn(url) {
   const base = 'px-2 py-1 text-xs border rounded-lg whitespace-nowrap';
@@ -2084,7 +2095,10 @@ function addPlanToWeek(week) {
       </div>
       <div>
         <label class="text-sm font-medium block mb-1">링크 <span class="text-xs text-botanical-sage">(선택)</span></label>
-        <input type="text" id="new-plan-link" class="w-full px-3 py-2 rounded-xl border border-botanical-stone focus:outline-none" placeholder="https://...">
+        <div class="flex gap-2">
+          <input type="text" id="new-plan-link" class="flex-1 px-3 py-2 rounded-xl border border-botanical-stone focus:outline-none" placeholder="https://...">
+          <button type="button" onclick="openPlanLinkFromInput('new-plan-link')" class="shrink-0 px-3 py-2 rounded-xl border border-botanical-stone text-sm text-botanical-sage hover:bg-botanical-cream transition-all">열기</button>
+        </div>
       </div>
       <div>
         <label class="text-sm font-medium block mb-1">상세 내용</label>
@@ -2159,7 +2173,10 @@ function editPlan(planId) {
       </div>
       <div>
         <label class="text-sm font-medium block mb-1">링크 <span class="text-xs text-botanical-sage">(선택)</span></label>
-        <input type="text" id="edit-plan-link" value="${plan.link || ''}" class="w-full px-3 py-2 rounded-xl border border-botanical-stone focus:outline-none" placeholder="https://...">
+        <div class="flex gap-2">
+          <input type="text" id="edit-plan-link" value="${plan.link || ''}" class="flex-1 px-3 py-2 rounded-xl border border-botanical-stone focus:outline-none" placeholder="https://...">
+          <button type="button" onclick="openPlanLinkFromInput('edit-plan-link')" class="shrink-0 px-3 py-2 rounded-xl border border-botanical-stone text-sm text-botanical-sage hover:bg-botanical-cream transition-all">열기</button>
+        </div>
       </div>
       <div>
         <label class="text-sm font-medium block mb-1">상세 내용</label>
@@ -2450,7 +2467,10 @@ function addIdea() {
       </div>
       <div>
         <label class="text-sm font-medium block mb-1">링크 <span class="text-xs text-botanical-sage">(선택)</span></label>
-        <input type="text" id="new-idea-link" class="w-full px-3 py-2 rounded-xl border border-botanical-stone focus:outline-none" placeholder="https://...">
+        <div class="flex gap-2">
+          <input type="text" id="new-idea-link" class="flex-1 px-3 py-2 rounded-xl border border-botanical-stone focus:outline-none" placeholder="https://...">
+          <button type="button" onclick="openPlanLinkFromInput('new-idea-link')" class="shrink-0 px-3 py-2 rounded-xl border border-botanical-stone text-sm text-botanical-sage hover:bg-botanical-cream transition-all">열기</button>
+        </div>
       </div>
       <div>
         <label class="text-sm font-medium block mb-1">상세 내용 <span class="text-xs text-botanical-sage">(선택)</span></label>
@@ -2499,7 +2519,10 @@ function editIdea(ideaId) {
       </div>
       <div>
         <label class="text-sm font-medium block mb-1">링크 <span class="text-xs text-botanical-sage">(선택)</span></label>
-        <input type="text" id="edit-idea-link" value="${idea.link || ''}" class="w-full px-3 py-2 rounded-xl border border-botanical-stone focus:outline-none" placeholder="https://...">
+        <div class="flex gap-2">
+          <input type="text" id="edit-idea-link" value="${idea.link || ''}" class="flex-1 px-3 py-2 rounded-xl border border-botanical-stone focus:outline-none" placeholder="https://...">
+          <button type="button" onclick="openPlanLinkFromInput('edit-idea-link')" class="shrink-0 px-3 py-2 rounded-xl border border-botanical-stone text-sm text-botanical-sage hover:bg-botanical-cream transition-all">열기</button>
+        </div>
       </div>
       <div>
         <label class="text-sm font-medium block mb-1">상세 내용 <span class="text-xs text-botanical-sage">(선택)</span></label>
@@ -3433,7 +3456,14 @@ function renderContentForm(content) {
                         <button onclick="clearDialogueCell(${content.id}, ${idx})">지우기</button>
                       </div>
                     </td>
-                    <td class="px-4 py-3 border-l border-botanical-stone"><textarea rows="1" oninput="autoResize(this);updateScriptRow(${content.id}, ${idx}, 'subtitle', this.value)" class="script-cell w-full bg-transparent focus:outline-none resize-none overflow-hidden">${row.subtitle || ''}</textarea></td>
+                    <td class="px-4 py-3 border-l border-botanical-stone relative subtitle-cell" data-content-id="${content.id}" data-row-idx="${idx}">
+                      <textarea rows="1" oninput="autoResize(this);updateScriptRow(${content.id}, ${idx}, 'subtitle', this.value)" class="script-cell w-full bg-transparent focus:outline-none resize-none overflow-hidden">${row.subtitle || ''}</textarea>
+                      <button class="subtitle-menu-btn" onclick="event.stopPropagation();toggleSubtitleMenu(${content.id}, ${idx})">⋮</button>
+                      <div class="subtitle-menu hidden" id="subtitle-menu-${content.id}-${idx}">
+                        <button onclick="copySubtitleCell(${content.id}, ${idx})">복사</button>
+                        <button onclick="clearSubtitleCell(${content.id}, ${idx})">지우기</button>
+                      </div>
+                    </td>
                   </tr>
                 `).join('')}
               </tbody>
@@ -4082,6 +4112,50 @@ function clearDialogueCell(contentId, idx) {
   menu.classList.add('hidden');
 
   // UI 업데이트
+  renderContentList();
+}
+
+// 자막 메뉴 토글
+function toggleSubtitleMenu(contentId, idx) {
+  const menu = document.getElementById(`subtitle-menu-${contentId}-${idx}`);
+  const allMenus = document.querySelectorAll('.subtitle-menu, .dialogue-menu');
+  allMenus.forEach(m => {
+    if (m !== menu) m.classList.add('hidden');
+  });
+  menu.classList.toggle('hidden');
+}
+
+// 자막 셀 복사
+function copySubtitleCell(contentId, idx) {
+  const content = contentsData.contents.find(c => c.id === contentId);
+  const ver = content?.script?.currentVersion ?? 0;
+  const row = content?.script?.versions?.[ver]?.rows?.[idx];
+  const text = row?.subtitle || '';
+
+  if (!text.trim()) {
+    alert('복사할 내용이 없습니다');
+    return;
+  }
+
+  navigator.clipboard.writeText(text).then(() => {
+    const menu = document.getElementById(`subtitle-menu-${contentId}-${idx}`);
+    menu.classList.add('hidden');
+  }).catch(() => alert('복사 실패'));
+}
+
+// 자막 셀 지우기
+function clearSubtitleCell(contentId, idx) {
+  const content = contentsData.contents.find(c => c.id === contentId);
+  const ver = content?.script?.currentVersion ?? 0;
+  const row = content?.script?.versions?.[ver]?.rows?.[idx];
+
+  if (!row || !row.subtitle?.trim()) return;
+
+  updateScriptRow(contentId, idx, 'subtitle', '');
+
+  const menu = document.getElementById(`subtitle-menu-${contentId}-${idx}`);
+  menu.classList.add('hidden');
+
   renderContentList();
 }
 
