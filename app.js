@@ -1989,7 +1989,7 @@ function renderDashboard() {
                     </div>
                   ` : '';
                   })()}
-                  ${plan.description ? `<p class="text-xs text-botanical-sage leading-relaxed mb-3">${plan.description.split('\n').map(line => line.trim()).filter(line => line).join('<br>')}</p>` : ''}
+                  ${(plan.description && !plan.description.match(/^\(.*예정.*\)$/)) ? `<p class="text-xs text-botanical-sage leading-relaxed mb-3">${plan.description.split('\n').map(line => line.trim()).filter(line => line).join('<br>')}</p>` : ''}
                   <div class="flex items-center gap-1.5">
                     <button onclick="editPlan('${plan.id}')" class="flex-1 px-2 py-1.5 rounded-lg text-xs font-medium border border-botanical-stone text-botanical-sage hover:bg-botanical-cream transition-all">
                       수정
