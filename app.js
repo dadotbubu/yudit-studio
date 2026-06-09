@@ -1979,12 +1979,16 @@ function renderDashboard() {
                     ${typeTag}
                   </div>
                   <h4 class="text-base font-semibold text-botanical-fg mb-2">${getPlanDisplayTitle(plan)}</h4>
-                  ${plan.link ? `
+                  ${(() => {
+                    // 연동된 콘텐츠에서 인스타 링크 가져오기
+                    const contentUrl = linkedContent?.url;
+                    return contentUrl ? `
                     <div class="flex items-center gap-2 mb-2">
-                      <span class="text-xs text-botanical-sage truncate flex-1">${plan.link}</span>
-                      ${openLinkBtn(plan.link)}
+                      <span class="text-xs text-botanical-sage truncate flex-1">${contentUrl}</span>
+                      <a href="${contentUrl}" target="_blank" class="px-2 py-1 text-xs border rounded-lg text-blue-500 border-blue-300 hover:bg-blue-50">열기</a>
                     </div>
-                  ` : ''}
+                  ` : '';
+                  })()}
                   ${plan.description ? `<p class="text-xs text-botanical-sage leading-relaxed mb-3">${plan.description.split('\n').map(line => line.trim()).filter(line => line).join('<br>')}</p>` : ''}
                   <div class="flex items-center gap-1.5">
                     <button onclick="editPlan('${plan.id}')" class="flex-1 px-2 py-1.5 rounded-lg text-xs font-medium border border-botanical-stone text-botanical-sage hover:bg-botanical-cream transition-all">
@@ -2094,7 +2098,7 @@ function addPlanToWeek(week) {
         <input type="text" id="new-plan-title" class="w-full px-3 py-2 rounded-xl border border-botanical-stone focus:outline-none" placeholder="계획 제목">
       </div>
       <div>
-        <label class="text-sm font-medium block mb-1">링크 <span class="text-xs text-botanical-sage">(선택)</span></label>
+        <label class="text-sm font-medium block mb-1">레퍼런스 링크 <span class="text-xs text-botanical-sage">(선택)</span></label>
         <div class="flex gap-2">
           <input type="text" id="new-plan-link" class="flex-1 px-3 py-2 rounded-xl border border-botanical-stone focus:outline-none" placeholder="https://...">
           <button type="button" onclick="openPlanLinkFromInput('new-plan-link')" class="shrink-0 px-3 py-2 rounded-xl border border-botanical-stone text-sm text-botanical-sage hover:bg-botanical-cream transition-all">열기</button>
@@ -2172,7 +2176,7 @@ function editPlan(planId) {
         <input type="text" id="edit-plan-title" value="${plan.title}" class="w-full px-3 py-2 rounded-xl border border-botanical-stone focus:outline-none" placeholder="계획 제목">
       </div>
       <div>
-        <label class="text-sm font-medium block mb-1">링크 <span class="text-xs text-botanical-sage">(선택)</span></label>
+        <label class="text-sm font-medium block mb-1">레퍼런스 링크 <span class="text-xs text-botanical-sage">(선택)</span></label>
         <div class="flex gap-2">
           <input type="text" id="edit-plan-link" value="${plan.link || ''}" class="flex-1 px-3 py-2 rounded-xl border border-botanical-stone focus:outline-none" placeholder="https://...">
           <button type="button" onclick="openPlanLinkFromInput('edit-plan-link')" class="shrink-0 px-3 py-2 rounded-xl border border-botanical-stone text-sm text-botanical-sage hover:bg-botanical-cream transition-all">열기</button>
@@ -2466,7 +2470,7 @@ function addIdea() {
         <input type="text" id="new-idea-title" class="w-full px-3 py-2 rounded-xl border border-botanical-stone focus:outline-none" placeholder="아이디어 제목">
       </div>
       <div>
-        <label class="text-sm font-medium block mb-1">링크 <span class="text-xs text-botanical-sage">(선택)</span></label>
+        <label class="text-sm font-medium block mb-1">레퍼런스 링크 <span class="text-xs text-botanical-sage">(선택)</span></label>
         <div class="flex gap-2">
           <input type="text" id="new-idea-link" class="flex-1 px-3 py-2 rounded-xl border border-botanical-stone focus:outline-none" placeholder="https://...">
           <button type="button" onclick="openPlanLinkFromInput('new-idea-link')" class="shrink-0 px-3 py-2 rounded-xl border border-botanical-stone text-sm text-botanical-sage hover:bg-botanical-cream transition-all">열기</button>
@@ -2518,7 +2522,7 @@ function editIdea(ideaId) {
         <input type="text" id="edit-idea-title" value="${idea.title}" class="w-full px-3 py-2 rounded-xl border border-botanical-stone focus:outline-none" placeholder="아이디어 제목">
       </div>
       <div>
-        <label class="text-sm font-medium block mb-1">링크 <span class="text-xs text-botanical-sage">(선택)</span></label>
+        <label class="text-sm font-medium block mb-1">레퍼런스 링크 <span class="text-xs text-botanical-sage">(선택)</span></label>
         <div class="flex gap-2">
           <input type="text" id="edit-idea-link" value="${idea.link || ''}" class="flex-1 px-3 py-2 rounded-xl border border-botanical-stone focus:outline-none" placeholder="https://...">
           <button type="button" onclick="openPlanLinkFromInput('edit-idea-link')" class="shrink-0 px-3 py-2 rounded-xl border border-botanical-stone text-sm text-botanical-sage hover:bg-botanical-cream transition-all">열기</button>
