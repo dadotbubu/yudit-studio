@@ -3474,6 +3474,16 @@ function renderContentForm(content) {
       </div>
 
       <!-- 3. 캡션 -->
+      ${(() => {
+        // 캡션 버전 구조 초기화/마이그레이션
+        if (!content.captions) {
+          content.captions = { versions: [{ text: content.caption || '' }], currentVersion: 0 };
+        }
+        const captionVersions = content.captions.versions || [{ text: '' }];
+        const currentCaptionVer = Math.min(content.captions.currentVersion ?? 0, captionVersions.length - 1);
+        const currentCaptionText = captionVersions[currentCaptionVer]?.text || '';
+
+        return `
       <div class="md:border md:border-botanical-stone md:rounded-xl p-0 md:p-5">
         <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-2 md:gap-0 mb-4">
           <h3 class="font-medium flex items-center gap-2">
@@ -3482,8 +3492,25 @@ function renderContentForm(content) {
           </h3>
           <button onclick="copyCaption(${content.id})" class="self-start px-3 py-1 rounded-full text-xs border border-botanical-stone hover:bg-botanical-cream transition-all">캡션 복사</button>
         </div>
-        <textarea id="caption-${content.id}" rows="3" oninput="autoResize(this);updateContentField(${content.id}, 'caption', this.value)" placeholder="인스타그램 캡션 입력..." class="auto-grow unified-text w-full px-3 py-2 rounded-lg border border-botanical-stone focus:outline-none focus:border-botanical-sage resize-none overflow-hidden">${content.caption || ''}</textarea>
-      </div>
+
+        <!-- 캡션 버전 탭 -->
+        <div class="flex flex-wrap items-center gap-2 mb-3 relative">
+          ${captionVersions.map((v, i) => {
+            const isActive = i === currentCaptionVer;
+            const canDelete = captionVersions.length > 1;
+            return `
+              <span class="inline-flex items-center rounded-full overflow-hidden border ${isActive ? 'border-botanical-sage' : 'border-botanical-stone'}">
+                <button onclick="switchCaptionVersion(${content.id}, ${i})" class="px-3 py-1 text-xs ${isActive ? 'bg-botanical-sage text-white' : 'hover:bg-botanical-cream transition-all'}">V${i+1}</button>
+                ${canDelete ? `<button onclick="deleteCaptionVersion(${content.id}, ${i})" title="V${i+1} 삭제" class="px-1.5 py-1 text-xs border-l ${isActive ? 'border-white/30 bg-botanical-sage text-white/70 hover:text-red-200' : 'border-botanical-stone text-botanical-sage/50 hover:text-red-500 hover:bg-red-50'}">×</button>` : ''}
+              </span>
+            `;
+          }).join('')}
+          <button onclick="addCaptionVersion(${content.id})" class="px-3 py-1 rounded-full text-xs border border-botanical-stone hover:bg-botanical-cream transition-all">+ 버전</button>
+        </div>
+
+        <textarea id="caption-${content.id}" rows="3" oninput="autoResize(this);updateCaptionText(${content.id}, this.value)" placeholder="인스타그램 캡션 입력..." class="auto-grow unified-text w-full px-3 py-2 rounded-lg border border-botanical-stone focus:outline-none focus:border-botanical-sage resize-none overflow-hidden">${currentCaptionText}</textarea>
+      </div>`;
+      })()}
 
       <!-- 4. 공유 링크 + DM 자동 답변 -->
       <div class="md:border md:border-botanical-stone md:rounded-xl p-0 md:p-5">
@@ -4163,6 +4190,65 @@ function copyCaption(contentId) {
   const el = document.getElementById('caption-' + contentId);
   if (!el || !el.value.trim()) { alert('복사할 캡션이 없습니다'); return; }
   navigator.clipboard.writeText(el.value).then(() => alert('캡션 복사됨'));
+}
+
+// 캡션 버전 전환
+function switchCaptionVersion(contentId, versionIdx) {
+  const content = contentsData.contents.find(c => c.id === contentId);
+  if (!content || !content.captions) return;
+  content.captions.currentVersion = versionIdx;
+  saveAllData();
+  renderContentList();
+}
+
+// 캡션 버전 추가
+function addCaptionVersion(contentId) {
+  const content = contentsData.contents.find(c => c.id === contentId);
+  if (!content) return;
+  if (!content.captions) {
+    content.captions = { versions: [{ text: content.caption || '' }], currentVersion: 0 };
+  }
+  content.captions.versions.push({ text: '' });
+  content.captions.currentVersion = content.captions.versions.length - 1;
+  saveAllData();
+  renderContentList();
+}
+
+// 캡션 버전 삭제
+function deleteCaptionVersion(contentId, versionIdx) {
+  const content = contentsData.contents.find(c => c.id === contentId);
+  if (!content || !content.captions || content.captions.versions.length <= 1) return;
+
+  const versionText = content.captions.versions[versionIdx]?.text || '';
+  const confirmMsg = versionText.trim()
+    ? `V${versionIdx + 1} 캡션을 삭제할까요?\n\n"${versionText.slice(0, 50)}${versionText.length > 50 ? '...' : ''}"`
+    : `V${versionIdx + 1} 캡션을 삭제할까요? (비어있음)`;
+
+  if (!confirm(confirmMsg)) return;
+
+  content.captions.versions.splice(versionIdx, 1);
+  if (content.captions.currentVersion >= content.captions.versions.length) {
+    content.captions.currentVersion = content.captions.versions.length - 1;
+  }
+  saveAllData();
+  renderContentList();
+}
+
+// 캡션 텍스트 업데이트
+function updateCaptionText(contentId, text) {
+  const content = contentsData.contents.find(c => c.id === contentId);
+  if (!content) return;
+  if (!content.captions) {
+    content.captions = { versions: [{ text: '' }], currentVersion: 0 };
+  }
+  const ver = content.captions.currentVersion ?? 0;
+  if (!content.captions.versions[ver]) {
+    content.captions.versions[ver] = { text: '' };
+  }
+  content.captions.versions[ver].text = text;
+  // 하위 호환: 기존 caption 필드도 현재 버전으로 유지
+  content.caption = text;
+  saveAllData();
 }
 
 function copyDM(contentId) {
