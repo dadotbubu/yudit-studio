@@ -4199,6 +4199,7 @@ function switchCaptionVersion(contentId, versionIdx) {
   content.captions.currentVersion = versionIdx;
   saveAllData();
   renderContentList();
+  reopenForm(contentId);
 }
 
 // 캡션 버전 추가
@@ -4212,6 +4213,7 @@ function addCaptionVersion(contentId) {
   content.captions.currentVersion = content.captions.versions.length - 1;
   saveAllData();
   renderContentList();
+  reopenForm(contentId);
 }
 
 // 캡션 버전 삭제
@@ -4232,6 +4234,7 @@ function deleteCaptionVersion(contentId, versionIdx) {
   }
   saveAllData();
   renderContentList();
+  reopenForm(contentId);
 }
 
 // 캡션 텍스트 업데이트
