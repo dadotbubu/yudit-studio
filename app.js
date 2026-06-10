@@ -455,6 +455,17 @@ function reconcileCalendarMilestones() {
   if (!Array.isArray(calendarData?.items) || !Array.isArray(contentsData?.contents)) return;
   const beforeLen = calendarData.items.length;
 
+  // 중복 제거: 같은 contentId + status + date 조합은 하나만 유지
+  const seen = new Set();
+  calendarData.items = calendarData.items.filter(it => {
+    if (it.isMilestone && it.contentId) {
+      const key = `${it.contentId}-${it.status}-${it.date}`;
+      if (seen.has(key)) return false;
+      seen.add(key);
+    }
+    return true;
+  });
+
   calendarData.items = calendarData.items.filter(it => {
     if (!it.isMilestone || !it.contentId) return true;
     const content = contentsData.contents.find(c => c.id === it.contentId);
@@ -1459,7 +1470,7 @@ function nextMonth() {
 }
 
 function openDateDetail(dateStr) {
-  const items = calendarData.items.filter(item => item.date === dateStr);
+  const items = calendarData.items.filter(item => item.date === dateStr && item.status === '업로드완료');
   const popup = document.getElementById('calendar-popup');
   const popupContent = document.getElementById('popup-content');
 
