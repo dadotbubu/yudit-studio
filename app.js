@@ -929,7 +929,8 @@ function switchTab(tabName) {
 function renderCalendar() {
   _contentByIdCache = new Map(contentsData.contents.map(c => [c.id, c]));
   renderCalendarTitle();
-  renderTodaySummary();
+  // renderTodaySummary(); // 오늘 섹션 제거
+  document.getElementById('today-summary').innerHTML = '';
   if (currentView === 'monthly') {
     renderMonthlyView();
   } else if (currentView === 'weekly') {
