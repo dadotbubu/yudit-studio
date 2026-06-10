@@ -32,7 +32,7 @@ let currentView = 'monthly';
 
 // 스크롤 위치 저장 함수 (재사용, 메모리 누수 방지)
 const saveScrollPosition = () => {
-  sessionStorage.setItem('yudit_scrollY', window.scrollY.toString());
+  localStorage.setItem('yudit_scrollY', window.scrollY.toString());
 };
 
 // ========== 월 선택 헬퍼 (탭별 독립 상태) ==========
@@ -769,14 +769,14 @@ function flushSaveImmediately() {
 
 document.addEventListener('visibilitychange', async () => {
   if (document.hidden) {
-    if (sessionStorage.getItem('yudit_openContentId')) {
-      sessionStorage.setItem('yudit_scrollY', window.scrollY.toString());
+    if (localStorage.getItem('yudit_openContentId')) {
+      localStorage.setItem('yudit_scrollY', window.scrollY.toString());
     }
     flushSaveImmediately();
   } else {
     isSyncing = true;
     updateSaveStatus('syncing');
-    const savedScrollY = sessionStorage.getItem('yudit_scrollY');
+    const savedScrollY = localStorage.getItem('yudit_scrollY');
     const synced = await syncFromRemote({ showToast: false, checkNewer: false, force: true });
     if (synced && savedScrollY) {
       requestAnimationFrame(() => {
@@ -890,10 +890,10 @@ function initApp() {
   // 초기 로드 후 캘린더 ↔ 마일스톤 정합성 한 번 정리 (stale orphan 제거 + 누락 추가)
   reconcileCalendarMilestones();
 
-  // Lazy Loading: 초기에는 캘린더만 렌더링
-  renderCalendar();
-  tabRendered.calendar = true;
-  // 다른 탭은 사용자가 클릭할 때 렌더링 (switchTab 참고)
+  // 저장된 탭 복원 (앱 전환 후 복귀용) 또는 캘린더 기본
+  const savedTab = localStorage.getItem('yudit_currentTab') || 'calendar';
+  switchTab(savedTab);
+  tabRendered[savedTab] = true;
 
   // 로딩 완료 - 스피너 숨기기
   const spinner = document.getElementById('loading-spinner');
@@ -918,6 +918,9 @@ function switchTab(tabName) {
   const btn = document.getElementById('tab-' + tabName);
   btn.classList.remove('text-botanical-sage', 'border-transparent');
   btn.classList.add('text-botanical-fg', 'border-botanical-fg');
+
+  // 현재 탭 저장 (앱 전환 후 복귀용)
+  localStorage.setItem('yudit_currentTab', tabName);
 
   // Lazy Loading: 처음 클릭한 탭만 렌더링
   if (!tabRendered[tabName]) {
@@ -2833,7 +2836,7 @@ function renderContentList() {
   document.getElementById('content-list').innerHTML = html;
 
   // 이전에 열려있던 콘텐츠 복원 (앱 전환 후 복귀 시)
-  const openContentId = sessionStorage.getItem('yudit_openContentId');
+  const openContentId = localStorage.getItem('yudit_openContentId');
   if (openContentId) {
     const contentExists = contentsData.contents.some(c => c.id == openContentId);
     if (contentExists) {
@@ -2851,7 +2854,7 @@ function renderContentList() {
 
           // 한 프레임 더 기다려서 레이아웃 완전히 안정화
           requestAnimationFrame(() => {
-            const savedScrollY = sessionStorage.getItem('yudit_scrollY');
+            const savedScrollY = localStorage.getItem('yudit_scrollY');
             if (savedScrollY) {
               window.scrollTo({
                 top: parseInt(savedScrollY),
@@ -2865,8 +2868,8 @@ function renderContentList() {
         window.addEventListener('scroll', saveScrollPosition, { passive: true });
       }
     } else {
-      sessionStorage.removeItem('yudit_openContentId');
-      sessionStorage.removeItem('yudit_scrollY');
+      localStorage.removeItem('yudit_openContentId');
+      localStorage.removeItem('yudit_scrollY');
     }
   }
 
@@ -3637,12 +3640,12 @@ function toggleContentForm(id) {
 
   // 열려있는 콘텐츠 ID 저장/제거 (위치 유지용)
   if (form.classList.contains('active')) {
-    sessionStorage.setItem('yudit_openContentId', id);
+    localStorage.setItem('yudit_openContentId', id);
     window.addEventListener('scroll', saveScrollPosition, { passive: true });
     requestAnimationFrame(() => { autoResizeAllScriptCells(); attachScriptCellObservers(); });
   } else {
-    sessionStorage.removeItem('yudit_openContentId');
-    sessionStorage.removeItem('yudit_scrollY');
+    localStorage.removeItem('yudit_openContentId');
+    localStorage.removeItem('yudit_scrollY');
     window.removeEventListener('scroll', saveScrollPosition);
   }
 }
