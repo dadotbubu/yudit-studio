@@ -30,9 +30,14 @@ let currentYear = now.getFullYear();
 let currentMonth = now.getMonth() + 1; // 1-indexed (0-11 -> 1-12)
 let currentView = 'monthly';
 
-// 스크롤 위치 저장 함수 (재사용, 메모리 누수 방지)
+// 스크롤 위치 저장 함수 (재사용, 메모리 누수 방지, throttle로 성능 최적화)
+let _scrollSaveTimer = null;
 const saveScrollPosition = () => {
-  localStorage.setItem('yudit_scrollY', window.scrollY.toString());
+  if (_scrollSaveTimer) return;
+  _scrollSaveTimer = setTimeout(() => {
+    localStorage.setItem('yudit_scrollY', window.scrollY.toString());
+    _scrollSaveTimer = null;
+  }, 200);
 };
 
 // ========== 월 선택 헬퍼 (탭별 독립 상태) ==========
@@ -455,19 +460,15 @@ function reconcileCalendarMilestones() {
   if (!Array.isArray(calendarData?.items) || !Array.isArray(contentsData?.contents)) return;
   const beforeLen = calendarData.items.length;
 
-  // 중복 제거: 같은 contentId + status + date 조합은 하나만 유지
+  // 중복 제거 + 유효성 검사를 한 번에 처리
   const seen = new Set();
   calendarData.items = calendarData.items.filter(it => {
-    if (it.isMilestone && it.contentId) {
-      const key = `${it.contentId}-${it.status}-${it.date}`;
-      if (seen.has(key)) return false;
-      seen.add(key);
-    }
-    return true;
-  });
-
-  calendarData.items = calendarData.items.filter(it => {
     if (!it.isMilestone || !it.contentId) return true;
+    // 중복 체크
+    const key = `${it.contentId}-${it.status}-${it.date}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    // 유효성 체크
     const content = contentsData.contents.find(c => c.id === it.contentId);
     if (!content) return true;
     return (content.milestones || []).some(m => m.status === it.status && m.date === it.date);
@@ -891,9 +892,10 @@ function initApp() {
   reconcileCalendarMilestones();
 
   // 저장된 탭 복원 (앱 전환 후 복귀용) 또는 캘린더 기본
-  const savedTab = localStorage.getItem('yudit_currentTab') || 'calendar';
-  switchTab(savedTab);
-  tabRendered[savedTab] = true;
+  const validTabs = ['calendar', 'planner', 'content', 'performance', 'revenue', 'memos', 'dashboard'];
+  const savedTab = localStorage.getItem('yudit_currentTab');
+  const targetTab = validTabs.includes(savedTab) ? savedTab : 'calendar';
+  switchTab(targetTab);
 
   // 로딩 완료 - 스피너 숨기기
   const spinner = document.getElementById('loading-spinner');
@@ -924,7 +926,8 @@ function switchTab(tabName) {
 
   // Lazy Loading: 처음 클릭한 탭만 렌더링
   if (!tabRendered[tabName]) {
-    if (tabName === 'dashboard') renderDashboard();
+    if (tabName === 'calendar') renderCalendar();
+    else if (tabName === 'dashboard') renderDashboard();
     else if (tabName === 'content') renderContentList();
     else if (tabName === 'performance') renderPerformance();
     else if (tabName === 'revenue') renderRevenue();
