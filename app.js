@@ -575,6 +575,25 @@ async function maybeCheckDuplicates() {
 
 // ========== Data Loading ==========
 async function loadData() {
+  // 1단계: localStorage 캐시로 즉시 시작 (빠른 초기 로딩)
+  const cachedContents = localStorage.getItem('yudit_contents');
+  if (cachedContents) {
+    calendarData = JSON.parse(localStorage.getItem('yudit_calendar') || '{"currentMonth":"2026-04","items":[],"plans":[]}');
+    contentsData = JSON.parse(cachedContents);
+    performanceData = JSON.parse(localStorage.getItem('yudit_performance') || '{"follower":{"current":0,"history":{"daily":[],"monthly":[]}},"monthly":{}}');
+    revenueData = JSON.parse(localStorage.getItem('yudit_revenue') || '{"summary":{"thisMonth":0,"thisYear":0},"byType":{"ad":{},"sales":{},"sponsor":{}},"tax":{},"monthly":[],"items":{"ad":[],"sales":[],"sponsor":[]}}');
+    memosData = JSON.parse(localStorage.getItem('yudit_memos') || '{"memos":[]}');
+    plansData = JSON.parse(localStorage.getItem('yudit_plans') || '{}');
+    console.log('localStorage 캐시로 즉시 시작');
+    initApp();
+    // 2단계: 백그라운드에서 Supabase 동기화
+    syncFromRemote({ showToast: false, checkNewer: true, force: false }).then(() => {
+      console.log('백그라운드 Supabase 동기화 완료');
+    });
+    return;
+  }
+
+  // localStorage 캐시 없으면 기존 방식 (Supabase 먼저)
   try {
     const remote = await loadFromSupabase();
     const hasRemote = remote.calendar || remote.contents || remote.performance || remote.revenue;
@@ -5009,7 +5028,7 @@ function renderTemplateSection() {
                  placeholder="${isTitled ? '링크 또는 내용' : '내용 입력'}"
                  class="unified-text flex-1 min-w-0 bg-transparent focus:outline-none resize-none overflow-hidden whitespace-nowrap"
                  style="height: 1.6em;">${escapeHtml(it.text || '')}</textarea>
-          ${isTitled && it.text?.startsWith('http') ? `<button onclick="window.open('${escapeHtml(it.text)}', '_blank')" class="shrink-0 px-2 py-1 text-[11px] md:text-xs rounded border border-blue-300 text-blue-500 hover:bg-blue-50 transition-all">열기</button>` : ''}
+          ${isTitled && it.text?.startsWith('http') ? `<button onclick="window.open('${escapeHtml(it.text)}', '_system') || window.open('${escapeHtml(it.text)}', '_blank')" class="shrink-0 px-2 py-1 text-[11px] md:text-xs rounded border border-blue-300 text-blue-500 hover:bg-blue-50 transition-all">열기</button>` : ''}
           <button onclick="copyTemplateItem(${it.id})" class="shrink-0 px-2 py-1 text-[11px] md:text-xs rounded border border-botanical-stone text-botanical-sage hover:bg-botanical-cream hover:text-botanical-fg transition-all">복사</button>
           <button onclick="deleteTemplateItem(${it.id})" title="삭제" class="shrink-0 p-1 rounded text-botanical-sage/60 hover:text-red-500 transition-all">
             ${trashIcon}
