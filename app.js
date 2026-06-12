@@ -7677,7 +7677,7 @@ function plCopy() { navigator.clipboard.writeText(document.getElementById('pl-ou
 function plLibEntries() {
   const D = PLANNING_DATA;
   const refs = D.refs.map(r => ({ type: 'ref', no: r.no, hook: r.hook, cat: r.category, len: r.length, fmt: r.format, kw: r.keywords, own: r.own, sub: r.sub, script: r.script }));
-  const hooks = D.hookBank.concat(plCustomHooks || []).map(h => ({ type: 'hook', no: h.id, hook: h.hook, cat: '', len: '', fmt: '', kw: [], pattern: h.pattern || '', template: h.template || '' }));
+  const hooks = D.hookBank.concat(plCustomHooks || []).map((h, i) => ({ type: 'hook', no: h.id, hNo: 'H' + (i + 1), hook: h.hook, cat: '', len: '', fmt: '', kw: [], pattern: h.pattern || '', template: h.template || '' }));
   return hooks.concat(refs);
 }
 function plRenderLib() {
@@ -7693,12 +7693,16 @@ function plRenderLib() {
         <button onclick="plSaveHook()" class="px-4 py-2 bg-botanical-fg text-white rounded-lg text-xs font-bold whitespace-nowrap">저장</button>
         <button onclick="document.getElementById('pl-addhook-row').classList.add('hidden')" class="px-3 py-2 border border-botanical-stone rounded-lg text-xs text-botanical-sage whitespace-nowrap">취소</button>
       </div>
+      <div class="flex gap-1 bg-botanical-cream p-1 rounded-full w-fit mb-3" id="pl-lib-view">
+        <button onclick="plSetLibView('all',this)" class="pl-view-btn px-3 py-1 rounded-full text-xs font-medium bg-white text-botanical-fg shadow-sm" data-v="all">전체</button>
+        <button onclick="plSetLibView('hook',this)" class="pl-view-btn px-3 py-1 rounded-full text-xs font-medium text-botanical-sage" data-v="hook">훅</button>
+        <button onclick="plSetLibView('ref',this)" class="pl-view-btn px-3 py-1 rounded-full text-xs font-medium text-botanical-sage" data-v="ref">레퍼</button>
+      </div>
       <div class="flex flex-wrap gap-1.5 mb-3">
         <input type="text" id="pl-lib-q" class="flex-1 min-w-[130px] px-3 py-2 border border-botanical-stone rounded-lg text-sm bg-white" placeholder="키워드 검색" oninput="plLibList()">
         <select id="pl-lib-fmt" class="px-2 py-2 border border-botanical-stone rounded-lg text-xs bg-white" onchange="plLibList()">
           <option value="">포맷 전체</option>
           ${D.formats.map(f => `<option>${f.name}</option>`).join('')}
-          <option value="__hook__">훅만 모음</option>
         </select>
         <select id="pl-lib-cat" class="px-2 py-2 border border-botanical-stone rounded-lg text-xs bg-white" onchange="plLibList()">
           <option value="">카테고리 전체</option>
@@ -7712,6 +7716,18 @@ function plRenderLib() {
   `;
   plLibList();
 }
+function plSetLibView(v, btn) {
+  plSel.libView = v;
+  document.querySelectorAll('.pl-view-btn').forEach(b => {
+    if (b.dataset.v === v) { b.classList.add('bg-white', 'text-botanical-fg', 'shadow-sm'); b.classList.remove('text-botanical-sage'); }
+    else { b.classList.remove('bg-white', 'text-botanical-fg', 'shadow-sm'); b.classList.add('text-botanical-sage'); }
+  });
+  // 훅 뷰에서는 포맷·카테고리 필터 숨김 (훅에는 해당 없음)
+  const hide = v === 'hook';
+  document.getElementById('pl-lib-fmt').classList.toggle('hidden', hide);
+  document.getElementById('pl-lib-cat').classList.toggle('hidden', hide);
+  plLibList();
+}
 function plLibReset() {
   document.getElementById('pl-lib-q').value = '';
   document.getElementById('pl-lib-fmt').value = '';
@@ -7723,17 +7739,21 @@ function plLibList() {
   const q = document.getElementById('pl-lib-q').value.trim();
   const fmt = document.getElementById('pl-lib-fmt').value;
   const cat = document.getElementById('pl-lib-cat').value;
+  const view = plSel.libView || 'all';
   let list = plLibEntries();
-  if (fmt === '__hook__') list = list.filter(e => e.type === 'hook');
-  else if (fmt) { const f = D.formats.find(x => x.name === fmt); if (f) list = list.filter(e => e.type === 'hook' ? false : f.refs.includes(e.no)); }
-  if (cat) list = list.filter(e => e.type === 'hook' || e.cat === cat);
+  if (view === 'hook') list = list.filter(e => e.type === 'hook');
+  else if (view === 'ref') list = list.filter(e => e.type === 'ref');
+  if (view !== 'hook') {
+    if (fmt) { const f = D.formats.find(x => x.name === fmt); if (f) list = list.filter(e => e.type === 'hook' ? false : f.refs.includes(e.no)); }
+    if (cat) list = list.filter(e => e.type === 'hook' || e.cat === cat);
+  }
   if (q) list = list.filter(e => e.hook.includes(q) || (e.kw || []).some(k => k.includes(q)) || (e.script || '').includes(q));
   const tag = (txt, cls) => `<span class="inline-block px-2 py-0.5 rounded-full bg-botanical-cream border border-botanical-stone text-[10px] ${cls || 'text-botanical-sage'} mr-1">${txt}</span>`;
   document.getElementById('pl-lib-items').innerHTML = list.map(e => `
     <div class="py-3 cursor-pointer hover:bg-botanical-cream/40 transition-all" onclick="plOpenDetail('${e.type}','${e.no}')">
       <div class="text-sm leading-snug">${e.hook}</div>
       <div class="mt-1.5">
-        ${e.type === 'hook' ? tag('훅만', 'text-botanical-terracotta font-bold') : tag(e.cat) + (e.own ? tag('★유디트', 'text-botanical-terracotta font-bold') : '') + (e.sub ? tag('자막만') : '') + `<span class="text-[10px] text-botanical-sage">${(e.fmt || '').split('(')[0].trim()}</span>`}
+        ${e.type === 'hook' ? tag(e.hNo + ' · 훅만', 'text-botanical-terracotta font-bold') + (e.pattern ? `<span class="text-[10px] text-botanical-sage">${e.pattern.split('(')[0].trim()}</span>` : '') : tag(e.cat) + (e.own ? tag('★유디트', 'text-botanical-terracotta font-bold') : '') + (e.sub ? tag('자막만') : '') + `<span class="text-[10px] text-botanical-sage">${(e.fmt || '').split('(')[0].trim()}</span>`}
       </div>
     </div>`).join('') || '<div class="py-8 text-center text-sm text-botanical-sage">검색 결과 없음</div>';
 }
@@ -7744,13 +7764,16 @@ function plOpenDetail(type, no) {
   el.classList.remove('hidden');
   const sect = (title, body) => body ? `<div class="mt-4"><p class="text-[11px] font-bold text-botanical-sage tracking-wide mb-1.5">${title}</p><div class="text-sm leading-relaxed whitespace-pre-wrap bg-botanical-cream/50 rounded-xl p-3">${body}</div></div>` : '';
   if (type === 'hook') {
-    const h = PLANNING_DATA.hookBank.concat(plCustomHooks || []).find(x => String(x.id) === String(no));
+    const all = PLANNING_DATA.hookBank.concat(plCustomHooks || []);
+    const idx = all.findIndex(x => String(x.id) === String(no));
+    const h = all[idx];
     el.innerHTML = `
       <span class="text-xs text-botanical-terracotta cursor-pointer" onclick="plCloseDetail()">← 목록으로</span>
       <h3 class="font-medium text-base mt-3">${h.hook}</h3>
-      <div class="mt-1"><span class="inline-block px-2 py-0.5 rounded-full bg-botanical-cream border border-botanical-stone text-[10px] text-botanical-terracotta font-bold">훅만 (대본 없음)</span></div>
+      <div class="mt-1"><span class="inline-block px-2 py-0.5 rounded-full bg-botanical-cream border border-botanical-stone text-[10px] text-botanical-terracotta font-bold">H${idx + 1} · 훅만 (대본 없음)</span></div>
       ${sect('훅 응용 템플릿', h.template)}
-      ${sect('훅 패턴', h.pattern)}`;
+      ${sect('훅 패턴', h.pattern)}
+      ${(!h.template && !h.pattern) ? '<p class="text-xs text-botanical-sage mt-4">아직 태깅 전이에요 — 앤한테 「훅 태깅해줘」 하면 패턴·템플릿이 채워져요</p>' : ''}`;
     return;
   }
   const r = D.refs.find(x => x.no === +no);
