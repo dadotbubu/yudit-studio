@@ -5009,6 +5009,7 @@ function renderTemplateSection() {
                  placeholder="${isTitled ? '링크 또는 내용' : '내용 입력'}"
                  class="unified-text flex-1 min-w-0 bg-transparent focus:outline-none resize-none overflow-hidden whitespace-nowrap"
                  style="height: 1.6em;">${escapeHtml(it.text || '')}</textarea>
+          ${isTitled && it.text?.startsWith('http') ? `<button onclick="window.open('${escapeHtml(it.text)}', '_blank')" class="shrink-0 px-2 py-1 text-[11px] md:text-xs rounded border border-blue-300 text-blue-500 hover:bg-blue-50 transition-all">열기</button>` : ''}
           <button onclick="copyTemplateItem(${it.id})" class="shrink-0 px-2 py-1 text-[11px] md:text-xs rounded border border-botanical-stone text-botanical-sage hover:bg-botanical-cream hover:text-botanical-fg transition-all">복사</button>
           <button onclick="deleteTemplateItem(${it.id})" title="삭제" class="shrink-0 p-1 rounded text-botanical-sage/60 hover:text-red-500 transition-all">
             ${trashIcon}
