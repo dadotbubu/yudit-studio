@@ -2754,8 +2754,19 @@ function renderContentList() {
 
   // 2) 월 필터: 업로드완료 마일스톤 우선, 없으면 예정일. 둘 다 없으면 항상 표시.
   const monthStr = contentSelectedMonth;
+  const today = new Date();
+  const currentMonth = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}`;
+  const isPastMonth = monthStr < currentMonth;
+
   filteredContents = filteredContents.filter(c => {
     const ref = getContentRefDate(c);
+    // 과거월 선택 시: 업로드완료만 표시
+    if (isPastMonth) {
+      if (c.status !== '업로드완료') return false;
+      if (!ref) return false;
+      return ref.startsWith(monthStr);
+    }
+    // 현재월/미래월: 기존 로직
     if (!ref) return true; // 날짜 미정 → 항상 노출
     return ref.startsWith(monthStr);
   });
