@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>기획 탭 목업 — yudit studio</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&family=Playfair+Display:ital@1&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#F9F8F4;--fg:#2D3A31;--sage:#8C9A84;--clay:#DCCFC2;--stone:#E6E2DA;--terra:#C27B66;--cream:#F2F0EB;}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--bg);color:var(--fg);font-family:'Noto Sans KR',sans-serif;font-size:14px;}
+.wrap{max-width:760px;margin:0 auto;padding:16px 14px 80px;}
+h1{font-family:'Playfair Display',serif;font-style:italic;font-size:22px;margin:8px 0 2px;}
+.sub{color:var(--sage);font-size:12px;margin-bottom:14px;}
+.subnav{display:flex;gap:6px;margin-bottom:16px;border-bottom:1px solid var(--stone);padding-bottom:10px;}
+.subnav button{flex:1;padding:9px 4px;border:1px solid var(--stone);background:#fff;border-radius:10px;font-size:13px;color:var(--sage);cursor:pointer;font-family:inherit;}
+.subnav button.on{background:var(--fg);color:#fff;border-color:var(--fg);font-weight:700;}
+.card{background:#fff;border:1px solid var(--stone);border-radius:14px;padding:16px;margin-bottom:12px;}
+.card h3{font-size:14px;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center;}
+label{display:block;font-size:12px;color:var(--sage);margin:10px 0 4px;font-weight:500;}
+select,input[type=text],textarea{width:100%;padding:9px 10px;border:1px solid var(--stone);border-radius:9px;font-family:inherit;font-size:13.5px;background:var(--cream);color:var(--fg);}
+textarea{resize:vertical;}
+.pills{display:flex;gap:6px;flex-wrap:wrap;}
+.pill{padding:7px 13px;border:1px solid var(--stone);border-radius:99px;background:#fff;font-size:13px;cursor:pointer;color:var(--sage);font-family:inherit;}
+.pill.on{background:var(--terra);border-color:var(--terra);color:#fff;font-weight:700;}
+.btn-main{width:100%;padding:13px;background:var(--fg);color:#fff;border:none;border-radius:11px;font-size:15px;font-weight:700;cursor:pointer;margin-top:14px;font-family:inherit;}
+.btn-row{display:flex;gap:6px;margin-top:8px;}
+.btn-sm{flex:1;padding:9px 6px;border:1px solid var(--stone);background:#fff;border-radius:9px;font-size:12.5px;cursor:pointer;color:var(--fg);font-family:inherit;}
+.btn-sm.accent{border-color:var(--terra);color:var(--terra);font-weight:700;}
+#promptOut{white-space:pre-wrap;background:var(--cream);border:1px solid var(--stone);border-radius:10px;padding:12px;font-size:12.5px;line-height:1.55;max-height:340px;overflow:auto;margin-top:10px;}
+.hint{font-size:11.5px;color:var(--sage);margin-top:6px;text-align:center;}
+.autofill{background:#fff;}
+/* 보관함 */
+.filters{display:flex;gap:6px;margin-bottom:10px;}
+.filters select{flex:1;}
+.hookItem{padding:11px 4px;border-bottom:1px solid var(--stone);cursor:pointer;}
+.hookItem:hover{background:var(--cream);}
+.hookItem .h{font-size:13.5px;font-weight:500;line-height:1.4;}
+.hookItem .t{font-size:11px;color:var(--sage);margin-top:3px;}
+.tag{display:inline-block;padding:1px 7px;border-radius:99px;background:var(--cream);border:1px solid var(--stone);margin-right:4px;font-size:10.5px;}
+.detail{display:none;}
+.detail.show{display:block;}
+.detail .back{color:var(--terra);cursor:pointer;font-size:12.5px;margin-bottom:10px;display:inline-block;}
+.detail h4{font-size:15px;margin-bottom:6px;}
+.sect{margin-top:12px;}
+.sect .st{font-size:11.5px;font-weight:700;color:var(--sage);letter-spacing:.4px;margin-bottom:5px;}
+.sect .bd{font-size:13px;line-height:1.65;white-space:pre-wrap;background:var(--cream);border-radius:9px;padding:10px;}
+a.linkbtn{display:inline-block;padding:7px 14px;background:var(--terra);color:#fff;border-radius:99px;font-size:12.5px;text-decoration:none;margin-top:4px;}
+/* 검색어 */
+.kwSect{margin-bottom:14px;}
+.kwSect .kt{font-size:13px;font-weight:700;margin-bottom:8px;}
+.chips{display:flex;flex-wrap:wrap;gap:6px;}
+.chip{padding:6px 12px;border:1px solid var(--stone);border-radius:99px;background:#fff;font-size:12.5px;cursor:pointer;color:var(--fg);}
+.chip.used{background:var(--stone);color:var(--sage);text-decoration:line-through;}
+.note{font-size:11.5px;color:var(--sage);margin-bottom:10px;}
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--fg);color:#fff;padding:9px 18px;border-radius:99px;font-size:13px;opacity:0;transition:.25s;pointer-events:none;}
+.toast.show{opacity:1;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>yudit studio</h1>
+  <div class="sub">기획 — 릴스 프롬프트 생성기 (목업)</div>
+
+  <div class="subnav">
+    <button class="on" onclick="showSec('gen',this)">✨ 생성기</button>
+    <button onclick="showSec('lib',this)">📚 레퍼 보관함</button>
+    <button onclick="showSec('kw',this)">🔍 검색어</button>
+  </div>
+
+  <!-- ============ 생성기 ============ -->
+  <div id="sec-gen">
+    <div class="card">
+      <h3>내 계정 프로필 <span style="font-size:11px;color:var(--sage)">카테고리 선택 시 자동 연동</span></h3>
+      <label>카테고리</label>
+      <select id="gCat" onchange="fillPreset()">
+        <option>Career Guide</option><option>AI Work</option><option>Money Log</option><option>Life Style</option><option>직접 입력</option>
+      </select>
+      <label>포지셔닝</label>
+      <input type="text" id="gPos" class="autofill">
+      <label>타겟 독자</label>
+      <input type="text" id="gTar" class="autofill">
+      <label>핵심 메시지</label>
+      <input type="text" id="gMsg" class="autofill">
+      <label>톤 보이스</label>
+      <select id="gTone"></select>
+    </div>
+
+    <div class="card">
+      <h3>콘텐츠 설정</h3>
+      <label>레퍼런스 패턴 (포맷)</label>
+      <select id="gFmt"></select>
+      <label>길이</label>
+      <div class="pills" id="gLen"></div>
+      <label>목표</label>
+      <div class="pills" id="gGoal"></div>
+      <label>주제</label>
+      <textarea id="gTopic" rows="2" placeholder="예: 연말정산 환급 더 받는 법&#10;예: 신혼집 가전 싸게 사는 순서"></textarea>
+      <button class="btn-main" onclick="genPrompt()">기획 프롬프트 생성하기</button>
+      <div class="hint">생성할 때마다 훅 템플릿 조합이 바뀌어 매번 다른 기획이 나와요</div>
+    </div>
+
+    <div class="card" id="outCard" style="display:none">
+      <h3>완성된 기획 프롬프트</h3>
+      <div class="btn-row">
+        <button class="btn-sm accent" onclick="reroll()">🎲 다른 앵글로</button>
+        <button class="btn-sm accent" onclick="copyPrompt()">📋 복사</button>
+        <button class="btn-sm" onclick="window.open('https://claude.ai/new')">Claude 열기</button>
+        <button class="btn-sm" onclick="window.open('https://chatgpt.com')">ChatGPT 열기</button>
+      </div>
+      <div id="promptOut"></div>
+    </div>
+  </div>
+
+  <!-- ============ 보관함 ============ -->
+  <div id="sec-lib" style="display:none">
+    <div class="card" id="libList">
+      <div class="filters">
+        <input type="text" id="libQ" placeholder="키워드 검색 (예: 면접, 혼인신고)" oninput="renderLib()" style="flex:2">
+        <select id="libFmt" onchange="renderLib()"><option value="">포맷 전체</option></select>
+        <select id="libCat" onchange="renderLib()"><option value="">카테고리 전체</option></select>
+      </div>
+      <div id="hookList"></div>
+    </div>
+    <div class="card detail" id="libDetail">
+      <span class="back" onclick="closeDetail()">← 목록으로</span>
+      <h4 id="dTitle"></h4>
+      <div id="dTags" style="margin-bottom:6px"></div>
+      <a class="linkbtn" id="dLink" target="_blank">▶ 원본 릴스 보기</a>
+      <div class="sect"><div class="st">터진 이유</div><div class="bd" id="dViral"></div></div>
+      <div class="sect"><div class="st">유디트 응용 템플릿</div><div class="bd" id="dTmpl"></div></div>
+      <div class="sect"><div class="st">원본 대본</div><div class="bd" id="dScript"></div></div>
+    </div>
+  </div>
+
+  <!-- ============ 검색어 ============ -->
+  <div id="sec-kw" style="display:none">
+    <div class="card">
+      <h3>레퍼 찾기 검색어 추천</h3>
+      <div class="note">인스타 검색 → 인기 탭 추천 · 탭하면 "써봤음" 표시 (다시 탭하면 해제)</div>
+      <div id="kwBody"></div>
+    </div>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script src="data/planning_data.js"></script>
+<script>
+const D = PLANNING_DATA;
+let sel = {len:'30초 이내', goal:'저장'};
+let lastCombo = null; const usedCombos = new Set();
+
+// ---------- 공통 ----------
+function showSec(id, btn){
+  ['gen','lib','kw'].forEach(s=>document.getElementById('sec-'+s).style.display = s===id?'':'none');
+  document.querySelectorAll('.subnav button').forEach(b=>b.classList.remove('on'));
+  btn.classList.add('on');
+}
+function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),1500);}
+
+// ---------- 생성기 초기화 ----------
+function fillPreset(){
+  const c = document.getElementById('gCat').value;
+  const p = D.presets[c];
+  document.getElementById('gPos').value = p? p.positioning : '';
+  document.getElementById('gTar').value = p? p.target : '';
+  document.getElementById('gMsg').value = p? p.message : '';
+}
+function initGen(){
+  const tone = document.getElementById('gTone');
+  D.tones.forEach(t=>tone.add(new Option(t)));
+  tone.add(new Option('직접 입력 (생성 후 프롬프트에서 수정)'));
+  const fmt = document.getElementById('gFmt');
+  fmt.add(new Option('🎲 랜덤 (추천 — 매번 다른 포맷)', ''));
+  D.formats.forEach((f,i)=>fmt.add(new Option(`${f.name} — ${f.desc}`, i)));
+  const len = document.getElementById('gLen');
+  D.lengths.forEach(l=>{const b=document.createElement('button');b.className='pill'+(l===sel.len?' on':'');b.textContent=l;b.onclick=()=>{sel.len=l;[...len.children].forEach(x=>x.classList.remove('on'));b.classList.add('on');};len.appendChild(b);});
+  const goal = document.getElementById('gGoal');
+  D.goals.forEach(g=>{const b=document.createElement('button');b.className='pill'+(g===sel.goal?' on':'');b.textContent=g;b.onclick=()=>{sel.goal=g;[...goal.children].forEach(x=>x.classList.remove('on'));b.classList.add('on');};goal.appendChild(b);});
+  fillPreset();
+}
+
+// ---------- 프롬프트 생성 ----------
+function pickHooks(n){
+  const pool = D.refs.filter(r=>r.template).map(r=>({src:r.no, hook:r.hook, tmpl:r.template, ex:r.templateEx}))
+    .concat(D.hookBank.map(h=>({src:h.id, hook:h.hook, tmpl:h.template, ex:''})));
+  const picked = [];
+  let guard = 0;
+  while(picked.length < n && guard++ < 200){
+    const h = pool[Math.floor(Math.random()*pool.length)];
+    if(!picked.find(p=>p.src===h.src)) picked.push(h);
+  }
+  return picked;
+}
+function buildPrompt(){
+  const cat = document.getElementById('gCat').value;
+  const pos = document.getElementById('gPos').value, tar = document.getElementById('gTar').value, msg = document.getElementById('gMsg').value;
+  const tone = document.getElementById('gTone').value;
+  const topic = document.getElementById('gTopic').value.trim() || '(주제 입력)';
+  let fIdx = document.getElementById('gFmt').value;
+  if(fIdx==='') fIdx = Math.floor(Math.random()*D.formats.length);
+  const fmt = D.formats[+fIdx];
+  const hooks = pickHooks(3);
+  const comboKey = fmt.name + '|' + hooks.map(h=>h.src).join(',');
+  usedCombos.add(comboKey); lastCombo = comboKey;
+  const ctas = D.ctaBank[sel.goal];
+  const refEx = fmt.refs.slice(0,3).map(no=>{const r=D.refs.find(x=>x.no===no);return r?`  · ${r.hook}`:''}).filter(Boolean).join('\n');
+
+  return `너는 인스타그램 릴스 기획 에이전트다. 아래 [계정 컨텍스트]와 [기획 원칙]을 철저히 지키며, 주어진 주제로 릴스 대본을 기획하라.
+
+[계정 컨텍스트 — 모든 기획은 반드시 이 계정에 맞춘다]
+- 카테고리: ${cat}
+- 포지셔닝: ${pos}
+- 핵심 메시지: ${msg}
+- 타겟 독자: ${tar}
+- 톤 보이스: ${tone}
+
+[기획 원칙 — 절대 규칙]
+${D.fixedRules.map((r,i)=>`${i+1}. ${r}`).join('\n')}
+6. 금지: 자기계발 설교, 동기부여 명언, 외부 트렌드 단순 전달, 추상적 다짐으로 마무리
+
+[이번 기획의 포맷 — 시장에서 검증된 구조]
+포맷명: ${fmt.name} (${fmt.desc})
+구조: ${fmt.structure}
+이 포맷의 실제 성공 사례 훅 (구조 참고용 — 절대 그대로 쓰지 말 것):
+${refEx}
+
+[훅 템플릿 3개 — 이 중 가장 주제에 맞는 1개를 골라 유디트 소재로 변형하라]
+${hooks.map((h,i)=>`${i+1}. ${h.tmpl}\n   (원형: ${h.hook})`).join('\n')}
+
+[CTA 설계 — 이번 목표: ${sel.goal}]
+${ctas.map(c=>`- ${c}`).join('\n')}
+이 중 1개만 선택. 1차 행동은 단 하나만 요구한다.
+
+[이번 기획 조건]
+- 길이: ${sel.len} — 5파트를 이 길이에 맞게 배분
+- 목표: ${sel.goal}
+
+[주제]
+${topic}
+
+[출력 — 이 순서로 작성]
+① 훅 3안: 선택한 훅 템플릿 변형 2안 + 자유 1안 (각각 어떤 심리 장치인지 한 줄)
+② 릴스 대본: 후킹(앞 3초) / (인트로) / 메인 / (아웃트로) / CTA — 파트별 대사 + 화면·B-roll 메모
+③ 캡션 초안: 본문 + 해시태그 5개
+④ HUMAN CHECK: 유디트가 직접 확인·수정해야 할 포인트 2~3개 (실제 경험·숫자 들어갈 자리 표시)`;
+}
+function genPrompt(){
+  document.getElementById('outCard').style.display='';
+  document.getElementById('promptOut').textContent = buildPrompt();
+  document.getElementById('outCard').scrollIntoView({behavior:'smooth'});
+}
+function reroll(){ document.getElementById('promptOut').textContent = buildPrompt(); toast('🎲 새 조합으로 변경!'); }
+function copyPrompt(){ navigator.clipboard.writeText(document.getElementById('promptOut').textContent).then(()=>toast('복사 완료! AI에 붙여넣으세요')); }
+
+// ---------- 보관함 ----------
+function initLib(){
+  const fmts=[...new Set(D.refs.map(r=>r.format.split(' (')[0].split('(')[0].trim()))];
+  const fSel=document.getElementById('libFmt');
+  D.formats.forEach(f=>fSel.add(new Option(f.name)));
+  const cSel=document.getElementById('libCat');
+  ['커리어&자기계발','재테크&부동산','AI','라이프','기타'].forEach(c=>cSel.add(new Option(c)));
+  renderLib();
+}
+function renderLib(){
+  const q=document.getElementById('libQ').value.trim();
+  const fmt=document.getElementById('libFmt').value;
+  const cat=document.getElementById('libCat').value;
+  let list = D.refs;
+  if(cat) list=list.filter(r=>r.category===cat);
+  if(fmt){const f=D.formats.find(x=>x.name===fmt); if(f) list=list.filter(r=>f.refs.includes(r.no));}
+  if(q) list=list.filter(r=>r.hook.includes(q)||r.title.includes(q)||r.keywords.some(k=>k.includes(q))||r.script.includes(q));
+  document.getElementById('hookList').innerHTML = list.map(r=>
+    `<div class="hookItem" onclick="openDetail(${r.no})">
+      <div class="h">${r.hook}</div>
+      <div class="t"><span class="tag">${r.category}</span><span class="tag">${r.length}</span>${r.own?'<span class="tag" style="color:var(--terra)">★유디트</span>':''}${r.sub?'<span class="tag">자막만</span>':''} ${r.format.split('(')[0].trim()}</div>
+    </div>`).join('') || '<div style="padding:20px;text-align:center;color:var(--sage)">검색 결과 없음</div>';
+}
+function openDetail(no){
+  const r=D.refs.find(x=>x.no===no);
+  document.getElementById('libList').style.display='none';
+  document.getElementById('libDetail').classList.add('show');
+  document.getElementById('dTitle').textContent = `${r.no}. ${r.title}`;
+  document.getElementById('dTags').innerHTML = `<span class="tag">${r.category}</span><span class="tag">${r.length}</span><span class="tag">${r.hookType}</span>`;
+  const lk=document.getElementById('dLink');
+  if(r.link){lk.style.display='';lk.href=r.link;} else lk.style.display='none';
+  document.getElementById('dViral').textContent = r.viral;
+  document.getElementById('dTmpl').textContent = r.template + (r.templateEx? '\n→ 예: '+r.templateEx : '');
+  document.getElementById('dScript').textContent = r.script;
+}
+function closeDetail(){
+  document.getElementById('libDetail').classList.remove('show');
+  document.getElementById('libList').style.display='';
+}
+
+// ---------- 검색어 ----------
+function initKw(){
+  const used = JSON.parse(localStorage.getItem('kwUsed')||'[]');
+  document.getElementById('kwBody').innerHTML = Object.entries(D.keywords).map(([cat,kws])=>
+    `<div class="kwSect"><div class="kt">${cat}</div><div class="chips">${
+      kws.map(k=>`<span class="chip ${used.includes(k)?'used':''}" onclick="toggleKw(this,'${k}')">${k}</span>`).join('')
+    }</div></div>`).join('');
+}
+function toggleKw(el,k){
+  el.classList.toggle('used');
+  let used = JSON.parse(localStorage.getItem('kwUsed')||'[]');
+  used = el.classList.contains('used') ? [...new Set([...used,k])] : used.filter(x=>x!==k);
+  localStorage.setItem('kwUsed', JSON.stringify(used));
+}
+
+initGen(); initLib(); initKw();
+</script>
+</body>
+</html>

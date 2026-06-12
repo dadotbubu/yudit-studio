@@ -366,10 +366,11 @@
     <div class="flex gap-1 md:gap-2 mb-4 md:mb-8 border-b border-botanical-stone pb-2 md:pb-4 overflow-x-auto whitespace-nowrap">
       <button onclick="switchTab('calendar')" id="tab-calendar" class="tab-btn px-3 md:px-4 py-2 text-xs md:text-sm font-medium transition-all duration-300 text-botanical-fg border-b-2 border-botanical-fg">캘린더</button>
       <button onclick="switchTab('dashboard')" id="tab-dashboard" class="tab-btn px-3 md:px-4 py-2 text-xs md:text-sm font-medium transition-all duration-300 text-botanical-sage border-b-2 border-transparent hover:text-botanical-fg">플래너</button>
-      <button onclick="switchTab('content')" id="tab-content" class="tab-btn px-3 md:px-4 py-2 text-xs md:text-sm font-medium transition-all duration-300 text-botanical-sage border-b-2 border-transparent hover:text-botanical-fg">콘텐츠</button>
-      <button onclick="switchTab('performance')" id="tab-performance" class="tab-btn px-3 md:px-4 py-2 text-xs md:text-sm font-medium transition-all duration-300 text-botanical-sage border-b-2 border-transparent hover:text-botanical-fg">성과분석</button>
-      <button onclick="switchTab('revenue')" id="tab-revenue" class="tab-btn px-3 md:px-4 py-2 text-xs md:text-sm font-medium transition-all duration-300 text-botanical-sage border-b-2 border-transparent hover:text-botanical-fg"><span class="md:hidden">수익</span><span class="hidden md:inline">수익리포트</span></button>
-      <button onclick="switchTab('memos')" id="tab-memos" class="tab-btn px-3 md:px-4 py-2 text-xs md:text-sm font-medium transition-all duration-300 text-botanical-sage border-b-2 border-transparent hover:text-botanical-fg">노트</button>
+      <button onclick="switchTab('content')" id="tab-content" class="tab-btn px-2 md:px-4 py-2 text-xs md:text-sm font-medium transition-all duration-300 text-botanical-sage border-b-2 border-transparent hover:text-botanical-fg">콘텐츠</button>
+      <button onclick="switchTab('planning')" id="tab-planning" class="tab-btn px-2 md:px-4 py-2 text-xs md:text-sm font-medium transition-all duration-300 text-botanical-sage border-b-2 border-transparent hover:text-botanical-fg">기획</button>
+      <button onclick="switchTab('performance')" id="tab-performance" class="tab-btn px-2 md:px-4 py-2 text-xs md:text-sm font-medium transition-all duration-300 text-botanical-sage border-b-2 border-transparent hover:text-botanical-fg">성과</button>
+      <button onclick="switchTab('revenue')" id="tab-revenue" class="tab-btn px-2 md:px-4 py-2 text-xs md:text-sm font-medium transition-all duration-300 text-botanical-sage border-b-2 border-transparent hover:text-botanical-fg">수익</button>
+      <button onclick="switchTab('memos')" id="tab-memos" class="tab-btn px-2 md:px-4 py-2 text-xs md:text-sm font-medium transition-all duration-300 text-botanical-sage border-b-2 border-transparent hover:text-botanical-fg">노트</button>
     </div>
 
     <!-- Calendar Tab -->
@@ -405,6 +406,11 @@
       <div id="content-list"></div>
     </div>
 
+    <!-- Planning Tab -->
+    <div id="planning-tab" class="tab-content">
+      <div id="planning-content"></div>
+    </div>
+
     <!-- Performance Tab -->
     <div id="performance-tab" class="tab-content">
       <div id="performance-content"></div>
@@ -437,10 +443,15 @@
         regs.forEach(r => r.unregister());
       });
     }
-    // app.js 동적 로드 (타임스탬프로 캐시 무효화)
-    const s = document.createElement('script');
-    s.src = 'app.js?t=' + Date.now();
-    document.body.appendChild(s);
+    // 기획 탭 데이터 → app.js 순서로 동적 로드 (타임스탬프로 캐시 무효화)
+    const pd = document.createElement('script');
+    pd.src = 'data/planning_data.js?t=' + Date.now();
+    pd.onload = () => {
+      const s = document.createElement('script');
+      s.src = 'app.js?t=' + Date.now();
+      document.body.appendChild(s);
+    };
+    document.body.appendChild(pd);
   </script>
 </body>
 </html>

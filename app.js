@@ -956,6 +956,7 @@ function switchTab(tabName) {
     if (tabName === 'calendar') renderCalendar();
     else if (tabName === 'dashboard') renderDashboard();
     else if (tabName === 'content') renderContentList();
+    else if (tabName === 'planning') renderPlanning();
     else if (tabName === 'performance') renderPerformance();
     else if (tabName === 'revenue') renderRevenue();
     else if (tabName === 'memos') renderMemos();
@@ -6084,13 +6085,14 @@ function renderPerformance() {
             const dateMap = {};
             dailyData.forEach(d => { dateMap[d.date] = d; });
 
-            // 오늘 기준 최근 7일 날짜 생성
+            // 오늘 기준 최근 7일 날짜 생성 (로컬 시간 기준 — toISOString은 UTC라 새벽에 어제로 밀리는 버그)
+            const fmtLocal = (dt) => `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`;
             const today = new Date();
             const allDays = [];
             for (let i = 6; i >= 0; i--) {
               const d = new Date(today);
               d.setDate(d.getDate() - i);
-              const dateStr = d.toISOString().slice(0, 10);
+              const dateStr = fmtLocal(d);
               const data = dateMap[dateStr];
               allDays.push({
                 date: dateStr,
@@ -6106,30 +6108,26 @@ function renderPerformance() {
             const range = maxCount - minCount;
             const maxChange = Math.max(0, ...days.map(d => d.change ?? 0));
             return `
-              <div class="flex items-end justify-between gap-3 px-4" style="height: 120px;">
+              <div class="grid grid-cols-7 gap-1 md:gap-3 px-1 md:px-4">
                 ${days.map(d => {
                   // 막대 높이는 해당 날짜 팔로워 수 기준 (데이터 하나면 100%, 여러 개면 min~max 범위로)
                   const h = d.count == null ? 0 : (range === 0 ? 100 : 10 + ((d.count - minCount) / range) * 90);
                   const isMax = d.change > 0 && d.change === maxChange;
                   const color = d.count == null ? '#E5E7EB' : (isMax ? '#C27B66' : '#8C9A84');
-                  return `
-                    <div class="flex-1 flex flex-col items-center justify-end" style="height: 120px; min-width: 24px;">
-                      <div class="rounded-t" style="width: 100%; min-width: 16px; height: ${h}px; background-color: ${color};"></div>
-                    </div>
-                  `;
-                }).join('')}
-              </div>
-              <div class="flex justify-between gap-3 px-4 mt-2">
-                ${days.map(d => {
-                  const isMax = d.change > 0 && d.change === maxChange;
                   const dateLabel = d.date.slice(5).replace('-', '/');
                   const countLabel = d.count == null ? '-' : d.count.toLocaleString();
                   const changeLabel = d.count == null ? '' : (d.change >= 0 ? `+${d.change}` : `${d.change}`);
+                  // 막대와 라벨을 같은 그리드 칸에 — 줄이 달라서 어긋나던 정렬 문제 해결
                   return `
-                    <div class="flex-1 text-center leading-tight">
-                      <div class="text-xs text-botanical-sage">${dateLabel}</div>
-                      <div class="text-xs font-semibold text-botanical-fg">${countLabel}</div>
-                      <div class="text-[11px] ${d.change > 0 ? (isMax ? 'text-botanical-terracotta' : 'text-green-600') : 'text-botanical-sage'}">${changeLabel}</div>
+                    <div class="flex flex-col items-center min-w-0">
+                      <div class="w-full flex items-end justify-center" style="height: 120px;">
+                        <div class="rounded-t w-full max-w-[28px]" style="height: ${h}px; background-color: ${color};"></div>
+                      </div>
+                      <div class="text-center leading-tight mt-2 w-full min-w-0">
+                        <div class="text-[10px] md:text-xs text-botanical-sage">${dateLabel}</div>
+                        <div class="text-[10px] md:text-xs font-semibold text-botanical-fg">${countLabel}</div>
+                        <div class="text-[10px] md:text-[11px] ${d.change > 0 ? (isMax ? 'text-botanical-terracotta' : 'text-green-600') : 'text-botanical-sage'}">${changeLabel}</div>
+                      </div>
                     </div>
                   `;
                 }).join('')}
@@ -7473,6 +7471,342 @@ function editCategoryGoal(category) {
   categoryGoalsConfig[category] = num;
   localStorage.setItem('yudit_categoryGoals', JSON.stringify(categoryGoalsConfig));
   renderDashboard();
+}
+
+// ========== Planning Tab (기획) ==========
+// 데이터: data/planning_data.js (PLANNING_DATA) — 레퍼 50개 분석 기반
+let plSel = { len: '30초 이내', goal: '저장', section: 'gen' };
+let plCustomHooks = null; // Supabase에서 로드 (planning_hooks)
+let plDetailNo = null;
+
+async function plLoadCustomHooks() {
+  if (plCustomHooks !== null) return;
+  try {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/${SUPABASE_TABLE}?key=eq.planning_hooks&select=data&order=updated_at.desc&limit=1`, {
+      headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
+    });
+    const rows = res.ok ? await res.json() : [];
+    plCustomHooks = rows[0]?.data?.hooks || [];
+  } catch (e) { plCustomHooks = []; }
+}
+
+function renderPlanning() {
+  const D = PLANNING_DATA;
+  document.getElementById('planning-content').innerHTML = `
+    <div class="flex items-center justify-between mb-4">
+      <h2 class="font-serif text-2xl font-semibold">기획</h2>
+      <div class="flex gap-1 bg-botanical-stone p-1 rounded-full">
+        <button onclick="plSwitchSection('gen')" id="pl-nav-gen" class="px-3 md:px-4 py-1.5 rounded-full text-xs font-medium">생성기</button>
+        <button onclick="plSwitchSection('lib')" id="pl-nav-lib" class="px-3 md:px-4 py-1.5 rounded-full text-xs font-medium">레퍼 보관함</button>
+        <button onclick="plSwitchSection('kw')" id="pl-nav-kw" class="px-3 md:px-4 py-1.5 rounded-full text-xs font-medium">검색어</button>
+      </div>
+    </div>
+    <div id="pl-sec-gen"></div>
+    <div id="pl-sec-lib" class="hidden"></div>
+    <div id="pl-sec-kw" class="hidden"></div>
+  `;
+  plRenderGen();
+  plRenderKw();
+  plLoadCustomHooks().then(() => plRenderLib());
+  plSwitchSection(plSel.section);
+}
+
+function plSwitchSection(sec) {
+  plSel.section = sec;
+  ['gen', 'lib', 'kw'].forEach(s => {
+    document.getElementById('pl-sec-' + s).classList.toggle('hidden', s !== sec);
+    const btn = document.getElementById('pl-nav-' + s);
+    if (s === sec) { btn.classList.add('bg-white', 'text-botanical-fg', 'shadow-sm'); btn.classList.remove('text-botanical-sage'); }
+    else { btn.classList.remove('bg-white', 'text-botanical-fg', 'shadow-sm'); btn.classList.add('text-botanical-sage'); }
+  });
+}
+
+// ---------- 생성기 ----------
+const PL_INPUT_CLS = 'w-full px-3 py-2 border border-botanical-stone rounded-lg text-sm bg-white focus:outline-none focus:border-botanical-sage';
+function plRenderGen() {
+  const D = PLANNING_DATA;
+  document.getElementById('pl-sec-gen').innerHTML = `
+    <div class="bg-white rounded-2xl p-5 shadow-sm mb-4">
+      <div class="flex items-center justify-between mb-3">
+        <h3 class="font-medium text-sm">내 계정 프로필</h3>
+        <span class="text-[11px] text-botanical-sage">카테고리 선택 시 자동 연동 · 수정 가능</span>
+      </div>
+      <label class="block text-xs text-botanical-sage mb-1">카테고리</label>
+      <select id="pl-cat" class="${PL_INPUT_CLS}" onchange="plFillPreset()">
+        ${Object.keys(D.presets).map(c => `<option>${c}</option>`).join('')}<option>직접 입력</option>
+      </select>
+      <label class="block text-xs text-botanical-sage mb-1 mt-3">포지셔닝</label>
+      <input type="text" id="pl-pos" class="${PL_INPUT_CLS}">
+      <label class="block text-xs text-botanical-sage mb-1 mt-3">타겟 독자</label>
+      <input type="text" id="pl-tar" class="${PL_INPUT_CLS}">
+      <label class="block text-xs text-botanical-sage mb-1 mt-3">핵심 메시지</label>
+      <input type="text" id="pl-msg" class="${PL_INPUT_CLS}">
+      <label class="block text-xs text-botanical-sage mb-1 mt-3">톤 보이스</label>
+      <select id="pl-tone" class="${PL_INPUT_CLS}">${D.tones.map(t => `<option>${t}</option>`).join('')}</select>
+    </div>
+
+    <div class="bg-white rounded-2xl p-5 shadow-sm mb-4">
+      <h3 class="font-medium text-sm mb-3">콘텐츠 설정</h3>
+      <label class="block text-xs text-botanical-sage mb-1">레퍼런스 패턴 (포맷)</label>
+      <select id="pl-fmt" class="${PL_INPUT_CLS}">
+        <option value="">🎲 랜덤 — 매번 다른 포맷 (추천)</option>
+        ${D.formats.map((f, i) => `<option value="${i}">${f.name} — ${f.desc}</option>`).join('')}
+      </select>
+      <label class="block text-xs text-botanical-sage mb-1 mt-3">길이</label>
+      <div class="flex flex-wrap gap-1.5" id="pl-len">
+        ${D.lengths.map(l => `<button onclick="plPick('len','${l}',this)" class="pl-pill-len px-3 py-1.5 rounded-full text-xs border ${l === plSel.len ? 'bg-botanical-terracotta border-botanical-terracotta text-white font-bold' : 'border-botanical-stone text-botanical-sage'}">${l}</button>`).join('')}
+      </div>
+      <label class="block text-xs text-botanical-sage mb-1 mt-3">목표</label>
+      <div class="flex flex-wrap gap-1.5" id="pl-goal">
+        ${D.goals.map(g => `<button onclick="plPick('goal','${g}',this)" class="pl-pill-goal px-3 py-1.5 rounded-full text-xs border ${g === plSel.goal ? 'bg-botanical-terracotta border-botanical-terracotta text-white font-bold' : 'border-botanical-stone text-botanical-sage'}">${g}</button>`).join('')}
+      </div>
+      <label class="block text-xs text-botanical-sage mb-1 mt-3">주제</label>
+      <textarea id="pl-topic" rows="2" class="${PL_INPUT_CLS}" placeholder="예: 연말정산 환급 더 받는 법 / 신혼 가전 싸게 사는 순서"></textarea>
+      <button onclick="plGen()" class="w-full py-3 bg-botanical-fg text-white rounded-xl text-sm font-bold mt-4 hover:opacity-90 transition-all">기획 프롬프트 생성하기</button>
+      <p class="text-[11px] text-botanical-sage text-center mt-2">생성할 때마다 훅 템플릿 조합이 바뀌어 매번 다른 기획이 나와요</p>
+    </div>
+
+    <div class="bg-white rounded-2xl p-5 shadow-sm mb-4 hidden" id="pl-out-card">
+      <h3 class="font-medium text-sm mb-3">완성된 기획 프롬프트</h3>
+      <div class="flex gap-1.5 mb-3">
+        <button onclick="plReroll()" class="flex-1 py-2 rounded-lg text-xs border border-botanical-terracotta text-botanical-terracotta font-bold">🎲 다른 앵글로</button>
+        <button onclick="plCopy()" class="flex-1 py-2 rounded-lg text-xs border border-botanical-terracotta text-botanical-terracotta font-bold">📋 복사</button>
+        <button onclick="window.open('https://claude.ai/new')" class="flex-1 py-2 rounded-lg text-xs border border-botanical-stone text-botanical-fg">Claude</button>
+        <button onclick="window.open('https://chatgpt.com')" class="flex-1 py-2 rounded-lg text-xs border border-botanical-stone text-botanical-fg">ChatGPT</button>
+      </div>
+      <div id="pl-out" class="whitespace-pre-wrap bg-botanical-cream/50 border border-botanical-stone rounded-xl p-4 text-xs leading-relaxed max-h-[380px] overflow-auto"></div>
+    </div>
+  `;
+  plFillPreset();
+}
+function plFillPreset() {
+  const p = PLANNING_DATA.presets[document.getElementById('pl-cat').value];
+  document.getElementById('pl-pos').value = p ? p.positioning : '';
+  document.getElementById('pl-tar').value = p ? p.target : '';
+  document.getElementById('pl-msg').value = p ? p.message : '';
+}
+function plPick(kind, val, btn) {
+  plSel[kind] = val;
+  document.querySelectorAll('.pl-pill-' + kind).forEach(b => {
+    b.className = b.className.replace('bg-botanical-terracotta border-botanical-terracotta text-white font-bold', 'border-botanical-stone text-botanical-sage');
+  });
+  btn.className = btn.className.replace('border-botanical-stone text-botanical-sage', 'bg-botanical-terracotta border-botanical-terracotta text-white font-bold');
+}
+function plHookPool() {
+  const D = PLANNING_DATA;
+  return D.refs.filter(r => r.template).map(r => ({ src: 'R' + r.no, hook: r.hook, tmpl: r.template }))
+    .concat(D.hookBank.map(h => ({ src: h.id, hook: h.hook, tmpl: h.template })))
+    .concat((plCustomHooks || []).map(h => ({ src: h.id, hook: h.hook, tmpl: h.template || h.hook })));
+}
+function plBuildPrompt() {
+  const D = PLANNING_DATA;
+  const cat = document.getElementById('pl-cat').value;
+  const pos = document.getElementById('pl-pos').value, tar = document.getElementById('pl-tar').value, msg = document.getElementById('pl-msg').value;
+  const tone = document.getElementById('pl-tone').value;
+  const topic = (document.getElementById('pl-topic').value || '').trim() || '(주제 입력)';
+  let fIdx = document.getElementById('pl-fmt').value;
+  if (fIdx === '') fIdx = Math.floor(Math.random() * D.formats.length);
+  const fmt = D.formats[+fIdx];
+  const pool = plHookPool();
+  const hooks = []; let guard = 0;
+  while (hooks.length < 3 && guard++ < 300) {
+    const h = pool[Math.floor(Math.random() * pool.length)];
+    if (!hooks.find(p => p.src === h.src)) hooks.push(h);
+  }
+  const refEx = fmt.refs.slice(0, 3).map(no => { const r = D.refs.find(x => x.no === no); return r ? `  · ${r.hook}` : ''; }).filter(Boolean).join('\n');
+  return `너는 인스타그램 릴스 기획 에이전트다. 아래 [계정 컨텍스트]와 [기획 원칙]을 철저히 지키며, 주어진 주제로 릴스 대본을 기획하라.
+
+[계정 컨텍스트 — 모든 기획은 반드시 이 계정에 맞춘다]
+- 카테고리: ${cat}
+- 포지셔닝: ${pos}
+- 핵심 메시지: ${msg}
+- 타겟 독자: ${tar}
+- 톤 보이스: ${tone}
+
+[기획 원칙 — 절대 규칙]
+${D.fixedRules.map((r, i) => `${i + 1}. ${r}`).join('\n')}
+6. 금지: 자기계발 설교, 동기부여 명언, 외부 트렌드 단순 전달, 추상적 다짐으로 마무리
+
+[이번 기획의 포맷 — 시장에서 검증된 구조]
+포맷명: ${fmt.name} (${fmt.desc})
+구조: ${fmt.structure}
+이 포맷의 실제 성공 사례 훅 (구조 참고용 — 절대 그대로 쓰지 말 것):
+${refEx}
+
+[훅 템플릿 3개 — 이 중 가장 주제에 맞는 1개를 골라 유디트 소재로 변형하라]
+${hooks.map((h, i) => `${i + 1}. ${h.tmpl}\n   (원형: ${h.hook})`).join('\n')}
+
+[CTA 설계 — 이번 목표: ${plSel.goal}]
+${D.ctaBank[plSel.goal].map(c => `- ${c}`).join('\n')}
+이 중 1개만 선택. 1차 행동은 단 하나만 요구한다.
+
+[이번 기획 조건]
+- 길이: ${plSel.len} — 5파트를 이 길이에 맞게 배분
+- 목표: ${plSel.goal}
+
+[주제]
+${topic}
+
+[출력 — 이 순서로 작성]
+① 훅 3안: 선택한 훅 템플릿 변형 2안 + 자유 1안 (각각 어떤 심리 장치인지 한 줄)
+② 릴스 대본: 후킹(앞 3초) / (인트로) / 메인 / (아웃트로) / CTA — 파트별 대사 + 화면·B-roll 메모
+③ 캡션 초안: 본문 + 해시태그 5개
+④ HUMAN CHECK: 유디트가 직접 확인·수정해야 할 포인트 2~3개 (실제 경험·숫자 들어갈 자리 표시)`;
+}
+function plGen() {
+  document.getElementById('pl-out-card').classList.remove('hidden');
+  document.getElementById('pl-out').textContent = plBuildPrompt();
+  document.getElementById('pl-out-card').scrollIntoView({ behavior: 'smooth' });
+}
+function plReroll() { document.getElementById('pl-out').textContent = plBuildPrompt(); plToast('🎲 새 조합으로 변경!'); }
+function plCopy() { navigator.clipboard.writeText(document.getElementById('pl-out').textContent).then(() => plToast('복사 완료! AI에 붙여넣으세요')); }
+
+// ---------- 레퍼 보관함 ----------
+function plLibEntries() {
+  const D = PLANNING_DATA;
+  const refs = D.refs.map(r => ({ type: 'ref', no: r.no, hook: r.hook, cat: r.category, len: r.length, fmt: r.format, kw: r.keywords, own: r.own, sub: r.sub, script: r.script }));
+  const hooks = D.hookBank.concat(plCustomHooks || []).map(h => ({ type: 'hook', no: h.id, hook: h.hook, cat: '', len: '', fmt: '', kw: [], pattern: h.pattern || '', template: h.template || '' }));
+  return hooks.concat(refs);
+}
+function plRenderLib() {
+  const D = PLANNING_DATA;
+  document.getElementById('pl-sec-lib').innerHTML = `
+    <div class="bg-white rounded-2xl p-5 shadow-sm mb-4" id="pl-lib-list">
+      <div class="flex items-center justify-between mb-3">
+        <h3 class="font-medium text-sm">레퍼 보관함 <span class="text-botanical-sage font-normal">(${D.refs.length + D.hookBank.length + (plCustomHooks || []).length})</span></h3>
+        <button onclick="plShowAddHook()" class="px-3 py-1.5 rounded-full text-xs border border-botanical-terracotta text-botanical-terracotta font-bold">+ 훅 추가</button>
+      </div>
+      <div id="pl-addhook-row" class="hidden mb-3 flex gap-1.5">
+        <input type="text" id="pl-addhook-input" class="${PL_INPUT_CLS}" placeholder="훅 문장 입력 (예: 대기업 가면 전부 해결될 줄 알았다)">
+        <button onclick="plSaveHook()" class="px-4 py-2 bg-botanical-fg text-white rounded-lg text-xs font-bold whitespace-nowrap">저장</button>
+        <button onclick="document.getElementById('pl-addhook-row').classList.add('hidden')" class="px-3 py-2 border border-botanical-stone rounded-lg text-xs text-botanical-sage whitespace-nowrap">취소</button>
+      </div>
+      <div class="flex flex-wrap gap-1.5 mb-3">
+        <input type="text" id="pl-lib-q" class="flex-1 min-w-[130px] px-3 py-2 border border-botanical-stone rounded-lg text-sm bg-white" placeholder="키워드 검색" oninput="plLibList()">
+        <select id="pl-lib-fmt" class="px-2 py-2 border border-botanical-stone rounded-lg text-xs bg-white" onchange="plLibList()">
+          <option value="">포맷 전체</option>
+          ${D.formats.map(f => `<option>${f.name}</option>`).join('')}
+          <option value="__hook__">훅만 모음</option>
+        </select>
+        <select id="pl-lib-cat" class="px-2 py-2 border border-botanical-stone rounded-lg text-xs bg-white" onchange="plLibList()">
+          <option value="">카테고리 전체</option>
+          ${['커리어&자기계발', '재테크&부동산', 'AI', '라이프', '기타'].map(c => `<option>${c}</option>`).join('')}
+        </select>
+        <button onclick="plLibReset()" class="px-3 py-2 border border-botanical-stone rounded-lg text-xs text-botanical-sage hover:text-botanical-fg" title="검색 초기화">↺ 초기화</button>
+      </div>
+      <div id="pl-lib-items" class="divide-y divide-botanical-stone"></div>
+    </div>
+    <div class="bg-white rounded-2xl p-5 shadow-sm mb-4 hidden" id="pl-lib-detail"></div>
+  `;
+  plLibList();
+}
+function plLibReset() {
+  document.getElementById('pl-lib-q').value = '';
+  document.getElementById('pl-lib-fmt').value = '';
+  document.getElementById('pl-lib-cat').value = '';
+  plLibList();
+}
+function plLibList() {
+  const D = PLANNING_DATA;
+  const q = document.getElementById('pl-lib-q').value.trim();
+  const fmt = document.getElementById('pl-lib-fmt').value;
+  const cat = document.getElementById('pl-lib-cat').value;
+  let list = plLibEntries();
+  if (fmt === '__hook__') list = list.filter(e => e.type === 'hook');
+  else if (fmt) { const f = D.formats.find(x => x.name === fmt); if (f) list = list.filter(e => e.type === 'hook' ? false : f.refs.includes(e.no)); }
+  if (cat) list = list.filter(e => e.type === 'hook' || e.cat === cat);
+  if (q) list = list.filter(e => e.hook.includes(q) || (e.kw || []).some(k => k.includes(q)) || (e.script || '').includes(q));
+  const tag = (txt, cls) => `<span class="inline-block px-2 py-0.5 rounded-full bg-botanical-cream border border-botanical-stone text-[10px] ${cls || 'text-botanical-sage'} mr-1">${txt}</span>`;
+  document.getElementById('pl-lib-items').innerHTML = list.map(e => `
+    <div class="py-3 cursor-pointer hover:bg-botanical-cream/40 transition-all" onclick="plOpenDetail('${e.type}','${e.no}')">
+      <div class="text-sm leading-snug">${e.hook}</div>
+      <div class="mt-1.5">
+        ${e.type === 'hook' ? tag('훅만', 'text-botanical-terracotta font-bold') : tag(e.cat) + tag(e.len) + (e.own ? tag('★유디트', 'text-botanical-terracotta font-bold') : '') + (e.sub ? tag('자막만') : '') + `<span class="text-[10px] text-botanical-sage">${(e.fmt || '').split('(')[0].trim()}</span>`}
+      </div>
+    </div>`).join('') || '<div class="py-8 text-center text-sm text-botanical-sage">검색 결과 없음</div>';
+}
+function plOpenDetail(type, no) {
+  const D = PLANNING_DATA;
+  const el = document.getElementById('pl-lib-detail');
+  document.getElementById('pl-lib-list').classList.add('hidden');
+  el.classList.remove('hidden');
+  const sect = (title, body) => body ? `<div class="mt-4"><p class="text-[11px] font-bold text-botanical-sage tracking-wide mb-1.5">${title}</p><div class="text-sm leading-relaxed whitespace-pre-wrap bg-botanical-cream/50 rounded-xl p-3">${body}</div></div>` : '';
+  if (type === 'hook') {
+    const h = PLANNING_DATA.hookBank.concat(plCustomHooks || []).find(x => String(x.id) === String(no));
+    el.innerHTML = `
+      <span class="text-xs text-botanical-terracotta cursor-pointer" onclick="plCloseDetail()">← 목록으로</span>
+      <h3 class="font-medium text-base mt-3">${h.hook}</h3>
+      <div class="mt-1"><span class="inline-block px-2 py-0.5 rounded-full bg-botanical-cream border border-botanical-stone text-[10px] text-botanical-terracotta font-bold">훅만 (대본 없음)</span></div>
+      ${sect('패턴', h.pattern)}
+      ${sect('응용 템플릿', h.template)}`;
+    return;
+  }
+  const r = D.refs.find(x => x.no === +no);
+  el.innerHTML = `
+    <span class="text-xs text-botanical-terracotta cursor-pointer" onclick="plCloseDetail()">← 목록으로</span>
+    <h3 class="font-medium text-base mt-3">${r.no}. ${r.title}</h3>
+    <div class="mt-1.5 mb-2">
+      <span class="inline-block px-2 py-0.5 rounded-full bg-botanical-cream border border-botanical-stone text-[10px] text-botanical-sage mr-1">${r.category}</span>
+      <span class="inline-block px-2 py-0.5 rounded-full bg-botanical-cream border border-botanical-stone text-[10px] text-botanical-sage mr-1">${r.length}</span>
+      <span class="inline-block px-2 py-0.5 rounded-full bg-botanical-cream border border-botanical-stone text-[10px] text-botanical-sage">${r.hookType}</span>
+    </div>
+    ${r.link ? `<a href="${r.link}" target="_blank" class="inline-block px-4 py-2 bg-botanical-terracotta text-white rounded-full text-xs font-bold">▶ 원본 릴스 보기</a>` : ''}
+    ${sect('터진 이유', r.viral)}
+    ${sect('유디트 응용 템플릿', r.template + (r.templateEx ? '\n→ 예: ' + r.templateEx : ''))}
+    ${sect('원본 대본', r.script)}`;
+}
+function plCloseDetail() {
+  document.getElementById('pl-lib-detail').classList.add('hidden');
+  document.getElementById('pl-lib-list').classList.remove('hidden');
+}
+function plShowAddHook() {
+  document.getElementById('pl-addhook-row').classList.remove('hidden');
+  document.getElementById('pl-addhook-input').focus();
+}
+async function plSaveHook() {
+  const input = document.getElementById('pl-addhook-input');
+  const hook = (input.value || '').trim();
+  if (!hook) return;
+  plCustomHooks = plCustomHooks || [];
+  plCustomHooks.push({ id: 'C' + Date.now(), hook, pattern: '', template: '' });
+  try { await upsertToSupabase('planning_hooks', { hooks: plCustomHooks }); plToast('훅 저장 완료!'); }
+  catch (e) { plToast('저장 실패 — 네트워크 확인'); }
+  input.value = '';
+  document.getElementById('pl-addhook-row').classList.add('hidden');
+  plLibList();
+}
+
+// ---------- 검색어 추천 ----------
+function plRenderKw() {
+  const D = PLANNING_DATA;
+  document.getElementById('pl-sec-kw').innerHTML = `
+    <div class="bg-white rounded-2xl p-5 shadow-sm mb-4">
+      <h3 class="font-medium text-sm mb-1">검색어 추천</h3>
+      <p class="text-[11px] text-botanical-sage mb-4">탭하면 복사돼요 — 인스타 검색 → 인기 탭에서 베스트 레퍼 찾기</p>
+      ${Object.entries(D.keywords).map(([cat, kws]) => `
+        <div class="mb-4">
+          <p class="text-xs font-bold mb-2">${cat}</p>
+          <div class="flex flex-wrap gap-1.5">
+            ${kws.map(k => `<button onclick="plCopyKw('${k}')" class="px-3 py-1.5 rounded-full text-xs border border-botanical-stone bg-white text-botanical-fg hover:border-botanical-sage transition-all">${k}</button>`).join('')}
+          </div>
+        </div>`).join('')}
+    </div>`;
+}
+function plCopyKw(k) { navigator.clipboard.writeText(k).then(() => plToast(`"${k}" 복사!`)); }
+
+// ---------- 공통 토스트 ----------
+function plToast(msg) {
+  let t = document.getElementById('pl-toast');
+  if (!t) {
+    t = document.createElement('div');
+    t.id = 'pl-toast';
+    t.className = 'fixed bottom-6 left-1/2 -translate-x-1/2 bg-botanical-fg text-white px-5 py-2.5 rounded-full text-sm z-50 transition-opacity duration-300 pointer-events-none';
+    document.body.appendChild(t);
+  }
+  t.textContent = msg;
+  t.style.opacity = '1';
+  clearTimeout(t._timer);
+  t._timer = setTimeout(() => { t.style.opacity = '0'; }, 1500);
 }
 
 // ========== Init ==========
