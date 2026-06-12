@@ -7477,7 +7477,6 @@ function editCategoryGoal(category) {
 // 데이터: data/planning_data.js (PLANNING_DATA) — 레퍼 50개 분석 기반
 let plSel = { len: '30초 이내', goal: '저장', section: 'gen' };
 let plCustomHooks = null; // Supabase에서 로드 (planning_hooks)
-let plDetailNo = null;
 
 async function plLoadCustomHooks() {
   if (plCustomHooks !== null) return;
