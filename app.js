@@ -248,15 +248,15 @@ function syncTitleToPlan(contentId, title) {
   }
 }
 
-// 링크 열기 버튼 — URL 있으면 활성 <a>, 없으면 회색 disabled <span>
+// 링크 열기 버튼 — URL 있으면 활성 <a>, 없으면 회색 disabled <span> (외부 Safari로 열기)
 function openLinkBtn(url) {
   const base = 'px-2 py-1 text-xs border rounded-lg whitespace-nowrap';
   return url
-    ? `<a href="${url}" target="_blank" class="${base} text-blue-500 border-blue-300 hover:bg-blue-50">열기</a>`
+    ? `<a href="${url}" onclick="event.preventDefault(); window.open('${url}', '_system') || window.open('${url}', '_blank');" class="${base} text-blue-500 border-blue-300 hover:bg-blue-50">열기</a>`
     : `<span class="${base} text-botanical-sage/40 border-botanical-stone/50 cursor-default">열기</span>`;
 }
 
-// 입력 필드에서 링크 열기 (계획/아이디어 모달용)
+// 입력 필드에서 링크 열기 (계획/아이디어 모달용, 외부 Safari로 열기)
 function openPlanLinkFromInput(inputId) {
   const input = document.getElementById(inputId);
   const url = input?.value?.trim();
@@ -264,7 +264,7 @@ function openPlanLinkFromInput(inputId) {
     alert('링크를 입력하세요');
     return;
   }
-  window.open(url, '_blank');
+  window.open(url, '_system') || window.open(url, '_blank');
 }
 
 // 링크 복사 버튼 — URL 있으면 활성, 없으면 회색 disabled
@@ -4320,7 +4320,7 @@ function openShareLink(contentId) {
   const url = el?.value?.trim();
   if (!url) { alert('열 링크가 없습니다'); return; }
   const safeUrl = /^https?:\/\//i.test(url) ? url : 'https://' + url;
-  window.open(safeUrl, '_blank', 'noopener,noreferrer');
+  window.open(safeUrl, '_system') || window.open(safeUrl, '_blank');
 }
 
 function copyMyInstaLink() {
