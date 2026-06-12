@@ -7493,9 +7493,8 @@ async function plLoadCustomHooks() {
 function renderPlanning() {
   const D = PLANNING_DATA;
   document.getElementById('planning-content').innerHTML = `
-    <div class="flex items-center justify-between mb-4">
-      <h2 class="font-serif text-2xl font-semibold">기획</h2>
-      <div class="flex gap-1 bg-botanical-stone p-1 rounded-full">
+    <div class="mb-4">
+      <div class="flex gap-1 bg-botanical-stone p-1 rounded-full w-fit">
         <button onclick="plSwitchSection('gen')" id="pl-nav-gen" class="px-3 md:px-4 py-1.5 rounded-full text-xs font-medium">생성기</button>
         <button onclick="plSwitchSection('lib')" id="pl-nav-lib" class="px-3 md:px-4 py-1.5 rounded-full text-xs font-medium">레퍼 보관함</button>
         <button onclick="plSwitchSection('kw')" id="pl-nav-kw" class="px-3 md:px-4 py-1.5 rounded-full text-xs font-medium">검색어</button>
@@ -7594,9 +7593,27 @@ function plPick(kind, val, btn) {
 }
 function plHookPool() {
   const D = PLANNING_DATA;
-  return D.refs.filter(r => r.template).map(r => ({ src: 'R' + r.no, hook: r.hook, tmpl: r.template }))
-    .concat(D.hookBank.map(h => ({ src: h.id, hook: h.hook, tmpl: h.template })))
-    .concat((plCustomHooks || []).map(h => ({ src: h.id, hook: h.hook, tmpl: h.template || h.hook })));
+  // 레퍼 번호 → 훅 패밀리 매핑 (없으면 '기타')
+  const famOf = {};
+  (D.hookFamilies || []).forEach(f => f.refs.forEach(no => { famOf[no] = f.name; }));
+  return D.refs.filter(r => r.template).map(r => ({ src: 'R' + r.no, hook: r.hook, tmpl: r.template, fam: famOf[r.no] || '기타' }))
+    .concat(D.hookBank.map(h => ({ src: h.id, hook: h.hook, tmpl: h.template, fam: '기타' })))
+    .concat((plCustomHooks || []).map(h => ({ src: h.id, hook: h.hook, tmpl: h.template || h.hook, fam: '기타' })));
+}
+// 서로 다른 훅 패밀리 3곳에서 1개씩 추첨 — 비슷한 훅이 몰리는 것 방지 (다양성 보장)
+function plPickHooks(n) {
+  const pool = plHookPool();
+  const byFam = {};
+  pool.forEach(h => { (byFam[h.fam] = byFam[h.fam] || []).push(h); });
+  const fams = Object.keys(byFam).sort(() => Math.random() - 0.5).slice(0, n);
+  const picked = fams.map(f => byFam[f][Math.floor(Math.random() * byFam[f].length)]);
+  // 패밀리가 n개 미만이면 전체 풀에서 채움
+  let guard = 0;
+  while (picked.length < n && guard++ < 200) {
+    const h = pool[Math.floor(Math.random() * pool.length)];
+    if (!picked.find(p => p.src === h.src)) picked.push(h);
+  }
+  return picked;
 }
 function plBuildPrompt() {
   const D = PLANNING_DATA;
@@ -7607,12 +7624,7 @@ function plBuildPrompt() {
   let fIdx = document.getElementById('pl-fmt').value;
   if (fIdx === '') fIdx = Math.floor(Math.random() * D.formats.length);
   const fmt = D.formats[+fIdx];
-  const pool = plHookPool();
-  const hooks = []; let guard = 0;
-  while (hooks.length < 3 && guard++ < 300) {
-    const h = pool[Math.floor(Math.random() * pool.length)];
-    if (!hooks.find(p => p.src === h.src)) hooks.push(h);
-  }
+  const hooks = plPickHooks(3); // 서로 다른 패밀리 3곳에서 추첨
   const refEx = fmt.refs.slice(0, 3).map(no => { const r = D.refs.find(x => x.no === no); return r ? `  · ${r.hook}` : ''; }).filter(Boolean).join('\n');
   return `너는 인스타그램 릴스 기획 에이전트다. 아래 [계정 컨텍스트]와 [기획 원칙]을 철저히 지키며, 주어진 주제로 릴스 대본을 기획하라.
 
@@ -7721,7 +7733,7 @@ function plLibList() {
     <div class="py-3 cursor-pointer hover:bg-botanical-cream/40 transition-all" onclick="plOpenDetail('${e.type}','${e.no}')">
       <div class="text-sm leading-snug">${e.hook}</div>
       <div class="mt-1.5">
-        ${e.type === 'hook' ? tag('훅만', 'text-botanical-terracotta font-bold') : tag(e.cat) + tag(e.len) + (e.own ? tag('★유디트', 'text-botanical-terracotta font-bold') : '') + (e.sub ? tag('자막만') : '') + `<span class="text-[10px] text-botanical-sage">${(e.fmt || '').split('(')[0].trim()}</span>`}
+        ${e.type === 'hook' ? tag('훅만', 'text-botanical-terracotta font-bold') : tag(e.cat) + (e.own ? tag('★유디트', 'text-botanical-terracotta font-bold') : '') + (e.sub ? tag('자막만') : '') + `<span class="text-[10px] text-botanical-sage">${(e.fmt || '').split('(')[0].trim()}</span>`}
       </div>
     </div>`).join('') || '<div class="py-8 text-center text-sm text-botanical-sage">검색 결과 없음</div>';
 }
@@ -7737,8 +7749,8 @@ function plOpenDetail(type, no) {
       <span class="text-xs text-botanical-terracotta cursor-pointer" onclick="plCloseDetail()">← 목록으로</span>
       <h3 class="font-medium text-base mt-3">${h.hook}</h3>
       <div class="mt-1"><span class="inline-block px-2 py-0.5 rounded-full bg-botanical-cream border border-botanical-stone text-[10px] text-botanical-terracotta font-bold">훅만 (대본 없음)</span></div>
-      ${sect('패턴', h.pattern)}
-      ${sect('응용 템플릿', h.template)}`;
+      ${sect('훅 응용 템플릿', h.template)}
+      ${sect('훅 패턴', h.pattern)}`;
     return;
   }
   const r = D.refs.find(x => x.no === +no);
@@ -7751,8 +7763,9 @@ function plOpenDetail(type, no) {
       <span class="inline-block px-2 py-0.5 rounded-full bg-botanical-cream border border-botanical-stone text-[10px] text-botanical-sage">${r.hookType}</span>
     </div>
     ${r.link ? `<a href="${r.link}" target="_blank" class="inline-block px-4 py-2 bg-botanical-terracotta text-white rounded-full text-xs font-bold">▶ 원본 릴스 보기</a>` : ''}
+    ${sect('훅 응용 템플릿', r.template + (r.templateEx ? '\n→ 예: ' + r.templateEx : ''))}
+    ${sect('훅 패턴', r.hookPattern || r.hookType)}
     ${sect('터진 이유', r.viral)}
-    ${sect('유디트 응용 템플릿', r.template + (r.templateEx ? '\n→ 예: ' + r.templateEx : ''))}
     ${sect('원본 대본', r.script)}`;
 }
 function plCloseDetail() {
