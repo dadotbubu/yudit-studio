@@ -6089,15 +6089,16 @@ function renderPerformance() {
             }
 
             const days = allDays;
-            const maxCount = Math.max(0, ...days.map(d => d.count ?? 0));
-            const minCount = Math.min(...days.filter(d => d.count != null).map(d => d.count), maxCount);
-            const range = Math.max(1, maxCount - minCount);
+            const validCounts = days.filter(d => d.count != null).map(d => d.count);
+            const maxCount = Math.max(0, ...validCounts);
+            const minCount = validCounts.length > 0 ? Math.min(...validCounts) : 0;
+            const range = maxCount - minCount;
             const maxChange = Math.max(0, ...days.map(d => d.change ?? 0));
             return `
               <div class="flex items-end justify-between gap-3 px-4" style="height: 120px;">
                 ${days.map(d => {
-                  // 막대 높이는 해당 날짜 팔로워 수 기준 (min~max 범위를 10px~110px로 맵핑)
-                  const h = d.count == null ? 0 : 10 + ((d.count - minCount) / range) * 100;
+                  // 막대 높이는 해당 날짜 팔로워 수 기준 (데이터 하나면 100%, 여러 개면 min~max 범위로)
+                  const h = d.count == null ? 0 : (range === 0 ? 100 : 10 + ((d.count - minCount) / range) * 90);
                   const isMax = d.change > 0 && d.change === maxChange;
                   const color = d.count == null ? '#E5E7EB' : (isMax ? '#C27B66' : '#8C9A84');
                   return `
