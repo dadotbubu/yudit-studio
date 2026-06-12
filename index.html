@@ -443,15 +443,14 @@
         regs.forEach(r => r.unregister());
       });
     }
-    // 기획 탭 데이터 → app.js 순서로 동적 로드 (타임스탬프로 캐시 무효화)
+    // app.js와 기획 데이터를 독립적으로 로드 (타임스탬프로 캐시 무효화)
+    // ※ 데이터 로딩 실패가 앱 전체를 막지 않도록 절대 체이닝하지 말 것
     const pd = document.createElement('script');
     pd.src = 'data/planning_data.js?t=' + Date.now();
-    pd.onload = () => {
-      const s = document.createElement('script');
-      s.src = 'app.js?t=' + Date.now();
-      document.body.appendChild(s);
-    };
     document.body.appendChild(pd);
+    const s = document.createElement('script');
+    s.src = 'app.js?t=' + Date.now();
+    document.body.appendChild(s);
   </script>
 </body>
 </html>

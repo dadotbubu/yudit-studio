@@ -7491,6 +7491,15 @@ async function plLoadCustomHooks() {
 }
 
 function renderPlanning() {
+  // 데이터 파일이 아직 안 불려왔으면 (네트워크 실패 등) 재시도 안내 — 앱 전체엔 영향 없음
+  if (typeof PLANNING_DATA === 'undefined') {
+    document.getElementById('planning-content').innerHTML = `
+      <div class="bg-white rounded-2xl p-8 shadow-sm text-center">
+        <p class="text-sm text-botanical-sage mb-4">기획 데이터를 불러오지 못했어요</p>
+        <button onclick="plRetryData()" class="px-5 py-2.5 bg-botanical-fg text-white rounded-xl text-sm font-bold">다시 불러오기</button>
+      </div>`;
+    return;
+  }
   const D = PLANNING_DATA;
   document.getElementById('planning-content').innerHTML = `
     <div class="mb-4">
@@ -7570,8 +7579,11 @@ function plRenderGen() {
       <div class="flex gap-1.5 mb-3">
         <button onclick="plReroll()" class="flex-1 py-2 rounded-lg text-xs border border-botanical-terracotta text-botanical-terracotta font-bold">🎲 다른 앵글로</button>
         <button onclick="plCopy()" class="flex-1 py-2 rounded-lg text-xs border border-botanical-terracotta text-botanical-terracotta font-bold">📋 복사</button>
-        <button onclick="window.open('https://claude.ai/new')" class="flex-1 py-2 rounded-lg text-xs border border-botanical-stone text-botanical-fg">Claude</button>
-        <button onclick="window.open('https://chatgpt.com')" class="flex-1 py-2 rounded-lg text-xs border border-botanical-stone text-botanical-fg">ChatGPT</button>
+      </div>
+      <div class="flex gap-1.5 mb-3">
+        <button onclick="plOpenExt('https://claude.ai/new')" class="flex-1 py-2 rounded-lg text-xs border border-botanical-stone text-botanical-fg">Claude</button>
+        <button onclick="plOpenExt('https://chatgpt.com')" class="flex-1 py-2 rounded-lg text-xs border border-botanical-stone text-botanical-fg">ChatGPT</button>
+        <button onclick="plOpenExt('https://gemini.google.com/app')" class="flex-1 py-2 rounded-lg text-xs border border-botanical-stone text-botanical-fg">제미나이</button>
       </div>
       <div id="pl-out" class="whitespace-pre-wrap bg-botanical-cream/50 border border-botanical-stone rounded-xl p-4 text-xs leading-relaxed max-h-[380px] overflow-auto"></div>
     </div>
@@ -7830,7 +7842,19 @@ function plRenderKw() {
 }
 function plCopyKw(k) { navigator.clipboard.writeText(k).then(() => plToast(`"${k}" 복사!`)); }
 
-// ---------- 공통 토스트 ----------
+// ---------- 공통 유틸 ----------
+// 외부 링크 열기 — PWA에서 외부 Safari/앱으로 (기존 열기 버튼들과 동일 패턴)
+function plOpenExt(url) {
+  window.open(url, '_system') || window.open(url, '_blank');
+}
+// 기획 데이터 재시도 로드
+function plRetryData() {
+  const s = document.createElement('script');
+  s.src = 'data/planning_data.js?t=' + Date.now();
+  s.onload = () => renderPlanning();
+  s.onerror = () => plToast('로딩 실패 — 네트워크 확인 후 다시 시도해주세요');
+  document.body.appendChild(s);
+}
 function plToast(msg) {
   let t = document.getElementById('pl-toast');
   if (!t) {
