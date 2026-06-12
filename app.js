@@ -892,9 +892,16 @@ function initApp() {
   reconcileCalendarMilestones();
 
   // 저장된 탭 복원 (앱 전환 후 복귀용) 또는 캘린더 기본
+  // 30분(1800000ms) 이상 미사용 시 캘린더로 초기화
   const validTabs = ['calendar', 'planner', 'content', 'performance', 'revenue', 'memos', 'dashboard'];
   const savedTab = localStorage.getItem('yudit_currentTab');
-  const targetTab = validTabs.includes(savedTab) ? savedTab : 'calendar';
+  const lastActiveTime = parseInt(localStorage.getItem('yudit_lastActiveTime') || '0');
+  const isStale = Date.now() - lastActiveTime > 30 * 60 * 1000;
+  const targetTab = (!isStale && validTabs.includes(savedTab)) ? savedTab : 'calendar';
+  if (isStale) {
+    localStorage.removeItem('yudit_openContentId');
+    localStorage.removeItem('yudit_scrollY');
+  }
   switchTab(targetTab);
 
   // 로딩 완료 - 스피너 숨기기
@@ -923,6 +930,7 @@ function switchTab(tabName) {
 
   // 현재 탭 저장 (앱 전환 후 복귀용)
   localStorage.setItem('yudit_currentTab', tabName);
+  localStorage.setItem('yudit_lastActiveTime', Date.now().toString());
 
   // Lazy Loading: 처음 클릭한 탭만 렌더링
   if (!tabRendered[tabName]) {
