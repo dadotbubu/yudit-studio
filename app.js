@@ -6130,20 +6130,25 @@ function renderPerformance() {
         <div id="follower-graph-weekly" class="${followerViewMode === 'weekly' ? '' : 'hidden'}">
           <p class="text-xs text-botanical-sage mb-3">${monthNum}월 주차별 팔로워 증가</p>
           ${(() => {
-            // 선택된 월의 주차별 팔로워 증가 계산
+            // 선택된 월의 주차별 팔로워 증가 및 마지막 날 전체수 계산
             const weeklyChanges = [0, 0, 0, 0, 0]; // 최대 5주차까지
-            dailyData.forEach(d => {
-              if (!d.date.startsWith(perfSelectedMonth)) return;
+            const weeklyLastCount = [0, 0, 0, 0, 0]; // 주차별 마지막 날 전체 팔로워
+            const monthDays = dailyData.filter(d => d.date.startsWith(perfSelectedMonth)).sort((a, b) => a.date.localeCompare(b.date));
+            monthDays.forEach(d => {
               const day = parseInt(d.date.slice(8, 10));
               const weekIdx = Math.floor((day - 1) / 7); // 0-4
-              if (weekIdx < 5) weeklyChanges[weekIdx] += d.change || 0;
+              if (weekIdx < 5) {
+                weeklyChanges[weekIdx] += d.change || 0;
+                weeklyLastCount[weekIdx] = d.count || 0; // 마지막 날짜로 업데이트
+              }
             });
-            const maxChange = Math.max(1, ...weeklyChanges.map(Math.abs));
+            const maxCount = Math.max(1, ...weeklyLastCount);
             return `
-              <div class="flex items-end justify-between gap-6 px-8" style="height: 120px;">
+              <div class="flex items-end justify-between gap-4 px-4" style="height: 120px;">
                 ${weeklyChanges.slice(0, 4).map((change, idx) => {
-                  const height = Math.abs(change) / maxChange * 100;
-                  const color = change > 0 ? '#8C9A84' : (change < 0 ? '#C27B66' : '#E5E7EB');
+                  const count = weeklyLastCount[idx];
+                  const height = count > 0 ? (count / maxCount * 100) : 0;
+                  const color = count > 0 ? '#8C9A84' : '#E5E7EB';
                   return `
                     <div class="flex-1 flex flex-col items-center justify-end" style="height: 120px;">
                       <div class="w-full rounded-t" style="height: ${height}px; background-color: ${color};"></div>
@@ -6151,17 +6156,20 @@ function renderPerformance() {
                   `;
                 }).join('')}
               </div>
-              <div class="flex justify-between gap-6 px-8 mt-2">
+              <div class="flex justify-between gap-4 px-4 mt-2">
                 ${weeklyChanges.slice(0, 4).map((change, idx) => {
                   // 주차별 날짜 범위 계산
                   const startDay = idx * 7 + 1;
                   const endDay = Math.min((idx + 1) * 7, new Date(perfSelectedMonth.slice(0, 4), parseInt(perfSelectedMonth.slice(5)), 0).getDate());
                   const dateRange = `${monthNum}/${startDay}-${endDay}`;
-                  const label = change > 0 ? `+${change}` : (change < 0 ? `${change}` : '0');
+                  const count = weeklyLastCount[idx];
+                  const countLabel = count > 0 ? count.toLocaleString() : '-';
+                  const changeLabel = change > 0 ? `+${change}` : (change < 0 ? `${change}` : '0');
                   return `
                     <div class="flex-1 text-center">
                       <span class="text-xs text-botanical-sage">${dateRange}</span><br>
-                      <span class="text-xs font-medium ${change > 0 ? 'text-green-600' : (change < 0 ? 'text-red-500' : '')}">${label}</span>
+                      <span class="text-xs font-semibold">${countLabel}</span><br>
+                      <span class="text-xs ${change > 0 ? 'text-green-600' : (change < 0 ? 'text-red-500' : 'text-botanical-sage')}">${count > 0 ? changeLabel : ''}</span>
                     </div>
                   `;
                 }).join('')}
