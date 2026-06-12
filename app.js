@@ -3498,7 +3498,7 @@ function renderContentForm(content) {
                       <button onclick="removeScriptRow(${content.id}, ${idx})" title="행 삭제" class="w-5 h-5 rounded text-xs text-red-400 opacity-0 group-hover:opacity-100 hover:bg-red-50 transition-opacity mt-1">×</button>
                     </td>
                     <td class="px-4 py-3 border-l border-botanical-stone relative dialogue-cell" data-content-id="${content.id}" data-row-idx="${idx}">
-                      <textarea rows="1" oninput="autoResize(this);updateScriptRow(${content.id}, ${idx}, 'dialogue', this.value)" class="script-cell w-full bg-transparent focus:outline-none resize-none overflow-hidden" ${row.section === 'INTRO' ? 'placeholder="주제+권위+이 영상을 보면 얻을 이득"' : ''}>${row.dialogue || ''}</textarea>
+                      <textarea rows="1" oninput="autoResize(this);updateScriptRow(${content.id}, ${idx}, 'dialogue', this.value)" class="script-cell w-full bg-transparent focus:outline-none resize-none overflow-hidden" ${row.section === 'HOOK' ? 'placeholder="궁금증, 호기심 자극"' : (row.section === 'INTRO' ? 'placeholder="주제+권위/타겟+이득"' : '')}>${row.dialogue || ''}</textarea>
                       <button class="dialogue-menu-btn" onclick="event.stopPropagation();toggleDialogueMenu(${content.id}, ${idx})">⋮</button>
                       <div class="dialogue-menu hidden" id="dialogue-menu-${content.id}-${idx}">
                         <button onclick="copyDialogueCell(${content.id}, ${idx})">복사</button>
