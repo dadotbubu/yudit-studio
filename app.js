@@ -6102,8 +6102,8 @@ function renderPerformance() {
                   const isMax = d.change > 0 && d.change === maxChange;
                   const color = d.count == null ? '#E5E7EB' : (isMax ? '#C27B66' : '#8C9A84');
                   return `
-                    <div class="flex-1 flex flex-col items-center justify-end" style="height: 120px;">
-                      <div class="w-full rounded-t" style="height: ${h}px; background-color: ${color};"></div>
+                    <div class="flex-1 flex flex-col items-center justify-end" style="height: 120px; min-width: 24px;">
+                      <div class="rounded-t" style="width: 100%; min-width: 16px; height: ${h}px; background-color: ${color};"></div>
                     </div>
                   `;
                 }).join('')}
