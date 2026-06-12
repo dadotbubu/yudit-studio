@@ -275,10 +275,10 @@ function copyLinkBtn(url) {
     : `<span class="${base} text-botanical-sage/40 border-botanical-stone/50 cursor-default">복사</span>`;
 }
 
-// 대본 버튼
+// 대본 버튼 (외부 Safari로 열기)
 function scriptLinkBtn() {
   const base = 'px-2 py-1 text-xs border rounded-lg whitespace-nowrap';
-  return `<a href="${DEFAULT_TRANSCRIPT_LINK}" target="_blank" class="${base} text-botanical-terracotta border-botanical-terracotta/40 hover:bg-botanical-terracotta/10">대본</a>`;
+  return `<a href="${DEFAULT_TRANSCRIPT_LINK}" onclick="event.preventDefault(); window.open('${DEFAULT_TRANSCRIPT_LINK}', '_system') || window.open('${DEFAULT_TRANSCRIPT_LINK}', '_blank');" class="${base} text-botanical-terracotta border-botanical-terracotta/40 hover:bg-botanical-terracotta/10">대본</a>`;
 }
 
 // 조회·좋아요 등 큰 숫자를 "1.5K" 형식으로
