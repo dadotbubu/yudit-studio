@@ -7636,7 +7636,14 @@ function plBuildPrompt() {
   if (fIdx === '') fIdx = Math.floor(Math.random() * D.formats.length);
   const fmt = D.formats[+fIdx];
   const hooks = plPickHooks(3); // 서로 다른 패밀리 3곳에서 추첨
-  const refEx = fmt.refs.slice(0, 3).map(no => { const r = D.refs.find(x => x.no === no); return r ? `  · ${r.hook}` : ''; }).filter(Boolean).join('\n');
+  // 포맷 성공 사례 3개 랜덤 추출 + 각각의 터진 이유(상위 2줄)까지 주입 — AI가 왜 먹히는 구조인지 알고 쓰게
+  const exRefs = [...fmt.refs].sort(() => Math.random() - 0.5).slice(0, 3);
+  const refEx = exRefs.map(no => {
+    const r = D.refs.find(x => x.no === no);
+    if (!r) return '';
+    const why = (r.viral || '').split('\n').filter(Boolean).slice(0, 2).join('\n    ');
+    return `  · 훅: ${r.hook}\n    터진 이유: ${why}`;
+  }).filter(Boolean).join('\n');
   return `너는 인스타그램 릴스 기획 에이전트다. 아래 [계정 컨텍스트]와 [기획 원칙]을 철저히 지키며, 주어진 주제로 릴스 대본을 기획하라.
 
 [계정 컨텍스트 — 모든 기획은 반드시 이 계정에 맞춘다]
@@ -7653,7 +7660,7 @@ ${D.fixedRules.map((r, i) => `${i + 1}. ${r}`).join('\n')}
 [이번 기획의 포맷 — 시장에서 검증된 구조]
 포맷명: ${fmt.name} (${fmt.desc})
 구조: ${fmt.structure}
-이 포맷의 실제 성공 사례 훅 (구조 참고용 — 절대 그대로 쓰지 말 것):
+이 포맷의 실제 성공 사례와 터진 이유 (구조 참고용 — 절대 그대로 쓰지 말 것):
 ${refEx}
 
 [훅 템플릿 3개 — 이 중 가장 주제에 맞는 1개를 골라 유디트 소재로 변형하라]
