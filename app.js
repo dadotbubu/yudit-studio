@@ -7570,6 +7570,8 @@ function plRenderGen() {
       </div>
       <label class="block text-xs text-botanical-sage mb-1 mt-3">주제</label>
       <textarea id="pl-topic" rows="2" class="${PL_INPUT_CLS}" placeholder="예: 연말정산 환급 더 받는 법 / 신혼 가전 싸게 사는 순서" oninput="plSaveState()"></textarea>
+      <label class="block text-xs text-botanical-sage mb-1 mt-3">내 경험·에피소드 <span class="text-botanical-stone">(선택 — 있으면 훨씬 강해져요)</span></label>
+      <textarea id="pl-exp" rows="2" class="${PL_INPUT_CLS}" placeholder="예: 결혼기념일에 산 거, 처음엔 제일 비싼 색 골랐다 후회 / 비워두면 AI가 알아서 채워요" oninput="plSaveState()"></textarea>
       <button onclick="plGen()" class="w-full py-3 bg-botanical-fg text-white rounded-xl text-sm font-bold mt-4 hover:opacity-90 transition-all">기획 프롬프트 생성하기</button>
       <p class="text-[11px] text-botanical-sage text-center mt-2">생성할 때마다 훅 템플릿 조합이 바뀌어 매번 다른 기획이 나와요</p>
     </div>
@@ -7635,6 +7637,7 @@ function plBuildPrompt() {
   const pos = document.getElementById('pl-pos').value, tar = document.getElementById('pl-tar').value, msg = document.getElementById('pl-msg').value;
   const tone = document.getElementById('pl-tone').value;
   const topic = (document.getElementById('pl-topic').value || '').trim() || '(주제 입력)';
+  const exp = (document.getElementById('pl-exp') ? document.getElementById('pl-exp').value : '').trim();
   let fIdx = document.getElementById('pl-fmt').value;
   if (fIdx === '') fIdx = Math.floor(Math.random() * D.formats.length);
   const fmt = D.formats[+fIdx];
@@ -7682,11 +7685,20 @@ ${D.ctaBank[plSel.goal].map(c => `- ${c}`).join('\n')}
 [주제]
 ${topic}
 
+[내 실제 경험·에피소드]
+${exp || '(입력 없음 — 이 경우 ② 단계에서 경험이 들어가면 좋을 자리를 [경험 자리: ~~] 형태로 표시만 하고, 억지로 지어내지 말 것)'}
+
 [출력 — 이 순서로 작성]
-① 훅 3안: 선택한 훅 템플릿 변형 2안 + 자유 1안 (각각 어떤 심리 장치인지 한 줄)
-② 릴스 대본: 후킹(앞 3초) / (인트로) / 메인 / (아웃트로) / CTA — 파트별 대사 + 화면·B-roll 메모
-③ 캡션 초안: 본문 + 해시태그 5개
-④ HUMAN CHECK: 유디트가 직접 확인·수정해야 할 포인트 2~3개 (실제 경험·숫자 들어갈 자리 표시)`;
+① 성과 게이트 (기획 전 자가 점검 — 이 주제가 '저장'될 무기가 있는지):
+  - 무기 점검: 다음 중 최소 1개가 분명해야 통과한다.
+    (a) 유디트 실제 경험·선택이 주인공인가  (b) 남들이 모르는 디테일/실물(표·체크리스트·순서)이 있는가  (c) 타겟의 진짜 통증을 즉시 건드리나
+  - 각 항목 ○/△/✕로 표시 + 한 줄 근거.
+  - 만약 셋 다 약하면(정보 나열에 그치면) → ⚠️경고 + 이 계정에 맞게 트는 각도 1~2개 제안하고, 그 통과 버전으로 아래를 작성한다.
+  - ※ 경험이 없어도 (b)나 (c)가 강하면 통과. 정보형 콘텐츠도 OK — 단, 그 경우 '남들이 모르는 디테일'이 반드시 있어야 한다.
+② 훅 3안: 선택한 훅 템플릿 변형 2안 + 자유 1안 (각각 어떤 심리 장치인지 한 줄)
+③ 릴스 대본: 후킹(앞 3초) / (인트로) / 메인 / (아웃트로) / CTA — 파트별 대사 + 화면·B-roll 메모
+④ 캡션 초안: 본문 + 해시태그 5개
+⑤ HUMAN CHECK: 유디트가 직접 확인·수정해야 할 포인트 2~3개 (경험·숫자 들어갈 자리, 사실 확인 필요한 부분 표시)`;
 }
 function plRenderPreview() {
   const el = document.getElementById('pl-preview');
@@ -7724,6 +7736,7 @@ function plSaveState() {
       tone: document.getElementById('pl-tone').value,
       fmt: document.getElementById('pl-fmt').value,
       topic: document.getElementById('pl-topic').value,
+      exp: document.getElementById('pl-exp') ? document.getElementById('pl-exp').value : '',
       len: plSel.len, goal: plSel.goal,
       prompt: document.getElementById('pl-out') ? document.getElementById('pl-out').textContent : '',
       combo: plLastCombo
@@ -7737,7 +7750,7 @@ function plRestoreState() {
   if (!st) return;
   const set = (id, v) => { const el = document.getElementById(id); if (el != null && v != null) el.value = v; };
   set('pl-cat', st.cat); set('pl-pos', st.pos); set('pl-tar', st.tar); set('pl-msg', st.msg);
-  set('pl-tone', st.tone); set('pl-fmt', st.fmt); set('pl-topic', st.topic);
+  set('pl-tone', st.tone); set('pl-fmt', st.fmt); set('pl-topic', st.topic); set('pl-exp', st.exp);
   if (st.len) { plSel.len = st.len; }
   if (st.goal) { plSel.goal = st.goal; }
   // 알약 버튼 활성 상태 복원
