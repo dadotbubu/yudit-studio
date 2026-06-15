@@ -7895,6 +7895,7 @@ function plOpenDetail(type, no) {
       <span class="inline-block px-2 py-0.5 rounded-full bg-botanical-cream border border-botanical-stone text-[10px] text-botanical-sage">${r.hookType}</span>
     </div>
     ${r.link ? `<a href="${r.link}" target="_blank" class="inline-block px-4 py-2 bg-botanical-terracotta text-white rounded-full text-xs font-bold">▶ 원본 릴스 보기</a>` : ''}
+    ${sect('표지 카피 (썸네일)', r.cover)}
     ${sect('훅 응용 템플릿', r.template + (r.templateEx ? '\n→ 예: ' + r.templateEx : ''))}
     ${sect('훅 패턴', r.hookPattern || r.hookType)}
     ${sect('터진 이유', r.viral)}
