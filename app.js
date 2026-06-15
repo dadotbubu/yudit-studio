@@ -7557,8 +7557,11 @@ function plRenderGen() {
       <h3 class="font-medium text-sm mb-3">콘텐츠 설정</h3>
       <label class="block text-xs text-botanical-sage mb-1">레퍼런스 패턴 (포맷)</label>
       <select id="pl-fmt" class="${PL_INPUT_CLS}" onchange="plSaveState()">
-        <option value="">🎲 랜덤 — 매번 다른 포맷 (추천)</option>
-        ${D.formats.map((f, i) => `<option value="${i}">${f.name} — ${f.desc}</option>`).join('')}
+        <option value="">🎲 전체 랜덤 (추천)</option>
+        <option value="g:성과형">🎲 성과형 중 랜덤 (저장·실용)</option>
+        <option value="g:소통형">🎲 소통형 중 랜덤 (공감·인사이트)</option>
+        <option disabled>──────────</option>
+        ${D.formats.map((f, i) => `<option value="${i}">[${f.group || '성과형'}] ${f.name} — ${f.desc}</option>`).join('')}
       </select>
       <label class="block text-xs text-botanical-sage mb-1 mt-3">길이</label>
       <div class="flex flex-wrap gap-1.5" id="pl-len">
@@ -7617,8 +7620,14 @@ function plHookPool() {
     .concat((plCustomHooks || []).map(h => ({ src: h.id, hook: h.hook, tmpl: h.template || h.hook, fam: '기타' })));
 }
 // 서로 다른 훅 패밀리 3곳에서 1개씩 추첨 — 비슷한 훅이 몰리는 것 방지 (다양성 보장)
-function plPickHooks(n) {
-  const pool = plHookPool();
+// onlyRefs 주어지면 그 레퍼 번호의 훅만 (소통형 포맷일 때 소통형 훅만 뽑기)
+function plPickHooks(n, onlyRefs) {
+  let pool = plHookPool();
+  if (onlyRefs && onlyRefs.length) {
+    const set = new Set(onlyRefs.map(no => 'R' + no));
+    const filtered = pool.filter(h => set.has(h.src));
+    if (filtered.length >= 1) pool = filtered;
+  }
   const byFam = {};
   pool.forEach(h => { (byFam[h.fam] = byFam[h.fam] || []).push(h); });
   const fams = Object.keys(byFam).sort(() => Math.random() - 0.5).slice(0, n);
@@ -7638,12 +7647,22 @@ function plBuildPrompt() {
   const tone = document.getElementById('pl-tone').value;
   const topic = (document.getElementById('pl-topic').value || '').trim() || '(주제 입력)';
   const exp = (document.getElementById('pl-exp') ? document.getElementById('pl-exp').value : '').trim();
-  let fIdx = document.getElementById('pl-fmt').value;
-  if (fIdx === '') fIdx = Math.floor(Math.random() * D.formats.length);
-  const fmt = D.formats[+fIdx];
-  const hooks = plPickHooks(3); // 서로 다른 패밀리 3곳에서 추첨
+  let fSel = document.getElementById('pl-fmt').value;
+  let fmt;
+  if (fSel === '') {
+    fmt = D.formats[Math.floor(Math.random() * D.formats.length)];
+  } else if (fSel.startsWith('g:')) {
+    const grp = fSel.slice(2);
+    const pool = D.formats.filter(f => (f.group || '성과형') === grp);
+    fmt = pool[Math.floor(Math.random() * pool.length)];
+  } else {
+    fmt = D.formats[+fSel];
+  }
+  const isSotong = (fmt.group || '성과형') === '소통형';
+  // 소통형 포맷이면 소통형 훅에서, 아니면 전역 패밀리에서 추첨
+  const hooks = plPickHooks(3, isSotong ? fmt.refs : null);
   // 이번 조합 미리보기용 (AI에 넣기 전 한눈에 — 마음에 들 때까지 빠르게 돌려보게)
-  plLastCombo = { fmtName: fmt.name, hooks: hooks.map(h => h.hook) };
+  plLastCombo = { fmtName: `[${fmt.group || '성과형'}] ${fmt.name}`, hooks: hooks.map(h => h.hook) };
   // 포맷 성공 사례 3개 랜덤 추출 + 각각의 터진 이유(상위 2줄)까지 주입 — AI가 왜 먹히는 구조인지 알고 쓰게
   const exRefs = [...fmt.refs].sort(() => Math.random() - 0.5).slice(0, 3);
   const refEx = exRefs.map(no => {
@@ -7698,14 +7717,21 @@ ${topic}
 ${exp || '(입력 없음 — 이 경우 ② 단계에서 경험이 들어가면 좋을 자리를 [경험 자리: ~~] 형태로 표시만 하고, 억지로 지어내지 말 것)'}
 
 [출력 — 이 순서로 작성]
-① 성과 게이트 (기획 전 자가 점검 — 이 주제가 '저장'될 무기가 있는지):
+${isSotong
+? `① 공감 게이트 (기획 전 자가 점검 — 이 주제가 '공감되고 곱씹게' 만드나):
+  - 다음 3가지가 다 있어야 소통형이 산다.
+    (a) 타겟이 "어 내 얘기네" 할 공감되는 상황·고민인가  (b) 유디트만의 인사이트(통념을 깨거나 다시 정의하는 한 줄)가 있는가  (c) 솔직한 감정(고백·자책·다독임)이 담기나
+  - 각 항목 ○/△/✕ + 한 줄 근거.
+  - (b) 인사이트가 약하면 → ⚠️경고 + 이 주제에서 끌어낼 수 있는 '나만의 관점' 1~2개 제안 후 그 버전으로 작성.
+  - ※ 소통형은 정보·실물이 없어도 됨. 대신 인사이트와 감정이 핵심. 절대 정보 나열·꿀팁으로 빠지지 말 것.`
+: `① 성과 게이트 (기획 전 자가 점검 — 이 주제가 '저장'될 무기가 있는지):
   - 무기 점검: 다음 중 최소 1개가 분명해야 통과한다.
     (a) 유디트 실제 경험·선택이 주인공인가  (b) 남들이 모르는 디테일/실물(표·체크리스트·순서)이 있는가  (c) 타겟의 진짜 통증을 즉시 건드리나
   - 각 항목 ○/△/✕로 표시 + 한 줄 근거.
   - 만약 셋 다 약하면(정보 나열에 그치면) → ⚠️경고 + 이 계정에 맞게 트는 각도 1~2개 제안하고, 그 통과 버전으로 아래를 작성한다.
-  - ※ 경험이 없어도 (b)나 (c)가 강하면 통과. 정보형 콘텐츠도 OK — 단, 그 경우 '남들이 모르는 디테일'이 반드시 있어야 한다.
+  - ※ 경험이 없어도 (b)나 (c)가 강하면 통과. 정보형 콘텐츠도 OK — 단, 그 경우 '남들이 모르는 디테일'이 반드시 있어야 한다.`}
 ② 훅 3안: 선택한 훅 템플릿 변형 2안 + 자유 1안 (각각 어떤 심리 장치인지 한 줄)
-③ 릴스 대본: 후킹(앞 3초) / (인트로) / 메인 / (아웃트로) / CTA — 파트별 대사 + 화면·B-roll 메모
+③ 릴스 대본: 후킹(앞 3초) / (인트로) / 메인 / (아웃트로) / CTA — 파트별 대사 + 화면·B-roll 메모${isSotong ? '\n   ※ 소통형: 메인은 정보 나열이 아니라 인사이트(통념 깨기·재정의)가 중심. CTA는 저장 강요 말고 "여러분은 어때요?" 같은 공감 질문 또는 담백한 마무리.' : ''}
 ④ 캡션 초안: 본문 + 해시태그 5개
 ⑤ HUMAN CHECK: 유디트가 직접 확인·수정해야 할 포인트 2~3개 (경험·숫자 들어갈 자리, 사실 확인 필요한 부분 표시)`;
 }
