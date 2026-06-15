@@ -7476,6 +7476,7 @@ function editCategoryGoal(category) {
 // ========== Planning Tab (기획) ==========
 // 데이터: data/planning_data.js (PLANNING_DATA) — 레퍼 50개 분석 기반
 let plSel = { len: '30초 이내', goal: '저장', section: 'gen' };
+let plLastCombo = null; // 이번 생성의 포맷·훅 조합 (미리보기·임시저장용)
 let plCustomHooks = null; // Supabase에서 로드 (planning_hooks)
 
 async function plLoadCustomHooks() {
@@ -7536,45 +7537,46 @@ function plRenderGen() {
     <div class="bg-white rounded-2xl p-5 shadow-sm mb-4">
       <div class="flex items-center justify-between mb-3">
         <h3 class="font-medium text-sm">내 계정 프로필</h3>
-        <span class="text-[11px] text-botanical-sage">카테고리 선택 시 자동 연동 · 수정 가능</span>
+        <button onclick="plResetGen()" class="text-[11px] text-botanical-sage hover:text-botanical-terracotta">↺ 초기화</button>
       </div>
       <label class="block text-xs text-botanical-sage mb-1">카테고리</label>
-      <select id="pl-cat" class="${PL_INPUT_CLS}" onchange="plFillPreset()">
+      <select id="pl-cat" class="${PL_INPUT_CLS}" onchange="plFillPreset();plSaveState()">
         ${Object.keys(D.presets).map(c => `<option>${c}</option>`).join('')}<option>직접 입력</option>
       </select>
       <label class="block text-xs text-botanical-sage mb-1 mt-3">포지셔닝</label>
-      <input type="text" id="pl-pos" class="${PL_INPUT_CLS}">
+      <input type="text" id="pl-pos" class="${PL_INPUT_CLS}" oninput="plSaveState()">
       <label class="block text-xs text-botanical-sage mb-1 mt-3">타겟 독자</label>
-      <input type="text" id="pl-tar" class="${PL_INPUT_CLS}">
+      <input type="text" id="pl-tar" class="${PL_INPUT_CLS}" oninput="plSaveState()">
       <label class="block text-xs text-botanical-sage mb-1 mt-3">핵심 메시지</label>
-      <input type="text" id="pl-msg" class="${PL_INPUT_CLS}">
+      <input type="text" id="pl-msg" class="${PL_INPUT_CLS}" oninput="plSaveState()">
       <label class="block text-xs text-botanical-sage mb-1 mt-3">톤 보이스</label>
-      <select id="pl-tone" class="${PL_INPUT_CLS}">${D.tones.map(t => `<option>${t}</option>`).join('')}</select>
+      <select id="pl-tone" class="${PL_INPUT_CLS}" onchange="plSaveState()">${D.tones.map(t => `<option>${t}</option>`).join('')}</select>
     </div>
 
     <div class="bg-white rounded-2xl p-5 shadow-sm mb-4">
       <h3 class="font-medium text-sm mb-3">콘텐츠 설정</h3>
       <label class="block text-xs text-botanical-sage mb-1">레퍼런스 패턴 (포맷)</label>
-      <select id="pl-fmt" class="${PL_INPUT_CLS}">
+      <select id="pl-fmt" class="${PL_INPUT_CLS}" onchange="plSaveState()">
         <option value="">🎲 랜덤 — 매번 다른 포맷 (추천)</option>
         ${D.formats.map((f, i) => `<option value="${i}">${f.name} — ${f.desc}</option>`).join('')}
       </select>
       <label class="block text-xs text-botanical-sage mb-1 mt-3">길이</label>
       <div class="flex flex-wrap gap-1.5" id="pl-len">
-        ${D.lengths.map(l => `<button onclick="plPick('len','${l}',this)" class="pl-pill-len px-3 py-1.5 rounded-full text-xs border ${l === plSel.len ? 'bg-botanical-terracotta border-botanical-terracotta text-white font-bold' : 'border-botanical-stone text-botanical-sage'}">${l}</button>`).join('')}
+        ${D.lengths.map(l => `<button onclick="plPick('len','${l}',this);plSaveState()" class="pl-pill-len px-3 py-1.5 rounded-full text-xs border ${l === plSel.len ? 'bg-botanical-terracotta border-botanical-terracotta text-white font-bold' : 'border-botanical-stone text-botanical-sage'}">${l}</button>`).join('')}
       </div>
       <label class="block text-xs text-botanical-sage mb-1 mt-3">목표</label>
       <div class="flex flex-wrap gap-1.5" id="pl-goal">
-        ${D.goals.map(g => `<button onclick="plPick('goal','${g}',this)" class="pl-pill-goal px-3 py-1.5 rounded-full text-xs border ${g === plSel.goal ? 'bg-botanical-terracotta border-botanical-terracotta text-white font-bold' : 'border-botanical-stone text-botanical-sage'}">${g}</button>`).join('')}
+        ${D.goals.map(g => `<button onclick="plPick('goal','${g}',this);plSaveState()" class="pl-pill-goal px-3 py-1.5 rounded-full text-xs border ${g === plSel.goal ? 'bg-botanical-terracotta border-botanical-terracotta text-white font-bold' : 'border-botanical-stone text-botanical-sage'}">${g}</button>`).join('')}
       </div>
       <label class="block text-xs text-botanical-sage mb-1 mt-3">주제</label>
-      <textarea id="pl-topic" rows="2" class="${PL_INPUT_CLS}" placeholder="예: 연말정산 환급 더 받는 법 / 신혼 가전 싸게 사는 순서"></textarea>
+      <textarea id="pl-topic" rows="2" class="${PL_INPUT_CLS}" placeholder="예: 연말정산 환급 더 받는 법 / 신혼 가전 싸게 사는 순서" oninput="plSaveState()"></textarea>
       <button onclick="plGen()" class="w-full py-3 bg-botanical-fg text-white rounded-xl text-sm font-bold mt-4 hover:opacity-90 transition-all">기획 프롬프트 생성하기</button>
       <p class="text-[11px] text-botanical-sage text-center mt-2">생성할 때마다 훅 템플릿 조합이 바뀌어 매번 다른 기획이 나와요</p>
     </div>
 
     <div class="bg-white rounded-2xl p-5 shadow-sm mb-4 hidden" id="pl-out-card">
       <h3 class="font-medium text-sm mb-3">완성된 기획 프롬프트</h3>
+      <div id="pl-preview" class="bg-botanical-sage/10 rounded-xl p-3 mb-3"></div>
       <div class="flex gap-1.5 mb-3">
         <button onclick="plReroll()" class="flex-1 py-2 rounded-lg text-xs border border-botanical-terracotta text-botanical-terracotta font-bold">🎲 다른 앵글로</button>
         <button onclick="plCopy()" class="flex-1 py-2 rounded-lg text-xs border border-botanical-terracotta text-botanical-terracotta font-bold">📋 복사</button>
@@ -7588,6 +7590,7 @@ function plRenderGen() {
     </div>
   `;
   plFillPreset();
+  plRestoreState();
 }
 function plFillPreset() {
   const p = PLANNING_DATA.presets[document.getElementById('pl-cat').value];
@@ -7636,6 +7639,8 @@ function plBuildPrompt() {
   if (fIdx === '') fIdx = Math.floor(Math.random() * D.formats.length);
   const fmt = D.formats[+fIdx];
   const hooks = plPickHooks(3); // 서로 다른 패밀리 3곳에서 추첨
+  // 이번 조합 미리보기용 (AI에 넣기 전 한눈에 — 마음에 들 때까지 빠르게 돌려보게)
+  plLastCombo = { fmtName: fmt.name, hooks: hooks.map(h => h.hook) };
   // 포맷 성공 사례 3개 랜덤 추출 + 각각의 터진 이유(상위 2줄)까지 주입 — AI가 왜 먹히는 구조인지 알고 쓰게
   const exRefs = [...fmt.refs].sort(() => Math.random() - 0.5).slice(0, 3);
   const refEx = exRefs.map(no => {
@@ -7683,13 +7688,77 @@ ${topic}
 ③ 캡션 초안: 본문 + 해시태그 5개
 ④ HUMAN CHECK: 유디트가 직접 확인·수정해야 할 포인트 2~3개 (실제 경험·숫자 들어갈 자리 표시)`;
 }
+function plRenderPreview() {
+  const el = document.getElementById('pl-preview');
+  if (!el || !plLastCombo) return;
+  el.innerHTML = `
+    <p class="text-[11px] text-botanical-sage mb-1">이번 앵글 — 마음에 들 때까지 🎲 돌려보고 복사하세요</p>
+    <div class="text-xs"><span class="font-bold text-botanical-terracotta">${plLastCombo.fmtName}</span></div>
+    <ul class="text-xs text-botanical-fg mt-1 space-y-0.5 list-disc list-inside">
+      ${plLastCombo.hooks.map(h => `<li>${h}</li>`).join('')}
+    </ul>`;
+}
 function plGen() {
   document.getElementById('pl-out-card').classList.remove('hidden');
   document.getElementById('pl-out').textContent = plBuildPrompt();
+  plRenderPreview();
+  plSaveState();
   document.getElementById('pl-out-card').scrollIntoView({ behavior: 'smooth' });
 }
-function plReroll() { document.getElementById('pl-out').textContent = plBuildPrompt(); plToast('🎲 새 조합으로 변경!'); }
+function plReroll() {
+  document.getElementById('pl-out').textContent = plBuildPrompt();
+  plRenderPreview();
+  plSaveState();
+  plToast('🎲 새 앵글로 변경!');
+}
 function plCopy() { navigator.clipboard.writeText(document.getElementById('pl-out').textContent).then(() => plToast('복사 완료! AI에 붙여넣으세요')); }
+
+// ---------- 임시저장 / 초기화 ----------
+function plSaveState() {
+  try {
+    const st = {
+      cat: document.getElementById('pl-cat').value,
+      pos: document.getElementById('pl-pos').value,
+      tar: document.getElementById('pl-tar').value,
+      msg: document.getElementById('pl-msg').value,
+      tone: document.getElementById('pl-tone').value,
+      fmt: document.getElementById('pl-fmt').value,
+      topic: document.getElementById('pl-topic').value,
+      len: plSel.len, goal: plSel.goal,
+      prompt: document.getElementById('pl-out') ? document.getElementById('pl-out').textContent : '',
+      combo: plLastCombo
+    };
+    localStorage.setItem('yudit_planning_draft', JSON.stringify(st));
+  } catch (e) {}
+}
+function plRestoreState() {
+  let st;
+  try { st = JSON.parse(localStorage.getItem('yudit_planning_draft') || 'null'); } catch (e) { st = null; }
+  if (!st) return;
+  const set = (id, v) => { const el = document.getElementById(id); if (el != null && v != null) el.value = v; };
+  set('pl-cat', st.cat); set('pl-pos', st.pos); set('pl-tar', st.tar); set('pl-msg', st.msg);
+  set('pl-tone', st.tone); set('pl-fmt', st.fmt); set('pl-topic', st.topic);
+  if (st.len) { plSel.len = st.len; }
+  if (st.goal) { plSel.goal = st.goal; }
+  // 알약 버튼 활성 상태 복원
+  document.querySelectorAll('.pl-pill-len').forEach(b => { const on = b.textContent === plSel.len; b.className = b.className.replace(/bg-botanical-terracotta border-botanical-terracotta text-white font-bold|border-botanical-stone text-botanical-sage/g, on ? 'bg-botanical-terracotta border-botanical-terracotta text-white font-bold' : 'border-botanical-stone text-botanical-sage'); });
+  document.querySelectorAll('.pl-pill-goal').forEach(b => { const on = b.textContent === plSel.goal; b.className = b.className.replace(/bg-botanical-terracotta border-botanical-terracotta text-white font-bold|border-botanical-stone text-botanical-sage/g, on ? 'bg-botanical-terracotta border-botanical-terracotta text-white font-bold' : 'border-botanical-stone text-botanical-sage'); });
+  if (st.prompt) {
+    plLastCombo = st.combo || null;
+    document.getElementById('pl-out-card').classList.remove('hidden');
+    document.getElementById('pl-out').textContent = st.prompt;
+    plRenderPreview();
+  }
+}
+function plResetGen() {
+  if (!confirm('작성한 내용과 생성된 프롬프트를 모두 비울까요?')) return;
+  localStorage.removeItem('yudit_planning_draft');
+  plLastCombo = null;
+  plSel.len = '30초 이내'; plSel.goal = '저장';
+  plRenderGen();
+  document.getElementById('pl-out-card').classList.add('hidden');
+  plToast('초기화 완료');
+}
 
 // ---------- 레퍼 보관함 ----------
 function plLibEntries() {
