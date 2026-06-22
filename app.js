@@ -7475,7 +7475,7 @@ function editCategoryGoal(category) {
 
 // ========== Planning Tab (기획) ==========
 // 데이터: data/planning_data.js (PLANNING_DATA) — 레퍼 50개 분석 기반
-let plSel = { len: '30초 이내', goal: '저장', section: 'gen' };
+let plSel = { len: '30초 이내', cta: '포함', purpose: 'info', prod: 'speak', section: 'gen' };
 let plLastCombo = null; // 이번 생성의 포맷·훅 조합 (미리보기·임시저장용)
 let plCustomHooks = null; // Supabase에서 로드 (planning_hooks)
 
@@ -7555,21 +7555,26 @@ function plRenderGen() {
 
     <div class="bg-white rounded-2xl p-5 shadow-sm mb-4">
       <h3 class="font-medium text-sm mb-3">콘텐츠 설정</h3>
-      <label class="block text-xs text-botanical-sage mb-1">레퍼런스 패턴 (포맷)</label>
-      <select id="pl-fmt" class="${PL_INPUT_CLS}" onchange="plSaveState()">
+      <label class="block text-xs text-botanical-sage mb-1">골격 (본문 전개)</label>
+      <select id="pl-skel" class="${PL_INPUT_CLS}" onchange="plSaveState()">
         <option value="">🎲 전체 랜덤 (추천)</option>
-        <option value="g:성과형">🎲 성과형 중 랜덤 (저장·실용)</option>
-        <option value="g:소통형">🎲 소통형 중 랜덤 (공감·인사이트)</option>
-        <option disabled>──────────</option>
-        ${D.formats.map((f, i) => `<option value="${i}">[${f.group || '성과형'}] ${f.name} — ${f.desc}</option>`).join('')}
+        ${D.skeletons.map(s => `<option value="${s.id}">${s.name} — ${s.body}</option>`).join('')}
       </select>
+      <label class="block text-xs text-botanical-sage mb-1 mt-3">목적</label>
+      <div class="flex flex-wrap gap-1.5" id="pl-purpose">
+        ${D.purposes.map(p => `<button onclick="plPick('purpose','${p.id}',this);plSaveState()" class="pl-pill-purpose px-3 py-1.5 rounded-full text-xs border ${p.id === plSel.purpose ? 'bg-botanical-terracotta border-botanical-terracotta text-white font-bold' : 'border-botanical-stone text-botanical-sage'}">${p.name}</button>`).join('')}
+      </div>
       <label class="block text-xs text-botanical-sage mb-1 mt-3">길이</label>
       <div class="flex flex-wrap gap-1.5" id="pl-len">
         ${D.lengths.map(l => `<button onclick="plPick('len','${l}',this);plSaveState()" class="pl-pill-len px-3 py-1.5 rounded-full text-xs border ${l === plSel.len ? 'bg-botanical-terracotta border-botanical-terracotta text-white font-bold' : 'border-botanical-stone text-botanical-sage'}">${l}</button>`).join('')}
       </div>
-      <label class="block text-xs text-botanical-sage mb-1 mt-3">목표</label>
-      <div class="flex flex-wrap gap-1.5" id="pl-goal">
-        ${D.goals.map(g => `<button onclick="plPick('goal','${g}',this);plSaveState()" class="pl-pill-goal px-3 py-1.5 rounded-full text-xs border ${g === plSel.goal ? 'bg-botanical-terracotta border-botanical-terracotta text-white font-bold' : 'border-botanical-stone text-botanical-sage'}">${g}</button>`).join('')}
+      <label class="block text-xs text-botanical-sage mb-1 mt-3">CTA</label>
+      <div class="flex flex-wrap gap-1.5" id="pl-cta">
+        ${D.ctaModes.map(c => `<button onclick="plPick('cta','${c}',this);plSaveState()" class="pl-pill-cta px-3 py-1.5 rounded-full text-xs border ${c === plSel.cta ? 'bg-botanical-terracotta border-botanical-terracotta text-white font-bold' : 'border-botanical-stone text-botanical-sage'}">${c}</button>`).join('')}
+      </div>
+      <label class="block text-xs text-botanical-sage mb-1 mt-3">연출 <span class="text-botanical-stone">(기본 발표형)</span></label>
+      <div class="flex flex-wrap gap-1.5" id="pl-prod">
+        ${D.productionOptions.map(p => `<button onclick="plPick('prod','${p.id}',this);plSaveState()" class="pl-pill-prod px-3 py-1.5 rounded-full text-xs border ${p.id === plSel.prod ? 'bg-botanical-terracotta border-botanical-terracotta text-white font-bold' : 'border-botanical-stone text-botanical-sage'}" title="${p.desc}">${p.name}</button>`).join('')}
       </div>
       <label class="block text-xs text-botanical-sage mb-1 mt-3">주제</label>
       <textarea id="pl-topic" rows="2" class="${PL_INPUT_CLS}" placeholder="예: 연말정산 환급 더 받는 법 / 신혼 가전 싸게 사는 순서" oninput="plSaveState()"></textarea>
@@ -7610,35 +7615,24 @@ function plPick(kind, val, btn) {
   });
   btn.className = btn.className.replace('border-botanical-stone text-botanical-sage', 'bg-botanical-terracotta border-botanical-terracotta text-white font-bold');
 }
-function plHookPool() {
+// 진입(entry) + 목적(purpose)으로 훅 풀 구성 → 같은 진입으로 보충 → 전역 보충
+// (정보 주제엔 정보형 훅, 공감 주제엔 공감형 훅이 나오게)
+function plHookPool(entry, purpose) {
   const D = PLANNING_DATA;
-  // 레퍼 번호 → 훅 패밀리 매핑 (없으면 '기타')
-  const famOf = {};
-  (D.hookFamilies || []).forEach(f => f.refs.forEach(no => { famOf[no] = f.name; }));
-  return D.refs.filter(r => r.template).map(r => ({ src: 'R' + r.no, hook: r.hook, tmpl: r.template, fam: famOf[r.no] || '기타' }))
-    .concat(D.hookBank.map(h => ({ src: h.id, hook: h.hook, tmpl: h.template, fam: '기타' })))
-    .concat((plCustomHooks || []).map(h => ({ src: h.id, hook: h.hook, tmpl: h.template || h.hook, fam: '기타' })));
+  const map = r => ({ src: 'R' + r.no, hook: r.hook, tmpl: r.template });
+  const withTmpl = r => r.template;
+  let pool = D.refs.filter(r => withTmpl(r) && r.entry === entry && r.purpose === purpose).map(map);
+  if (pool.length < 3) pool = pool.concat(D.refs.filter(r => withTmpl(r) && r.entry === entry && r.purpose !== purpose).map(map).sort(() => Math.random() - 0.5));
+  if (pool.length < 3) pool = pool.concat(D.refs.filter(r => withTmpl(r) && r.entry !== entry).map(map).sort(() => Math.random() - 0.5));
+  // 직접 추가한 훅도 보조 풀로
+  pool = pool.concat((plCustomHooks || []).map(h => ({ src: h.id, hook: h.hook, tmpl: h.template || h.hook })));
+  return pool;
 }
-// 서로 다른 훅 패밀리 3곳에서 1개씩 추첨 — 비슷한 훅이 몰리는 것 방지 (다양성 보장)
-// onlyRefs 주어지면 그 레퍼 번호의 훅만 (소통형 포맷일 때 소통형 훅만 뽑기)
-function plPickHooks(n, onlyRefs) {
-  let pool = plHookPool();
-  if (onlyRefs && onlyRefs.length) {
-    const set = new Set(onlyRefs.map(no => 'R' + no));
-    const filtered = pool.filter(h => set.has(h.src));
-    if (filtered.length >= 1) pool = filtered;
-  }
-  const byFam = {};
-  pool.forEach(h => { (byFam[h.fam] = byFam[h.fam] || []).push(h); });
-  const fams = Object.keys(byFam).sort(() => Math.random() - 0.5).slice(0, n);
-  const picked = fams.map(f => byFam[f][Math.floor(Math.random() * byFam[f].length)]);
-  // 패밀리가 n개 미만이면 전체 풀에서 채움
-  let guard = 0;
-  while (picked.length < n && guard++ < 200) {
-    const h = pool[Math.floor(Math.random() * pool.length)];
-    if (!picked.find(p => p.src === h.src)) picked.push(h);
-  }
-  return picked;
+function plPickHooks(entry, purpose, n) {
+  const pool = plHookPool(entry, purpose).sort(() => Math.random() - 0.5);
+  const out = [], seen = new Set();
+  for (const h of pool) { if (seen.has(h.src)) continue; seen.add(h.src); out.push(h); if (out.length >= n) break; }
+  return out;
 }
 function plBuildPrompt() {
   const D = PLANNING_DATA;
@@ -7647,30 +7641,45 @@ function plBuildPrompt() {
   const tone = document.getElementById('pl-tone').value;
   const topic = (document.getElementById('pl-topic').value || '').trim() || '(주제 입력)';
   const exp = (document.getElementById('pl-exp') ? document.getElementById('pl-exp').value : '').trim();
-  let fSel = document.getElementById('pl-fmt').value;
-  let fmt;
-  if (fSel === '') {
-    fmt = D.formats[Math.floor(Math.random() * D.formats.length)];
-  } else if (fSel.startsWith('g:')) {
-    const grp = fSel.slice(2);
-    const pool = D.formats.filter(f => (f.group || '성과형') === grp);
-    fmt = pool[Math.floor(Math.random() * pool.length)];
-  } else {
-    fmt = D.formats[+fSel];
-  }
-  const isSotong = (fmt.group || '성과형') === '소통형';
-  // 소통형 포맷이면 소통형 훅에서, 아니면 전역 패밀리에서 추첨
-  const hooks = plPickHooks(3, isSotong ? fmt.refs : null);
-  // 이번 조합 미리보기용 (AI에 넣기 전 한눈에 — 마음에 들 때까지 빠르게 돌려보게)
-  plLastCombo = { fmtName: `[${fmt.group || '성과형'}] ${fmt.name}`, hooks: hooks.map(h => h.hook) };
-  // 포맷 성공 사례 3개 랜덤 추출 + 각각의 터진 이유(상위 2줄)까지 주입 — AI가 왜 먹히는 구조인지 알고 쓰게
-  const exRefs = [...fmt.refs].sort(() => Math.random() - 0.5).slice(0, 3);
-  const refEx = exRefs.map(no => {
-    const r = D.refs.find(x => x.no === no);
-    if (!r) return '';
-    const why = (r.viral || '').split('\n').filter(Boolean).slice(0, 2).join('\n    ');
-    return `  · 훅: ${r.hook}\n    터진 이유: ${why}`;
-  }).filter(Boolean).join('\n');
+  const rand = a => a[Math.floor(Math.random() * a.length)];
+  // 골격 결정 (지정 or 전체 랜덤)
+  const sSel = document.getElementById('pl-skel').value;
+  const skel = sSel ? D.skeletons.find(s => s.id === sSel) : rand(D.skeletons);
+  const purpDef = D.purposes.find(p => p.id === plSel.purpose);
+  // 진입: 골격 ∩ 목적 유효진입 교집합, CTA 미포함이면 빈칸 제외
+  let valid = skel.validEntry.filter(e => purpDef.validEntry.includes(e));
+  if (plSel.cta === '미포함') valid = valid.filter(e => e !== 'blank');
+  if (!valid.length) valid = skel.validEntry.slice();
+  const entry = rand(valid);
+  const entryDef = D.entries.find(e => e.id === entry);
+  // 서사형이면 곡선 랜덤
+  const curveDef = (skel.id === 'story' && skel.curves) ? rand(skel.curves) : null;
+  const struct = curveDef ? curveDef.structure : skel.structure;
+  // 훅 3안 (진입+목적 풀)
+  const hooks = plPickHooks(entry, plSel.purpose, 3);
+  // 같은 골격 검증 사례 3개 + 터진 이유 1줄
+  const exRefs = D.refs.filter(r => r.skeleton === skel.id).sort(() => Math.random() - 0.5).slice(0, 3);
+  const refEx = exRefs.map(r => {
+    const why = (r.viral || '').split('\n').filter(Boolean).slice(0, 1).join('');
+    return `  · 훅: ${r.hook}${why ? '\n    터진 이유: ' + why : ''}`;
+  }).join('\n');
+  // 미리보기용
+  plLastCombo = {
+    skelName: skel.name + (curveDef ? ' · ' + curveDef.name : ''),
+    struct: struct, entry: entryDef.name, purpose: purpDef.name,
+    cta: plSel.cta, prod: plSel.prod, hooks: hooks.map(h => h.hook)
+  };
+  const gateLabel = plSel.purpose === 'empathy' ? '공감 게이트' : '성과 게이트';
+  const gateBody = plSel.purpose === 'empathy'
+    ? `  - 다음이 다 있나: (a) 타겟이 "내 얘기네" 할 공감 상황  (b) 통념을 깨거나 다시 정의하는 나만의 인사이트 한 줄  (c) 솔직한 감정(고백·자책·다독임)\n  - 각 항목 ○/△/✕ + 한 줄 근거. (b)가 약하면 → ⚠️경고 + 끌어낼 관점 1~2개 제안 후 그 버전으로.\n  - ※ 정보·실물 없어도 됨. 인사이트와 감정이 핵심. 꿀팁 나열로 빠지지 말 것.`
+    : `  - 무기 점검(최소 1개): (a) 유디트 실제 경험·선택  (b) 남들 모르는 디테일/실물(표·순서)  (c) 타겟의 진짜 통증\n  - 각 항목 ○/△/✕ + 한 줄 근거. 셋 다 약하면 → ⚠️경고 + 이 계정에 맞게 트는 각도 1~2개 제안 후 통과 버전으로.\n  - ※ 경험 없어도 (b)나 (c)가 강하면 통과. 단 '남들 모르는 디테일'은 반드시.`;
+  const ctaBlock = plSel.cta === '포함'
+    ? `[CTA — 포함]\n이 골격·목적에 맞는 CTA 1개를 설계하라 (빈칸 진입 → 댓글 키워드로 자료 배포 / 정보 완결 → 저장 / 공감 → 참여 질문). 1차 행동은 단 하나만 요구한다.`
+    : `[CTA — 미포함]\n행동을 요구하지 말 것. 슬로건·선언 또는 정답 없는 질문으로 담백하게 마무리한다.`;
+  const prodBlock = plSel.prod === 'dialogue'
+    ? `[연출 — 대화형]\n혼자 설명하지 말고, 두 사람(부부/동료)이 주고받는 대화 장면으로 구성하라. 대사를 화자별로 분리해서 작성.\n`
+    : '';
+  const bodyLine = `[${struct.split(' → ').join('] → [')}]`;
   return `너는 인스타그램 릴스 기획 에이전트다. 아래 [계정 컨텍스트]와 [기획 원칙]을 철저히 지키며, 주어진 주제로 릴스 대본을 기획하라.
 
 [계정 컨텍스트 — 모든 기획은 반드시 이 계정에 맞춘다]
@@ -7682,67 +7691,51 @@ function plBuildPrompt() {
 
 [기획 원칙 — 절대 규칙]
 ${D.fixedRules.map((r, i) => `${i + 1}. ${r}`).join('\n')}
-6. 금지: 자기계발 설교, 동기부여 명언, 외부 트렌드 단순 전달, 추상적 다짐으로 마무리
+${D.fixedRules.length + 1}. 금지: 자기계발 설교, 동기부여 명언, 외부 트렌드 단순 전달, 추상적 다짐으로 마무리
 
-[이번 기획의 포맷 — 시장에서 검증된 구조]
-포맷명: ${fmt.name} (${fmt.desc})
-구조: ${fmt.structure}
-이 포맷의 실제 성공 사례와 터진 이유 (구조 참고용 — 절대 그대로 쓰지 말 것):
+[이번 골격 — ${skel.name}${curveDef ? ' · ' + curveDef.name : ''}]
+· 본문 전개: ${skel.body}
+· 골격(이 순서 그대로 따른다): ${struct}
+· 이 골격의 검증 사례 (구조 참고용 — 절대 그대로 쓰지 말 것):
 ${refEx}
 
-[훅 작성 — 호기심·궁금증 유발이 핵심 임무]
-훅(첫 3초)의 유일한 목적은 스크롤을 멈추게 하는 호기심·궁금증이다. 정보를 다 주지 말고 "어? 뭐지?"를 만들어라.
+[진입 방식 — ${entryDef.name}]
+${entryDef.desc}. 훅(첫 3초)의 유일한 목적은 스크롤을 멈추게 하는 호기심·궁금증이다.
 아래 템플릿 3개 중 가장 주제에 맞는 1개를 골라 유디트 소재로 변형:
 ${hooks.map((h, i) => `${i + 1}. ${h.tmpl}\n   (원형: ${h.hook})`).join('\n')}
 
-[인트로 작성 규칙 — 훅 유형에 따라 분기]
-인트로는 훅에서 채우지 못한 것을 보완한다:
-- 훅이 호기심·궁금증만 던졌으면 → 인트로 = 권위(경험·연차·실적) 또는 타겟 호명+이득 제시
-- 훅에 이미 권위·반전·성과가 들어갔으면 → 인트로 = 서사(과거·계기·공감), 권위 반복 금지
-- 훅이 대화·질문 인용이면 → 인트로 = 그 상황 설명
-※ 경험 입력이 있으면 인트로나 메인에 자연스럽게 녹인다 (가장 강력한 무기)
+[목적 — ${purpDef.name}]  → 출력 ①에서 ${gateLabel} 적용
 
-[CTA 설계 — 이번 목표: ${plSel.goal}]
-${D.ctaBank[plSel.goal].map(c => `- ${c}`).join('\n')}
-이 중 1개만 선택. 1차 행동은 단 하나만 요구한다.
-
-[이번 기획 조건]
-- 길이: ${plSel.len} — 5파트를 이 길이에 맞게 배분
-- 목표: ${plSel.goal}
-
-[주제]
-${topic}
-
-[내 실제 경험·에피소드]
-${exp || '(입력 없음 — 이 경우 ② 단계에서 경험이 들어가면 좋을 자리를 [경험 자리: ~~] 형태로 표시만 하고, 억지로 지어내지 말 것)'}
+${ctaBlock}
+${prodBlock}[이번 기획 조건]
+- 길이: ${plSel.len} — 골격 단계를 이 길이에 맞게 배분
+- 주제: ${topic}
+- 내 실제 경험·에피소드: ${exp || '(입력 없음 — 경험이 들어가면 좋을 자리를 [경험 자리: ~~] 형태로 표시만 하고, 억지로 지어내지 말 것)'}
 
 [출력 — 이 순서로 작성]
-${isSotong
-? `① 공감 게이트 (기획 전 자가 점검 — 이 주제가 '공감되고 곱씹게' 만드나):
-  - 다음 3가지가 다 있어야 소통형이 산다.
-    (a) 타겟이 "어 내 얘기네" 할 공감되는 상황·고민인가  (b) 유디트만의 인사이트(통념을 깨거나 다시 정의하는 한 줄)가 있는가  (c) 솔직한 감정(고백·자책·다독임)이 담기나
-  - 각 항목 ○/△/✕ + 한 줄 근거.
-  - (b) 인사이트가 약하면 → ⚠️경고 + 이 주제에서 끌어낼 수 있는 '나만의 관점' 1~2개 제안 후 그 버전으로 작성.
-  - ※ 소통형은 정보·실물이 없어도 됨. 대신 인사이트와 감정이 핵심. 절대 정보 나열·꿀팁으로 빠지지 말 것.`
-: `① 성과 게이트 (기획 전 자가 점검 — 이 주제가 '저장'될 무기가 있는지):
-  - 무기 점검: 다음 중 최소 1개가 분명해야 통과한다.
-    (a) 유디트 실제 경험·선택이 주인공인가  (b) 남들이 모르는 디테일/실물(표·체크리스트·순서)이 있는가  (c) 타겟의 진짜 통증을 즉시 건드리나
-  - 각 항목 ○/△/✕로 표시 + 한 줄 근거.
-  - 만약 셋 다 약하면(정보 나열에 그치면) → ⚠️경고 + 이 계정에 맞게 트는 각도 1~2개 제안하고, 그 통과 버전으로 아래를 작성한다.
-  - ※ 경험이 없어도 (b)나 (c)가 강하면 통과. 정보형 콘텐츠도 OK — 단, 그 경우 '남들이 모르는 디테일'이 반드시 있어야 한다.`}
-② 훅 3안: 선택한 훅 템플릿 변형 2안 + 자유 1안 (각각 어떤 심리 장치인지 한 줄)
-③ 릴스 대본: 후킹(앞 3초) / (인트로) / 메인 / (아웃트로) / CTA — 파트별 대사 + 화면·B-roll 메모${isSotong ? '\n   ※ 소통형: 메인은 정보 나열이 아니라 인사이트(통념 깨기·재정의)가 중심. CTA는 저장 강요 말고 "여러분은 어때요?" 같은 공감 질문 또는 담백한 마무리.' : ''}
-④ 캡션 초안: 본문 + 해시태그 5개
-⑤ HUMAN CHECK: 유디트가 직접 확인·수정해야 할 포인트 2~3개 (경험·숫자 들어갈 자리, 사실 확인 필요한 부분 표시)`;
+① ${gateLabel} (기획 전 자가 점검):
+${gateBody}
+② 썸네일 훅 (표지 카피) — ≤15자, 3안 (각각 다른 각도)
+③ 대본 훅 (첫 3초) — 위 진입 방식으로 3안 (각각 어떤 심리 장치인지 한 줄)
+④ 릴스 대본 — 위 [이번 골격]의 구조를 그대로 따라 작성:
+   ${bodyLine}
+   각 단계마다 대사 + 화면·B-roll 메모${plSel.prod === 'dialogue' ? ' (화자별 대사 분리)' : ''}
+⑤ 캡션 초안: 본문 + 해시태그 5개
+⑥ HUMAN CHECK: 유디트가 직접 확인·수정해야 할 포인트 2~3개 (경험·숫자 자리, 사실 확인 필요한 부분)`;
 }
 function plRenderPreview() {
   const el = document.getElementById('pl-preview');
   if (!el || !plLastCombo) return;
+  const c = plLastCombo;
+  const chip = (t) => `<span class="inline-block px-2 py-0.5 rounded-full bg-white border border-botanical-stone text-[10px] text-botanical-sage mr-1">${t}</span>`;
   el.innerHTML = `
-    <p class="text-[11px] text-botanical-sage mb-1">이번 앵글 — 마음에 들 때까지 🎲 돌려보고 복사하세요</p>
-    <div class="text-xs"><span class="font-bold text-botanical-terracotta">${plLastCombo.fmtName}</span></div>
-    <ul class="text-xs text-botanical-fg mt-1 space-y-0.5 list-disc list-inside">
-      ${plLastCombo.hooks.map(h => `<li>${h}</li>`).join('')}
+    <p class="text-[11px] text-botanical-sage mb-1.5">이번 앵글 — 마음에 들 때까지 🎲 돌려보고 복사하세요</p>
+    <div class="text-xs mb-1"><span class="font-bold text-botanical-terracotta">${c.skelName}</span> <span class="text-botanical-sage">· ${c.purpose}</span></div>
+    <div class="text-[11px] text-botanical-fg bg-white/60 rounded-lg px-2 py-1.5 mb-1.5">골격: ${c.struct}</div>
+    <div class="mb-1.5">${chip('진입 ' + c.entry)}${chip('CTA ' + c.cta)}${c.prod === 'dialogue' ? chip('대화형') : ''}</div>
+    <p class="text-[10px] text-botanical-sage mb-0.5">훅 후보</p>
+    <ul class="text-xs text-botanical-fg space-y-0.5 list-disc list-inside">
+      ${c.hooks.map(h => `<li>${h}</li>`).join('')}
     </ul>`;
 }
 function plGen() {
@@ -7769,10 +7762,10 @@ function plSaveState() {
       tar: document.getElementById('pl-tar').value,
       msg: document.getElementById('pl-msg').value,
       tone: document.getElementById('pl-tone').value,
-      fmt: document.getElementById('pl-fmt').value,
+      skel: document.getElementById('pl-skel').value,
       topic: document.getElementById('pl-topic').value,
       exp: document.getElementById('pl-exp') ? document.getElementById('pl-exp').value : '',
-      len: plSel.len, goal: plSel.goal,
+      len: plSel.len, cta: plSel.cta, purpose: plSel.purpose, prod: plSel.prod,
       prompt: document.getElementById('pl-out') ? document.getElementById('pl-out').textContent : '',
       combo: plLastCombo
     };
@@ -7780,17 +7773,27 @@ function plSaveState() {
   } catch (e) {}
 }
 function plRestoreState() {
+  const D = PLANNING_DATA;
   let st;
   try { st = JSON.parse(localStorage.getItem('yudit_planning_draft') || 'null'); } catch (e) { st = null; }
   if (!st) return;
   const set = (id, v) => { const el = document.getElementById(id); if (el != null && v != null) el.value = v; };
   set('pl-cat', st.cat); set('pl-pos', st.pos); set('pl-tar', st.tar); set('pl-msg', st.msg);
-  set('pl-tone', st.tone); set('pl-fmt', st.fmt); set('pl-topic', st.topic); set('pl-exp', st.exp);
-  if (st.len) { plSel.len = st.len; }
-  if (st.goal) { plSel.goal = st.goal; }
-  // 알약 버튼 활성 상태 복원
-  document.querySelectorAll('.pl-pill-len').forEach(b => { const on = b.textContent === plSel.len; b.className = b.className.replace(/bg-botanical-terracotta border-botanical-terracotta text-white font-bold|border-botanical-stone text-botanical-sage/g, on ? 'bg-botanical-terracotta border-botanical-terracotta text-white font-bold' : 'border-botanical-stone text-botanical-sage'); });
-  document.querySelectorAll('.pl-pill-goal').forEach(b => { const on = b.textContent === plSel.goal; b.className = b.className.replace(/bg-botanical-terracotta border-botanical-terracotta text-white font-bold|border-botanical-stone text-botanical-sage/g, on ? 'bg-botanical-terracotta border-botanical-terracotta text-white font-bold' : 'border-botanical-stone text-botanical-sage'); });
+  set('pl-tone', st.tone); set('pl-skel', st.skel); set('pl-topic', st.topic); set('pl-exp', st.exp);
+  if (st.len) plSel.len = st.len;
+  if (st.cta) plSel.cta = st.cta;
+  if (st.purpose) plSel.purpose = st.purpose;
+  if (st.prod) plSel.prod = st.prod;
+  // 알약 활성 복원 (textContent 매칭 — purpose/prod는 표시 이름으로)
+  const pp = (D.purposes.find(p => p.id === plSel.purpose) || {}).name;
+  const pd = (D.productionOptions.find(p => p.id === plSel.prod) || {}).name;
+  const labelOf = { len: plSel.len, cta: plSel.cta, purpose: pp, prod: pd };
+  ['len', 'cta', 'purpose', 'prod'].forEach(kind => {
+    document.querySelectorAll('.pl-pill-' + kind).forEach(b => {
+      const on = b.textContent === labelOf[kind];
+      b.className = b.className.replace(/bg-botanical-terracotta border-botanical-terracotta text-white font-bold|border-botanical-stone text-botanical-sage/g, on ? 'bg-botanical-terracotta border-botanical-terracotta text-white font-bold' : 'border-botanical-stone text-botanical-sage');
+    });
+  });
   if (st.prompt) {
     plLastCombo = st.combo || null;
     document.getElementById('pl-out-card').classList.remove('hidden');
@@ -7802,7 +7805,7 @@ function plResetGen() {
   if (!confirm('작성한 내용과 생성된 프롬프트를 모두 비울까요?')) return;
   localStorage.removeItem('yudit_planning_draft');
   plLastCombo = null;
-  plSel.len = '30초 이내'; plSel.goal = '저장';
+  plSel.len = '30초 이내'; plSel.cta = '포함'; plSel.purpose = 'info'; plSel.prod = 'speak';
   plRenderGen();
   document.getElementById('pl-out-card').classList.add('hidden');
   plToast('초기화 완료');
@@ -7811,7 +7814,8 @@ function plResetGen() {
 // ---------- 레퍼 보관함 ----------
 function plLibEntries() {
   const D = PLANNING_DATA;
-  const refs = D.refs.map(r => ({ type: 'ref', no: r.no, hook: r.hook, cat: r.category, len: r.length, fmt: r.format, kw: r.keywords, own: r.own, sub: r.sub, script: r.script }));
+  const skName = id => (D.skeletons.find(s => s.id === id) || {}).name || '';
+  const refs = D.refs.map(r => ({ type: 'ref', no: r.no, hook: r.hook, cat: r.category, len: r.length, fmt: r.format, skel: r.skeleton, skelName: skName(r.skeleton), kw: r.keywords, own: r.own, sub: r.sub, script: r.script }));
   const hooks = D.hookBank.concat(plCustomHooks || []).map((h, i) => ({ type: 'hook', no: h.id, hNo: 'H' + (i + 1), hook: h.hook, cat: '', len: '', fmt: '', kw: [], pattern: h.pattern || '', template: h.template || '' }));
   return hooks.concat(refs);
 }
@@ -7835,9 +7839,9 @@ function plRenderLib() {
       </div>
       <div class="flex flex-wrap gap-1.5 mb-3">
         <input type="text" id="pl-lib-q" class="flex-1 min-w-[130px] px-3 py-2 border border-botanical-stone rounded-lg text-sm bg-white" placeholder="키워드 검색" oninput="plLibList()">
-        <select id="pl-lib-fmt" class="px-2 py-2 border border-botanical-stone rounded-lg text-xs bg-white" onchange="plLibList()">
-          <option value="">포맷 전체</option>
-          ${D.formats.map(f => `<option>${f.name}</option>`).join('')}
+        <select id="pl-lib-skel" class="px-2 py-2 border border-botanical-stone rounded-lg text-xs bg-white" onchange="plLibList()">
+          <option value="">골격 전체</option>
+          ${D.skeletons.map(s => `<option value="${s.id}">${s.name}</option>`).join('')}
         </select>
         <select id="pl-lib-cat" class="px-2 py-2 border border-botanical-stone rounded-lg text-xs bg-white" onchange="plLibList()">
           <option value="">카테고리 전체</option>
@@ -7859,27 +7863,27 @@ function plSetLibView(v, btn) {
   });
   // 훅 뷰에서는 포맷·카테고리 필터 숨김 (훅에는 해당 없음)
   const hide = v === 'hook';
-  document.getElementById('pl-lib-fmt').classList.toggle('hidden', hide);
+  document.getElementById('pl-lib-skel').classList.toggle('hidden', hide);
   document.getElementById('pl-lib-cat').classList.toggle('hidden', hide);
   plLibList();
 }
 function plLibReset() {
   document.getElementById('pl-lib-q').value = '';
-  document.getElementById('pl-lib-fmt').value = '';
+  document.getElementById('pl-lib-skel').value = '';
   document.getElementById('pl-lib-cat').value = '';
   plLibList();
 }
 function plLibList() {
   const D = PLANNING_DATA;
   const q = document.getElementById('pl-lib-q').value.trim();
-  const fmt = document.getElementById('pl-lib-fmt').value;
+  const skel = document.getElementById('pl-lib-skel').value;
   const cat = document.getElementById('pl-lib-cat').value;
   const view = plSel.libView || 'all';
   let list = plLibEntries();
   if (view === 'hook') list = list.filter(e => e.type === 'hook');
   else if (view === 'ref') list = list.filter(e => e.type === 'ref');
   if (view !== 'hook') {
-    if (fmt) { const f = D.formats.find(x => x.name === fmt); if (f) list = list.filter(e => e.type === 'hook' ? false : f.refs.includes(e.no)); }
+    if (skel) list = list.filter(e => e.type === 'hook' ? false : e.skel === skel);
     if (cat) list = list.filter(e => e.type === 'hook' || e.cat === cat);
   }
   if (q) list = list.filter(e => e.hook.includes(q) || (e.kw || []).some(k => k.includes(q)) || (e.script || '').includes(q));
@@ -7888,7 +7892,7 @@ function plLibList() {
     <div class="py-3 cursor-pointer hover:bg-botanical-cream/40 transition-all" onclick="plOpenDetail('${e.type}','${e.no}')">
       <div class="text-sm leading-snug">${e.hook}</div>
       <div class="mt-1.5">
-        ${e.type === 'hook' ? tag(e.hNo + ' · 훅만', 'text-botanical-terracotta font-bold') + (e.pattern ? `<span class="text-[10px] text-botanical-sage">${e.pattern.split('(')[0].trim()}</span>` : '') : tag(e.cat) + (e.own ? tag('★유디트', 'text-botanical-terracotta font-bold') : '') + (e.sub ? tag('자막만') : '') + `<span class="text-[10px] text-botanical-sage">${(e.fmt || '').split('(')[0].trim()}</span>`}
+        ${e.type === 'hook' ? tag(e.hNo + ' · 훅만', 'text-botanical-terracotta font-bold') + (e.pattern ? `<span class="text-[10px] text-botanical-sage">${e.pattern.split('(')[0].trim()}</span>` : '') : tag(e.cat) + (e.own ? tag('★유디트', 'text-botanical-terracotta font-bold') : '') + (e.sub ? tag('자막만') : '') + `<span class="text-[10px] text-botanical-sage">${e.skelName || ''}</span>`}
       </div>
     </div>`).join('') || '<div class="py-8 text-center text-sm text-botanical-sage">검색 결과 없음</div>';
 }
