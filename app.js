@@ -7475,7 +7475,7 @@ function editCategoryGoal(category) {
 
 // ========== Planning Tab (기획) ==========
 // 데이터: data/planning_data.js (PLANNING_DATA) — 레퍼 50개 분석 기반
-let plSel = { len: '30초 이내', cta: '포함', purpose: 'info', prod: 'speak', section: 'gen' };
+let plSel = { len: '30초 내외', purpose: 'info', prod: 'speak', section: 'gen' };
 let plLastCombo = null; // 이번 생성의 포맷·훅 조합 (미리보기·임시저장용)
 let plCustomHooks = null; // Supabase에서 로드 (planning_hooks)
 
@@ -7566,10 +7566,6 @@ function plRenderGen() {
       <div class="flex flex-wrap gap-1.5" id="pl-len">
         ${D.lengths.map(l => `<button onclick="plPick('len','${l}',this);plSaveState()" class="pl-pill-len px-3 py-1.5 rounded-full text-xs border ${l === plSel.len ? 'bg-botanical-terracotta border-botanical-terracotta text-white font-bold' : 'border-botanical-stone text-botanical-sage'}">${l}</button>`).join('')}
       </div>
-      <label class="block text-xs text-botanical-sage mb-1 mt-3">CTA</label>
-      <div class="flex flex-wrap gap-1.5" id="pl-cta">
-        ${D.ctaModes.map(c => `<button onclick="plPick('cta','${c}',this);plSaveState()" class="pl-pill-cta px-3 py-1.5 rounded-full text-xs border ${c === plSel.cta ? 'bg-botanical-terracotta border-botanical-terracotta text-white font-bold' : 'border-botanical-stone text-botanical-sage'}">${c}</button>`).join('')}
-      </div>
       <label class="block text-xs text-botanical-sage mb-1 mt-3">연출 <span class="text-botanical-stone">(기본 발표형)</span></label>
       <div class="flex flex-wrap gap-1.5" id="pl-prod">
         ${D.productionOptions.map(p => `<button onclick="plPick('prod','${p.id}',this);plSaveState()" class="pl-pill-prod px-3 py-1.5 rounded-full text-xs border ${p.id === plSel.prod ? 'bg-botanical-terracotta border-botanical-terracotta text-white font-bold' : 'border-botanical-stone text-botanical-sage'}" title="${p.desc}">${p.name}</button>`).join('')}
@@ -7643,9 +7639,11 @@ function plBuildPrompt() {
   const sSel = document.getElementById('pl-skel').value;
   const skel = sSel ? D.skeletons.find(s => s.id === sSel) : rand(D.skeletons);
   const purpDef = D.purposes.find(p => p.id === plSel.purpose);
+  // CTA는 목적에서 자동 결정 (정보·저장형 → 포함 / 공감·소통형 → 미포함)
+  const cta = plSel.purpose === 'info' ? '포함' : '미포함';
   // 진입: 골격 ∩ 목적 유효진입 교집합, CTA 미포함이면 빈칸 제외
   let valid = skel.validEntry.filter(e => purpDef.validEntry.includes(e));
-  if (plSel.cta === '미포함') valid = valid.filter(e => e !== 'blank');
+  if (cta === '미포함') valid = valid.filter(e => e !== 'blank');
   if (!valid.length) valid = skel.validEntry.slice();
   const entry = rand(valid);
   const entryDef = D.entries.find(e => e.id === entry);
@@ -7664,18 +7662,21 @@ function plBuildPrompt() {
   plLastCombo = {
     skelName: skel.name + (curveDef ? ' · ' + curveDef.name : ''),
     struct: struct, entry: entryDef.name, purpose: purpDef.name,
-    cta: plSel.cta, prod: plSel.prod, hooks: hooks.map(h => h.hook)
+    cta: cta, prod: plSel.prod, hooks: hooks.map(h => h.hook)
   };
   const gateLabel = plSel.purpose === 'empathy' ? '공감 게이트' : '성과 게이트';
   const gateBody = plSel.purpose === 'empathy'
     ? `  - 다음이 다 있나: (a) 타겟이 "내 얘기네" 할 공감 상황  (b) 통념을 깨거나 다시 정의하는 나만의 인사이트 한 줄  (c) 솔직한 감정(고백·자책·다독임)\n  - 각 항목 ○/△/✕ + 한 줄 근거. (b)가 약하면 → ⚠️경고 + 끌어낼 관점 1~2개 제안 후 그 버전으로.\n  - ※ 정보·실물 없어도 됨. 인사이트와 감정이 핵심. 꿀팁 나열로 빠지지 말 것.`
     : `  - 무기 점검(최소 1개): (a) 유디트 실제 경험·선택  (b) 남들 모르는 디테일/실물(표·순서)  (c) 타겟의 진짜 통증\n  - 각 항목 ○/△/✕ + 한 줄 근거. 셋 다 약하면 → ⚠️경고 + 이 계정에 맞게 트는 각도 1~2개 제안 후 통과 버전으로.\n  - ※ 경험 없어도 (b)나 (c)가 강하면 통과. 단 '남들 모르는 디테일'은 반드시.`;
-  const ctaBlock = plSel.cta === '포함'
-    ? `[CTA — 포함]\n이 골격·목적에 맞는 CTA 1개를 설계하라 (빈칸 진입 → 댓글 키워드로 자료 배포 / 정보 완결 → 저장 / 공감 → 참여 질문). 1차 행동은 단 하나만 요구한다.`
+  const ctaBlock = cta === '포함'
+    ? `[CTA — 포함]\n이 골격·목적에 맞는 CTA 1개를 설계하라 (빈칸 진입 → 댓글 키워드로 자료 배포 / 정보 완결 → 저장). 1차 행동은 단 하나만 요구한다.`
     : `[CTA — 미포함]\n행동을 요구하지 말 것. 슬로건·선언 또는 정답 없는 질문으로 담백하게 마무리한다.`;
   const prodBlock = plSel.prod === 'dialogue'
-    ? `[연출 — 대화형]\n혼자 설명하지 말고, 두 사람(부부/동료)이 주고받는 대화 장면으로 구성하라. 대사를 화자별로 분리해서 작성.\n`
-    : '';
+    ? `[연출 — 대화형]\n두 사람이 주고받는 대화 장면으로 구성하라. 기본은 부부 대화, 주제상 더 맞으면 동료·가족 대화도 OK. 대사를 화자별로 분리.\n※ 진행자 얼굴은 화면에 안 나옴 — 음성·자막·보조 화면으로 표현.\n`
+    : `[연출 — 발표형]\n진행자 얼굴 없이 음성 내레이션 + 화면(보조 영상·자막)으로 구성. 각 단계 화면 메모를 충실히 작성.\n`;
+  const lenGuide = plSel.len === '15초 이내'
+    ? '15초 이내 — 훅+핵심만, 군더더기 제거'
+    : '30초 내외 — 30초 목표, 내용 많으면 40초까지 OK, 1분은 절대 넘기지 말 것';
   const bodyLine = `[${struct.split(' → ').join('] → [')}]`;
   return `너는 인스타그램 릴스 기획 에이전트다. 아래 [계정 컨텍스트]와 [기획 원칙]을 철저히 지키며, 주어진 주제로 릴스 대본을 기획하라.
 
@@ -7704,7 +7705,7 @@ ${hooks.map((h, i) => `${i + 1}. ${h.tmpl}\n   (원형: ${h.hook})`).join('\n')}
 
 ${ctaBlock}
 ${prodBlock}[이번 기획 조건]
-- 길이: ${plSel.len} — 골격 단계를 이 길이에 맞게 배분
+- 길이: ${lenGuide}
 - 주제: ${topic}
 - 내 실제 경험·에피소드: ${exp || '(입력 없음 — 경험이 들어가면 좋을 자리를 [경험 자리: ~~] 형태로 표시만 하고, 억지로 지어내지 말 것)'}
 
@@ -7762,7 +7763,7 @@ function plSaveState() {
       skel: document.getElementById('pl-skel').value,
       topic: document.getElementById('pl-topic').value,
       exp: document.getElementById('pl-exp') ? document.getElementById('pl-exp').value : '',
-      len: plSel.len, cta: plSel.cta, purpose: plSel.purpose, prod: plSel.prod,
+      len: plSel.len, purpose: plSel.purpose, prod: plSel.prod,
       prompt: document.getElementById('pl-out') ? document.getElementById('pl-out').textContent : '',
       combo: plLastCombo
     };
@@ -7778,14 +7779,13 @@ function plRestoreState() {
   set('pl-cat', st.cat); set('pl-pos', st.pos); set('pl-tar', st.tar); set('pl-msg', st.msg);
   set('pl-skel', st.skel); set('pl-topic', st.topic); set('pl-exp', st.exp);
   if (st.len) plSel.len = st.len;
-  if (st.cta) plSel.cta = st.cta;
   if (st.purpose) plSel.purpose = st.purpose;
   if (st.prod) plSel.prod = st.prod;
   // 알약 활성 복원 (textContent 매칭 — purpose/prod는 표시 이름으로)
   const pp = (D.purposes.find(p => p.id === plSel.purpose) || {}).name;
   const pd = (D.productionOptions.find(p => p.id === plSel.prod) || {}).name;
-  const labelOf = { len: plSel.len, cta: plSel.cta, purpose: pp, prod: pd };
-  ['len', 'cta', 'purpose', 'prod'].forEach(kind => {
+  const labelOf = { len: plSel.len, purpose: pp, prod: pd };
+  ['len', 'purpose', 'prod'].forEach(kind => {
     document.querySelectorAll('.pl-pill-' + kind).forEach(b => {
       const on = b.textContent === labelOf[kind];
       b.className = b.className.replace(/bg-botanical-terracotta border-botanical-terracotta text-white font-bold|border-botanical-stone text-botanical-sage/g, on ? 'bg-botanical-terracotta border-botanical-terracotta text-white font-bold' : 'border-botanical-stone text-botanical-sage');
@@ -7802,7 +7802,7 @@ function plResetGen() {
   if (!confirm('작성한 내용과 생성된 프롬프트를 모두 비울까요?')) return;
   localStorage.removeItem('yudit_planning_draft');
   plLastCombo = null;
-  plSel.len = '30초 이내'; plSel.cta = '포함'; plSel.purpose = 'info'; plSel.prod = 'speak';
+  plSel.len = '30초 내외'; plSel.purpose = 'info'; plSel.prod = 'speak';
   plRenderGen();
   document.getElementById('pl-out-card').classList.add('hidden');
   plToast('초기화 완료');
