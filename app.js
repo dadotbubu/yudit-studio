@@ -7778,7 +7778,7 @@ function plRestoreState() {
   const set = (id, v) => { const el = document.getElementById(id); if (el != null && v != null) el.value = v; };
   set('pl-cat', st.cat); set('pl-pos', st.pos); set('pl-tar', st.tar); set('pl-msg', st.msg);
   set('pl-skel', st.skel); set('pl-topic', st.topic); set('pl-exp', st.exp);
-  if (st.len) plSel.len = st.len;
+  if (st.len && D.lengths.includes(st.len)) plSel.len = st.len; // 옛 길이값('30초 이내' 등)은 무시 → 기본 '30초 내외' 유지
   if (st.purpose) plSel.purpose = st.purpose;
   if (st.prod) plSel.prod = st.prod;
   // 알약 활성 복원 (textContent 매칭 — purpose/prod는 표시 이름으로)
