@@ -7549,8 +7549,6 @@ function plRenderGen() {
       <input type="text" id="pl-tar" class="${PL_INPUT_CLS}" oninput="plSaveState()">
       <label class="block text-xs text-botanical-sage mb-1 mt-3">핵심 메시지</label>
       <input type="text" id="pl-msg" class="${PL_INPUT_CLS}" oninput="plSaveState()">
-      <label class="block text-xs text-botanical-sage mb-1 mt-3">톤 보이스</label>
-      <select id="pl-tone" class="${PL_INPUT_CLS}" onchange="plSaveState()">${D.tones.map(t => `<option>${t}</option>`).join('')}</select>
     </div>
 
     <div class="bg-white rounded-2xl p-5 shadow-sm mb-4">
@@ -7638,7 +7636,6 @@ function plBuildPrompt() {
   const D = PLANNING_DATA;
   const cat = document.getElementById('pl-cat').value;
   const pos = document.getElementById('pl-pos').value, tar = document.getElementById('pl-tar').value, msg = document.getElementById('pl-msg').value;
-  const tone = document.getElementById('pl-tone').value;
   const topic = (document.getElementById('pl-topic').value || '').trim() || '(주제 입력)';
   const exp = (document.getElementById('pl-exp') ? document.getElementById('pl-exp').value : '').trim();
   const rand = a => a[Math.floor(Math.random() * a.length)];
@@ -7687,7 +7684,6 @@ function plBuildPrompt() {
 - 포지셔닝: ${pos}
 - 핵심 메시지: ${msg}
 - 타겟 독자: ${tar}
-- 톤 보이스: ${tone}
 
 [기획 원칙 — 절대 규칙]
 ${D.fixedRules.map((r, i) => `${i + 1}. ${r}`).join('\n')}
@@ -7763,7 +7759,6 @@ function plSaveState() {
       pos: document.getElementById('pl-pos').value,
       tar: document.getElementById('pl-tar').value,
       msg: document.getElementById('pl-msg').value,
-      tone: document.getElementById('pl-tone').value,
       skel: document.getElementById('pl-skel').value,
       topic: document.getElementById('pl-topic').value,
       exp: document.getElementById('pl-exp') ? document.getElementById('pl-exp').value : '',
@@ -7781,7 +7776,7 @@ function plRestoreState() {
   if (!st) return;
   const set = (id, v) => { const el = document.getElementById(id); if (el != null && v != null) el.value = v; };
   set('pl-cat', st.cat); set('pl-pos', st.pos); set('pl-tar', st.tar); set('pl-msg', st.msg);
-  set('pl-tone', st.tone); set('pl-skel', st.skel); set('pl-topic', st.topic); set('pl-exp', st.exp);
+  set('pl-skel', st.skel); set('pl-topic', st.topic); set('pl-exp', st.exp);
   if (st.len) plSel.len = st.len;
   if (st.cta) plSel.cta = st.cta;
   if (st.purpose) plSel.purpose = st.purpose;
