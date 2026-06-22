@@ -7727,6 +7727,8 @@ function plRenderPreview() {
   const el = document.getElementById('pl-preview');
   if (!el || !plLastCombo) return;
   const c = plLastCombo;
+  // 옛 형식(fmtName) 기록이면 — 새로 생성하라고 안내 (구조 깨짐 방지)
+  if (!c.skelName) { el.innerHTML = `<p class="text-[11px] text-botanical-sage">「기획 프롬프트 생성하기」를 누르면 이번 앵글이 여기 표시돼요</p>`; return; }
   const chip = (t) => `<span class="inline-block px-2 py-0.5 rounded-full bg-white border border-botanical-stone text-[10px] text-botanical-sage mr-1">${t}</span>`;
   el.innerHTML = `
     <p class="text-[11px] text-botanical-sage mb-1.5">이번 앵글 — 마음에 들 때까지 🎲 돌려보고 복사하세요</p>
