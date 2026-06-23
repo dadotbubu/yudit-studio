@@ -7533,6 +7533,14 @@ function plSwitchSection(sec) {
 const PL_INPUT_CLS = 'w-full px-3 py-2 border border-botanical-stone rounded-lg text-sm bg-white focus:outline-none focus:border-botanical-sage';
 function plRenderGen() {
   const D = PLANNING_DATA;
+  const outBlock = (n) => `
+      <div class="flex gap-1.5 mb-2 mt-3">
+        <button onclick="plCopy('pl-out${n}')" class="flex-1 py-2 rounded-lg text-xs border border-botanical-terracotta text-botanical-terracotta font-bold">📋 복사</button>
+        <button onclick="plOpenExt('https://claude.ai/new')" class="flex-1 py-2 rounded-lg text-xs border border-botanical-stone text-botanical-fg">Claude</button>
+        <button onclick="plOpenExt('https://chatgpt.com')" class="flex-1 py-2 rounded-lg text-xs border border-botanical-stone text-botanical-fg">GPT</button>
+        <button onclick="plOpenExt('https://gemini.google.com/app')" class="flex-1 py-2 rounded-lg text-xs border border-botanical-stone text-botanical-fg">제미나이</button>
+      </div>
+      <div id="pl-out${n}" class="whitespace-pre-wrap bg-botanical-cream/50 border border-botanical-stone rounded-xl p-4 text-xs leading-relaxed max-h-[340px] overflow-auto"></div>`;
   document.getElementById('pl-sec-gen').innerHTML = `
     <div class="bg-white rounded-2xl p-5 shadow-sm mb-4">
       <div class="flex items-center justify-between mb-3">
@@ -7552,16 +7560,30 @@ function plRenderGen() {
     </div>
 
     <div class="bg-white rounded-2xl p-5 shadow-sm mb-4">
-      <h3 class="font-medium text-sm mb-3">콘텐츠 설정</h3>
-      <label class="block text-xs text-botanical-sage mb-1">골격 (본문 전개)</label>
-      <select id="pl-skel" class="${PL_INPUT_CLS}" onchange="plSaveState()">
-        <option value="">🎲 전체 랜덤 (추천)</option>
-        ${D.skeletons.map(s => `<option value="${s.id}">${s.name} — ${s.body}</option>`).join('')}
-      </select>
-      <label class="block text-xs text-botanical-sage mb-1 mt-3">목적</label>
+      <div class="flex items-center gap-2 mb-1"><span class="w-5 h-5 rounded-full bg-botanical-terracotta text-white text-[11px] font-bold flex items-center justify-center">1</span><h3 class="font-medium text-sm">훅 · 표지 뽑기</h3></div>
+      <p class="text-[11px] text-botanical-sage mb-3">주제 넣고 프롬프트 복사 → AI가 앵글별 표지+훅 8세트. 맘에 드는 1세트 골라 2단계로.</p>
+      <label class="block text-xs text-botanical-sage mb-1">목적</label>
       <div class="flex flex-wrap gap-1.5" id="pl-purpose">
         ${D.purposes.map(p => `<button onclick="plPick('purpose','${p.id}',this);plSaveState()" class="pl-pill-purpose px-3 py-1.5 rounded-full text-xs border ${p.id === plSel.purpose ? 'bg-botanical-terracotta border-botanical-terracotta text-white font-bold' : 'border-botanical-stone text-botanical-sage'}">${p.name}</button>`).join('')}
       </div>
+      <label class="block text-xs text-botanical-sage mb-1 mt-3">주제</label>
+      <textarea id="pl-topic" rows="2" class="${PL_INPUT_CLS}" placeholder="예: 통장 쪼개기 / 신혼 가전 싸게 사는 법" oninput="plSaveState()"></textarea>
+      <button onclick="plGenHook()" class="w-full py-3 bg-botanical-fg text-white rounded-xl text-sm font-bold mt-4 hover:opacity-90 transition-all">① 훅·표지 프롬프트 생성</button>
+      <div id="pl-out1-card" class="hidden">${outBlock(1)}</div>
+    </div>
+
+    <div class="bg-white rounded-2xl p-5 shadow-sm mb-4">
+      <div class="flex items-center gap-2 mb-1"><span class="w-5 h-5 rounded-full bg-botanical-terracotta text-white text-[11px] font-bold flex items-center justify-center">2</span><h3 class="font-medium text-sm">대본 뽑기</h3></div>
+      <p class="text-[11px] text-botanical-sage mb-3">1단계서 고른 표지·훅을 붙여넣고 대본 프롬프트 추출.</p>
+      <label class="block text-xs text-botanical-sage mb-1">확정 표지</label>
+      <input type="text" id="pl-cover" class="${PL_INPUT_CLS}" placeholder="고른 표지 붙여넣기" oninput="plSaveState()">
+      <label class="block text-xs text-botanical-sage mb-1 mt-3">확정 훅</label>
+      <input type="text" id="pl-hook" class="${PL_INPUT_CLS}" placeholder="고른 훅 붙여넣기" oninput="plSaveState()">
+      <label class="block text-xs text-botanical-sage mb-1 mt-3">골격 <span class="text-botanical-stone">(반전·금지·공감→주장 / 숫자·아이템→나열 / 의외고백→서사)</span></label>
+      <select id="pl-skel" class="${PL_INPUT_CLS}" onchange="plSaveState()">
+        <option value="">🎲 전체 랜덤</option>
+        ${D.skeletons.map(s => `<option value="${s.id}">${s.name} — ${s.body}</option>`).join('')}
+      </select>
       <label class="block text-xs text-botanical-sage mb-1 mt-3">길이</label>
       <div class="flex flex-wrap gap-1.5" id="pl-len">
         ${D.lengths.map(l => `<button onclick="plPick('len','${l}',this);plSaveState()" class="pl-pill-len px-3 py-1.5 rounded-full text-xs border ${l === plSel.len ? 'bg-botanical-terracotta border-botanical-terracotta text-white font-bold' : 'border-botanical-stone text-botanical-sage'}">${l}</button>`).join('')}
@@ -7570,27 +7592,10 @@ function plRenderGen() {
       <div class="flex flex-wrap gap-1.5" id="pl-prod">
         ${D.productionOptions.map(p => `<button onclick="plPick('prod','${p.id}',this);plSaveState()" class="pl-pill-prod px-3 py-1.5 rounded-full text-xs border ${p.id === plSel.prod ? 'bg-botanical-terracotta border-botanical-terracotta text-white font-bold' : 'border-botanical-stone text-botanical-sage'}" title="${p.desc}">${p.name}</button>`).join('')}
       </div>
-      <label class="block text-xs text-botanical-sage mb-1 mt-3">주제</label>
-      <textarea id="pl-topic" rows="2" class="${PL_INPUT_CLS}" placeholder="예: 연말정산 환급 더 받는 법 / 신혼 가전 싸게 사는 순서" oninput="plSaveState()"></textarea>
-      <label class="block text-xs text-botanical-sage mb-1 mt-3">내 경험·에피소드 <span class="text-botanical-stone">(선택 — 있으면 훨씬 강해져요)</span></label>
-      <textarea id="pl-exp" rows="2" class="${PL_INPUT_CLS}" placeholder="예: 결혼기념일에 산 거, 처음엔 제일 비싼 색 골랐다 후회 / 비워두면 AI가 알아서 채워요" oninput="plSaveState()"></textarea>
-      <button onclick="plGen()" class="w-full py-3 bg-botanical-fg text-white rounded-xl text-sm font-bold mt-4 hover:opacity-90 transition-all">기획 프롬프트 생성하기</button>
-      <p class="text-[11px] text-botanical-sage text-center mt-2">생성할 때마다 훅 템플릿 조합이 바뀌어 매번 다른 기획이 나와요</p>
-    </div>
-
-    <div class="bg-white rounded-2xl p-5 shadow-sm mb-4 hidden" id="pl-out-card">
-      <h3 class="font-medium text-sm mb-3">완성된 기획 프롬프트</h3>
-      <div id="pl-preview" class="bg-botanical-sage/10 rounded-xl p-3 mb-3"></div>
-      <div class="flex gap-1.5 mb-3">
-        <button onclick="plReroll()" class="flex-1 py-2 rounded-lg text-xs border border-botanical-terracotta text-botanical-terracotta font-bold">🎲 다른 앵글로</button>
-        <button onclick="plCopy()" class="flex-1 py-2 rounded-lg text-xs border border-botanical-terracotta text-botanical-terracotta font-bold">📋 복사</button>
-      </div>
-      <div class="flex gap-1.5 mb-3">
-        <button onclick="plOpenExt('https://claude.ai/new')" class="flex-1 py-2 rounded-lg text-xs border border-botanical-stone text-botanical-fg">Claude</button>
-        <button onclick="plOpenExt('https://chatgpt.com')" class="flex-1 py-2 rounded-lg text-xs border border-botanical-stone text-botanical-fg">ChatGPT</button>
-        <button onclick="plOpenExt('https://gemini.google.com/app')" class="flex-1 py-2 rounded-lg text-xs border border-botanical-stone text-botanical-fg">제미나이</button>
-      </div>
-      <div id="pl-out" class="whitespace-pre-wrap bg-botanical-cream/50 border border-botanical-stone rounded-xl p-4 text-xs leading-relaxed max-h-[380px] overflow-auto"></div>
+      <label class="block text-xs text-botanical-sage mb-1 mt-3">내 경험·에피소드 <span class="text-botanical-stone">(선택)</span></label>
+      <textarea id="pl-exp" rows="2" class="${PL_INPUT_CLS}" placeholder="비워두면 AI가 자리만 표시해요" oninput="plSaveState()"></textarea>
+      <button onclick="plGenScript()" class="w-full py-3 bg-botanical-fg text-white rounded-xl text-sm font-bold mt-4 hover:opacity-90 transition-all">② 대본 프롬프트 생성</button>
+      <div id="pl-out2-card" class="hidden">${outBlock(2)}</div>
     </div>
   `;
   plFillPreset();
@@ -7628,144 +7633,143 @@ function plPickHooks(entry, purpose, n) {
   for (const h of pool) { if (seen.has(h.src)) continue; seen.add(h.src); out.push(h); if (out.length >= n) break; }
   return out;
 }
-function plBuildPrompt() {
+// ===== 1단계: 훅·표지 프롬프트 =====
+function plBuildHookPrompt() {
   const D = PLANNING_DATA;
   const cat = document.getElementById('pl-cat').value;
   const pos = document.getElementById('pl-pos').value, tar = document.getElementById('pl-tar').value, msg = document.getElementById('pl-msg').value;
   const topic = (document.getElementById('pl-topic').value || '').trim() || '(주제 입력)';
-  const exp = (document.getElementById('pl-exp') ? document.getElementById('pl-exp').value : '').trim();
-  const rand = a => a[Math.floor(Math.random() * a.length)];
-  // 골격 결정 (지정 or 전체 랜덤)
-  const sSel = document.getElementById('pl-skel').value;
-  const skel = sSel ? D.skeletons.find(s => s.id === sSel) : rand(D.skeletons);
   const purpDef = D.purposes.find(p => p.id === plSel.purpose);
-  // CTA는 목적에서 자동 결정 (정보·저장형 → 포함 / 공감·소통형 → 미포함)
-  const cta = plSel.purpose === 'info' ? '포함' : '미포함';
-  // 진입: 골격 ∩ 목적 유효진입 교집합, CTA 미포함이면 빈칸 제외
-  let valid = skel.validEntry.filter(e => purpDef.validEntry.includes(e));
-  if (cta === '미포함') valid = valid.filter(e => e !== 'blank');
-  if (!valid.length) valid = skel.validEntry.slice();
-  const entry = rand(valid);
-  const entryDef = D.entries.find(e => e.id === entry);
-  // 서사형이면 곡선 랜덤
-  const curveDef = (skel.id === 'story' && skel.curves) ? rand(skel.curves) : null;
-  const struct = curveDef ? curveDef.structure : skel.structure;
-  // 훅 3안 (진입+목적 풀)
-  const hooks = plPickHooks(entry, plSel.purpose, 3);
-  // 같은 골격 검증 사례 3개 + 터진 이유 1줄
-  const exRefs = D.refs.filter(r => r.skeleton === skel.id).sort(() => Math.random() - 0.5).slice(0, 3);
+  // 같은 목적 레퍼 훅 5개 + 터진 이유 (원리 학습용)
+  const exRefs = D.refs.filter(r => r.purpose === plSel.purpose && r.viral).sort(() => Math.random() - 0.5).slice(0, 5);
   const refEx = exRefs.map(r => {
-    const why = (r.viral || '').split('\n').filter(Boolean).slice(0, 1).join('');
-    return `  · 훅: ${r.hook}${why ? '\n    터진 이유: ' + why : ''}`;
+    const why = (r.viral || '').split('\n').filter(Boolean)[0] || '';
+    return `  · ${r.hook}${why ? '\n    → ' + why : ''}`;
   }).join('\n');
-  // 미리보기용
-  plLastCombo = {
-    skelName: skel.name + (curveDef ? ' · ' + curveDef.name : ''),
-    struct: struct, entry: entryDef.name, purpose: purpDef.name,
-    cta: cta, prod: plSel.prod, hooks: hooks.map(h => h.hook)
-  };
-  const gateLabel = plSel.purpose === 'empathy' ? '공감 게이트' : '성과 게이트';
+  const angles = D.hookAngles.map((a, i) => `${i + 1}. ${a.name} — ${a.desc}`).join('\n');
   const gateBody = plSel.purpose === 'empathy'
-    ? `  - 다음이 다 있나: (a) 타겟이 "내 얘기네" 할 공감 상황  (b) 통념을 깨거나 다시 정의하는 나만의 인사이트 한 줄  (c) 솔직한 감정(고백·자책·다독임)\n  - 각 항목 ○/△/✕ + 한 줄 근거. (b)가 약하면 → ⚠️경고 + 끌어낼 관점 1~2개 제안 후 그 버전으로.\n  - ※ 정보·실물 없어도 됨. 인사이트와 감정이 핵심. 꿀팁 나열로 빠지지 말 것.`
-    : `  - 무기 점검(최소 1개): (a) 유디트 실제 경험·선택  (b) 남들 모르는 디테일/실물(표·순서)  (c) 타겟의 진짜 통증\n  - 각 항목 ○/△/✕ + 한 줄 근거. 셋 다 약하면 → ⚠️경고 + 이 계정에 맞게 트는 각도 1~2개 제안 후 통과 버전으로.\n  - ※ 경험 없어도 (b)나 (c)가 강하면 통과. 단 '남들 모르는 디테일'은 반드시.`;
-  const ctaBlock = cta === '포함'
-    ? `[CTA — 포함]\n이 골격·목적에 맞는 CTA 1개를 설계하라 (빈칸 진입 → 댓글 키워드로 자료 배포 / 정보 완결 → 저장). 1차 행동은 단 하나만 요구한다.`
-    : `[CTA — 미포함]\n행동을 요구하지 말 것. 슬로건·선언 또는 정답 없는 질문으로 담백하게 마무리한다.`;
-  const prodBlock = plSel.prod === 'dialogue'
-    ? `[연출 — 대화형]\n두 사람이 주고받는 대화 장면으로 구성하라. 기본은 부부 대화, 주제상 더 맞으면 동료·가족 대화도 OK. 대사를 화자별로 분리.\n※ 진행자 얼굴은 화면에 안 나옴 — 음성·자막·보조 화면으로 표현.\n`
-    : `[연출 — 발표형]\n진행자 얼굴 없이 음성 내레이션 + 화면(보조 영상·자막)으로 구성. 각 단계 화면 메모를 충실히 작성.\n`;
-  const lenGuide = plSel.len === '15초 이내'
-    ? '15초 이내 — 훅+핵심만, 군더더기 제거'
-    : '30초 내외 — 30초 목표, 내용 많으면 40초까지 OK, 1분은 절대 넘기지 말 것';
-  const bodyLine = `[${struct.split(' → ').join('] → [')}]`;
-  return `너는 인스타그램 릴스 기획 에이전트다. 아래 [계정 컨텍스트]와 [기획 원칙]을 철저히 지키며, 주어진 주제로 릴스 대본을 기획하라.
+    ? '이 주제가 공감되고 곱씹게 만드나 (공감 상황 / 나만의 인사이트 / 솔직한 감정) — ○/△/✕ + 한 줄'
+    : '이 주제가 저장될 무기가 있나 (실제 경험 / 남들 모르는 디테일 / 진짜 통증) — ○/△/✕ + 한 줄';
+  return `너는 인스타그램 릴스 훅·표지 기획 에이전트다. 주어진 주제로 스크롤을 멈추게 하는 썸네일 표지와 첫 3초 훅을 앵글별로 창작하라.
 
-[계정 컨텍스트 — 모든 기획은 반드시 이 계정에 맞춘다]
+[계정 컨텍스트]
 - 카테고리: ${cat}
 - 포지셔닝: ${pos}
 - 핵심 메시지: ${msg}
 - 타겟 독자: ${tar}
 
+[주제] ${topic}
+[목적] ${purpDef.name}
+
+[검증된 레퍼가 왜 터졌나 — 원리만 배워라, 문장은 베끼지 말 것]
+${refEx}
+
+[훅 앵글 — 아래 기법들로 창작]
+${angles}
+※ 빈칸(궁금증: '이거/이렇게'로 핵심 가리기)은 어느 앵글에나 양념으로 얹어도 좋다.
+
+[표지 vs 훅 — 반드시 구분]
+- 표지: 눈으로 읽는 제목체(명사형 OK). 알맹이 필수 — 결과·숫자·리스트·대상·효용 중 하나 이상. 막연한 호기심 금지.
+- 훅: 입으로 말하는 대사체(구어체 ~해요/~거든요/~하세요/~하냐고요?). 제목형·명사 종결('~하는 것/~하는 법') 금지.
+
+[표지·훅 체크] 각각 [주제] + [권위 또는 타겟] + [얻을 이득]이 드러나는지. 이득은 호기심 형태로 가려도 되지만 '뭘 얻는지' 감은 잡혀야 한다.
+
+[카피 규칙] 참고 레퍼가 이번 주제와 다른 소재면 구조 치환·창작 둘 다 OK. 같은 소재면 치환 금지(카피), 반드시 창작. 유디트 말투·경험 녹이기.
+
+[출력]
+① 게이트 점검: ${gateBody}
+② 주제에 맞는 앵글로 표지+훅 8세트 (앵글명 표시):
+   [앵글] 표지: ___  /  훅: ___
+③ 마음에 안 들면 사용자가 "더" 또는 특정 앵글(예: "반전 더")을 말한다. 그때마다 앞서 낸 것과 겹치지 않게 계속 새로 창작하라.`;
+}
+
+// ===== 2단계: 대본 프롬프트 (확정 훅·표지 → 골격대로) =====
+function plBuildScriptPrompt() {
+  const D = PLANNING_DATA;
+  const cat = document.getElementById('pl-cat').value;
+  const pos = document.getElementById('pl-pos').value, tar = document.getElementById('pl-tar').value, msg = document.getElementById('pl-msg').value;
+  const topic = (document.getElementById('pl-topic').value || '').trim() || '(주제)';
+  const cover = (document.getElementById('pl-cover').value || '').trim();
+  const hook = (document.getElementById('pl-hook').value || '').trim();
+  const exp = (document.getElementById('pl-exp').value || '').trim();
+  const rand = a => a[Math.floor(Math.random() * a.length)];
+  const sSel = document.getElementById('pl-skel').value;
+  const skel = sSel ? D.skeletons.find(s => s.id === sSel) : rand(D.skeletons);
+  const curveDef = (skel.id === 'story' && skel.curves) ? rand(skel.curves) : null;
+  const struct = curveDef ? curveDef.structure : skel.structure;
+  const cta = plSel.purpose === 'info' ? '포함' : '미포함';
+  const lenGuide = plSel.len === '15초 이내'
+    ? '15초 이내 — 훅+핵심만, 군더더기 제거'
+    : '30초 내외 — 30초 목표, 내용 많으면 40초까지 OK, 1분은 절대 넘기지 말 것';
+  const ctaBlock = cta === '포함'
+    ? '골격·목적에 맞는 CTA 1개를 설계하라 (빈칸 시작 → 댓글 키워드로 자료 배포 / 정보 완결 → 저장). 1차 행동은 단 하나만.'
+    : '행동을 요구하지 말 것. 슬로건·선언 또는 정답 없는 질문으로 담백하게 마무리.';
+  const prodBlock = plSel.prod === 'dialogue'
+    ? '두 사람(부부/동료)이 주고받는 대화 장면으로 구성, 대사를 화자별로 분리. 진행자 얼굴 미노출 — 음성·자막·보조 화면.'
+    : '진행자 얼굴 없이 음성 내레이션 + 화면(보조 영상·자막)으로 구성. 화면 메모 충실히.';
+  const bodyLine = `[${struct.split(' → ').join('] → [')}]`;
+  const exRefs = D.refs.filter(r => r.skeleton === skel.id).sort(() => Math.random() - 0.5).slice(0, 2);
+  const refEx = exRefs.map(r => `  · ${r.hook}`).join('\n');
+  return `너는 인스타그램 릴스 대본 작가다. 아래 [확정된 훅·표지]를 시작점으로, [이번 골격] 구조의 대본을 완성하라. 훅·표지는 이미 정해졌으니 바꾸지 말 것.
+
+[계정 컨텍스트]
+- 카테고리: ${cat}
+- 포지셔닝: ${pos}
+- 핵심 메시지: ${msg}
+- 타겟 독자: ${tar}
+
+[확정 — 변경 금지]
+- 썸네일 표지: ${cover || '(1단계서 고른 표지 입력)'}
+- 첫 3초 훅: ${hook || '(1단계서 고른 훅 입력)'}
+
 [기획 원칙 — 절대 규칙]
 ${D.fixedRules.map((r, i) => `${i + 1}. ${r}`).join('\n')}
-${D.fixedRules.length + 1}. 금지: 자기계발 설교, 동기부여 명언, 외부 트렌드 단순 전달, 추상적 다짐으로 마무리
 
 [이번 골격 — ${skel.name}${curveDef ? ' · ' + curveDef.name : ''}]
 · 본문 전개: ${skel.body}
-· 골격(이 순서 그대로 따른다): ${struct}
-· 이 골격의 검증 사례 (구조 참고용 — 절대 그대로 쓰지 말 것):
+· 골격(이 순서 그대로): ${struct}
+· 같은 골격 검증 사례 (구조 참고):
 ${refEx}
 
-[진입 방식 — ${entryDef.name}]
-${entryDef.desc}. 훅(첫 3초)의 유일한 목적은 스크롤을 멈추게 하는 호기심·궁금증이다.
-아래 템플릿 3개 중 가장 주제에 맞는 1개를 골라 유디트 소재로 변형:
-${hooks.map((h, i) => `${i + 1}. ${h.tmpl}\n   (원형: ${h.hook})`).join('\n')}
+[CTA — ${cta}] ${ctaBlock}
+[연출] ${prodBlock}
+[길이] ${lenGuide}
 
-[목적 — ${purpDef.name}]  → 출력 ①에서 ${gateLabel} 적용
+[주제] ${topic}
+[내 경험] ${exp || '(없음 — 경험이 들어가면 좋을 자리를 [경험 자리: ~~] 형태로 표시만, 억지로 지어내지 말 것)'}
 
-${ctaBlock}
-${prodBlock}[이번 기획 조건]
-- 길이: ${lenGuide}
-- 주제: ${topic}
-- 내 실제 경험·에피소드: ${exp || '(입력 없음 — 경험이 들어가면 좋을 자리를 [경험 자리: ~~] 형태로 표시만 하고, 억지로 지어내지 말 것)'}
-
-[출력 — 이 순서로 작성]
-① ${gateLabel} (기획 전 자가 점검):
-${gateBody}
-② 썸네일 훅 (표지 카피) — ≤15자, 3안 (각각 다른 각도)
-③ 대본 훅 (첫 3초) — 위 진입 방식으로 3안 (각각 어떤 심리 장치인지 한 줄)
-④ 릴스 대본 — 위 [이번 골격]의 구조를 그대로 따라 작성:
+[출력 — 이 순서로]
+① 릴스 대본 — 확정 훅으로 시작, 위 골격 구조를 그대로 따라:
    ${bodyLine}
-   각 단계마다 대사 + 화면·B-roll 메모${plSel.prod === 'dialogue' ? ' (화자별 대사 분리)' : ''}
-⑤ 캡션 초안: 본문 + 해시태그 5개
-⑥ HUMAN CHECK: 유디트가 직접 확인·수정해야 할 포인트 2~3개 (경험·숫자 자리, 사실 확인 필요한 부분)`;
+   각 단계마다 대사 + 화면·보조영상 메모${plSel.prod === 'dialogue' ? ' (화자별 대사 분리)' : ''}
+② 캡션 초안: 본문 + 해시태그 5개
+③ HUMAN CHECK: 유디트가 직접 확인·수정할 포인트 2~3개 (경험·숫자 자리, 사실 확인 필요)`;
 }
-function plRenderPreview() {
-  const el = document.getElementById('pl-preview');
-  if (!el || !plLastCombo) return;
-  const c = plLastCombo;
-  // 옛 형식(fmtName) 기록이면 — 새로 생성하라고 안내 (구조 깨짐 방지)
-  if (!c.skelName) { el.innerHTML = `<p class="text-[11px] text-botanical-sage">「기획 프롬프트 생성하기」를 누르면 이번 앵글이 여기 표시돼요</p>`; return; }
-  const chip = (t) => `<span class="inline-block px-2 py-0.5 rounded-full bg-white border border-botanical-stone text-[10px] text-botanical-sage mr-1">${t}</span>`;
-  el.innerHTML = `
-    <p class="text-[11px] text-botanical-sage mb-1.5">이번 앵글 — 마음에 들 때까지 🎲 돌려보고 복사하세요</p>
-    <div class="text-xs mb-1"><span class="font-bold text-botanical-terracotta">${c.skelName}</span> <span class="text-botanical-sage">· ${c.purpose}</span></div>
-    <div class="text-[11px] text-botanical-fg bg-white/60 rounded-lg px-2 py-1.5 mb-1.5">골격: ${c.struct}</div>
-    <div class="mb-1.5">${chip('진입 ' + c.entry)}${chip('CTA ' + c.cta)}${c.prod === 'dialogue' ? chip('대화형') : ''}</div>
-    <p class="text-[10px] text-botanical-sage mb-0.5">훅 후보</p>
-    <ul class="text-xs text-botanical-fg space-y-0.5 list-disc list-inside">
-      ${c.hooks.map(h => `<li>${h}</li>`).join('')}
-    </ul>`;
-}
-function plGen() {
-  document.getElementById('pl-out-card').classList.remove('hidden');
-  document.getElementById('pl-out').textContent = plBuildPrompt();
-  plRenderPreview();
+
+function plGenHook() {
+  document.getElementById('pl-out1-card').classList.remove('hidden');
+  document.getElementById('pl-out1').textContent = plBuildHookPrompt();
   plSaveState();
-  document.getElementById('pl-out-card').scrollIntoView({ behavior: 'smooth' });
+  document.getElementById('pl-out1-card').scrollIntoView({ behavior: 'smooth' });
 }
-function plReroll() {
-  document.getElementById('pl-out').textContent = plBuildPrompt();
-  plRenderPreview();
+function plGenScript() {
+  document.getElementById('pl-out2-card').classList.remove('hidden');
+  document.getElementById('pl-out2').textContent = plBuildScriptPrompt();
   plSaveState();
-  plToast('🎲 새 앵글로 변경!');
+  document.getElementById('pl-out2-card').scrollIntoView({ behavior: 'smooth' });
 }
-function plCopy() { navigator.clipboard.writeText(document.getElementById('pl-out').textContent).then(() => plToast('복사 완료! AI에 붙여넣으세요')); }
+function plCopy(id) { navigator.clipboard.writeText(document.getElementById(id).textContent).then(() => plToast('복사 완료! AI에 붙여넣으세요')); }
 
 // ---------- 임시저장 / 초기화 ----------
 function plSaveState() {
   try {
+    const g = id => { const e = document.getElementById(id); return e ? e.value : ''; };
+    const o = id => { const e = document.getElementById(id); return e ? e.textContent : ''; };
     const st = {
-      cat: document.getElementById('pl-cat').value,
-      pos: document.getElementById('pl-pos').value,
-      tar: document.getElementById('pl-tar').value,
-      msg: document.getElementById('pl-msg').value,
-      skel: document.getElementById('pl-skel').value,
-      topic: document.getElementById('pl-topic').value,
-      exp: document.getElementById('pl-exp') ? document.getElementById('pl-exp').value : '',
-      len: plSel.len, purpose: plSel.purpose, prod: plSel.prod,
-      prompt: document.getElementById('pl-out') ? document.getElementById('pl-out').textContent : '',
-      combo: plLastCombo
+      cat: g('pl-cat'), pos: g('pl-pos'), tar: g('pl-tar'), msg: g('pl-msg'),
+      topic: g('pl-topic'), cover: g('pl-cover'), hook: g('pl-hook'), skel: g('pl-skel'), exp: g('pl-exp'),
+      purpose: plSel.purpose, len: plSel.len, prod: plSel.prod,
+      out1: o('pl-out1'), out2: o('pl-out2')
     };
     localStorage.setItem('yudit_planning_draft', JSON.stringify(st));
   } catch (e) {}
@@ -7777,34 +7781,29 @@ function plRestoreState() {
   if (!st) return;
   const set = (id, v) => { const el = document.getElementById(id); if (el != null && v != null) el.value = v; };
   set('pl-cat', st.cat); set('pl-pos', st.pos); set('pl-tar', st.tar); set('pl-msg', st.msg);
-  set('pl-skel', st.skel); set('pl-topic', st.topic); set('pl-exp', st.exp);
-  if (st.len && D.lengths.includes(st.len)) plSel.len = st.len; // 옛 길이값('30초 이내' 등)은 무시 → 기본 '30초 내외' 유지
+  set('pl-topic', st.topic); set('pl-cover', st.cover); set('pl-hook', st.hook); set('pl-skel', st.skel); set('pl-exp', st.exp);
   if (st.purpose) plSel.purpose = st.purpose;
+  if (st.len && D.lengths.includes(st.len)) plSel.len = st.len; // 옛 길이값은 무시 → 기본 '30초 내외'
   if (st.prod) plSel.prod = st.prod;
-  // 알약 활성 복원 (textContent 매칭 — purpose/prod는 표시 이름으로)
+  // 알약 활성 복원 (purpose/prod는 표시 이름으로 매칭)
   const pp = (D.purposes.find(p => p.id === plSel.purpose) || {}).name;
   const pd = (D.productionOptions.find(p => p.id === plSel.prod) || {}).name;
-  const labelOf = { len: plSel.len, purpose: pp, prod: pd };
-  ['len', 'purpose', 'prod'].forEach(kind => {
+  const labelOf = { purpose: pp, len: plSel.len, prod: pd };
+  ['purpose', 'len', 'prod'].forEach(kind => {
     document.querySelectorAll('.pl-pill-' + kind).forEach(b => {
       const on = b.textContent === labelOf[kind];
       b.className = b.className.replace(/bg-botanical-terracotta border-botanical-terracotta text-white font-bold|border-botanical-stone text-botanical-sage/g, on ? 'bg-botanical-terracotta border-botanical-terracotta text-white font-bold' : 'border-botanical-stone text-botanical-sage');
     });
   });
-  if (st.prompt) {
-    plLastCombo = st.combo || null;
-    document.getElementById('pl-out-card').classList.remove('hidden');
-    document.getElementById('pl-out').textContent = st.prompt;
-    plRenderPreview();
-  }
+  // 생성된 프롬프트 복원
+  if (st.out1) { document.getElementById('pl-out1-card').classList.remove('hidden'); document.getElementById('pl-out1').textContent = st.out1; }
+  if (st.out2) { document.getElementById('pl-out2-card').classList.remove('hidden'); document.getElementById('pl-out2').textContent = st.out2; }
 }
 function plResetGen() {
   if (!confirm('작성한 내용과 생성된 프롬프트를 모두 비울까요?')) return;
   localStorage.removeItem('yudit_planning_draft');
-  plLastCombo = null;
-  plSel.len = '30초 내외'; plSel.purpose = 'info'; plSel.prod = 'speak';
+  plSel.purpose = 'info'; plSel.len = '30초 내외'; plSel.prod = 'speak';
   plRenderGen();
-  document.getElementById('pl-out-card').classList.add('hidden');
   plToast('초기화 완료');
 }
 

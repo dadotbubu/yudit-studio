@@ -2606,7 +2606,8 @@ const PLANNING_DATA = {
   "skeletonHint": "주장형 판별: 마지막에 모든 내용이 하나로 수렴하는 메시지가 있으면 주장형, 항목 자체가 본체면 나열형",
   "hookPoolBy": "entry",
   "storyCurve": "random",
-  "entryByPurpose": "진입은 skeleton.validEntry ∩ purpose.validEntry 교집합에서 추첨. 훅 풀은 entry+purpose로 필터."
+  "entryByPurpose": "진입은 skeleton.validEntry ∩ purpose.validEntry 교집합에서 추첨. 훅 풀은 entry+purpose로 필터.",
+  "hookAngleNote": "1단계는 hookAngles로 표지+훅 창작. 빈칸은 양념. 표지=제목체(알맹이:주제+권위or타겟+이득) / 훅=대사체(구어체). 2단계 골격은 hookAngles[].rec 추천."
  },
  "ctaModes": [
   "포함",
@@ -2622,6 +2623,68 @@ const PLANNING_DATA = {
    "id": "dialogue",
    "name": "대화형",
    "desc": "두 사람(부부/동료)이 주고받는 장면 — 대사 분리"
+  }
+ ],
+ "hookAngles": [
+  {
+   "id": "reversal",
+   "name": "반전·역설",
+   "desc": "통념·기대를 뒤집기 (예: 1억 모으는데 가계부 안 써요)",
+   "rec": "claim"
+  },
+  {
+   "id": "loss",
+   "name": "손해·경고",
+   "desc": "모르면/놓치면 손해 (FOMO)",
+   "rec": "claim"
+  },
+  {
+   "id": "number",
+   "name": "숫자·성과",
+   "desc": "구체 수치·결과 인증",
+   "rec": "list"
+  },
+  {
+   "id": "authority",
+   "name": "권위",
+   "desc": "경험·연차·직업·실적으로",
+   "rec": "claim"
+  },
+  {
+   "id": "forbid",
+   "name": "금지·단정",
+   "desc": "절대 하지마 / 이걸로 끝",
+   "rec": "claim"
+  },
+  {
+   "id": "dialogue_q",
+   "name": "대화·질문 인용",
+   "desc": "받은 질문 역이용",
+   "rec": "claim"
+  },
+  {
+   "id": "common_q",
+   "name": "통념 자극 질문",
+   "desc": "~인 줄 아세요? 통념 건드리기",
+   "rec": "claim"
+  },
+  {
+   "id": "empathy",
+   "name": "공감·상황",
+   "desc": "이런 적 있죠 (내 얘기)",
+   "rec": "claim"
+  },
+  {
+   "id": "confess",
+   "name": "의외 고백·선언",
+   "desc": "사실 나 ~예요",
+   "rec": "story"
+  },
+  {
+   "id": "timely",
+   "name": "시의성",
+   "desc": "지금 터진 사건·시즌 (타이밍 주제만)",
+   "rec": "list"
   }
  ]
 };
