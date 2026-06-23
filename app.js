@@ -7542,6 +7542,10 @@ function plRenderGen() {
       </div>
       <div id="pl-out${n}" class="whitespace-pre-wrap bg-botanical-cream/50 border border-botanical-stone rounded-xl p-4 text-xs leading-relaxed max-h-[340px] overflow-auto"></div>`;
   document.getElementById('pl-sec-gen').innerHTML = `
+    <div class="flex gap-1.5 mb-4">
+      <button onclick="plCloudSave()" class="flex-1 py-2 rounded-lg text-xs border border-botanical-sage text-botanical-sage hover:bg-botanical-sage/10">☁️ 임시저장 (기기 연동)</button>
+      <button onclick="plCloudLoad()" class="flex-1 py-2 rounded-lg text-xs border border-botanical-sage text-botanical-sage hover:bg-botanical-sage/10">☁️ 불러오기</button>
+    </div>
     <div class="bg-white rounded-2xl p-5 shadow-sm mb-4">
       <div class="flex items-center justify-between mb-3">
         <h3 class="font-medium text-sm">내 계정 프로필</h3>
@@ -7772,18 +7776,38 @@ function plGenScript() {
 function plCopy(id) { navigator.clipboard.writeText(document.getElementById(id).textContent).then(() => plToast('복사 완료! AI에 붙여넣으세요')); }
 
 // ---------- 임시저장 / 초기화 ----------
+function plCollectState() {
+  const g = id => { const e = document.getElementById(id); return e ? e.value : ''; };
+  const o = id => { const e = document.getElementById(id); return e ? e.textContent : ''; };
+  return {
+    cat: g('pl-cat'), pos: g('pl-pos'), tar: g('pl-tar'), msg: g('pl-msg'),
+    topic: g('pl-topic'), cover: g('pl-cover'), hook: g('pl-hook'), skel: g('pl-skel'), exp: g('pl-exp'),
+    purpose: plSel.purpose, len: plSel.len, prod: plSel.prod,
+    out1: o('pl-out1'), out2: o('pl-out2')
+  };
+}
+// 자동저장 — 기기별 로컬 (즉시, 부담 0)
 function plSaveState() {
+  try { localStorage.setItem('yudit_planning_draft', JSON.stringify(plCollectState())); } catch (e) {}
+}
+// 임시저장 — 기기 연동 (PC/폰/태블릿 공유). 누를 때만 Supabase 저장
+async function plCloudSave() {
+  try { await upsertToSupabase('planning_draft', plCollectState()); plToast('☁️ 기기 연동 저장 완료!'); }
+  catch (e) { plToast('저장 실패 — 네트워크 확인'); }
+}
+async function plCloudLoad() {
   try {
-    const g = id => { const e = document.getElementById(id); return e ? e.value : ''; };
-    const o = id => { const e = document.getElementById(id); return e ? e.textContent : ''; };
-    const st = {
-      cat: g('pl-cat'), pos: g('pl-pos'), tar: g('pl-tar'), msg: g('pl-msg'),
-      topic: g('pl-topic'), cover: g('pl-cover'), hook: g('pl-hook'), skel: g('pl-skel'), exp: g('pl-exp'),
-      purpose: plSel.purpose, len: plSel.len, prod: plSel.prod,
-      out1: o('pl-out1'), out2: o('pl-out2')
-    };
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/${SUPABASE_TABLE}?key=eq.planning_draft&select=data&order=updated_at.desc&limit=1`, {
+      headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
+    });
+    const rows = res.ok ? await res.json() : [];
+    const st = rows[0] && rows[0].data;
+    if (!st) { plToast('기기 연동 저장본이 없어요'); return; }
+    if (!confirm('기기 연동 저장본을 불러올까요? 지금 작성 중인 내용은 덮어써져요.')) return;
     localStorage.setItem('yudit_planning_draft', JSON.stringify(st));
-  } catch (e) {}
+    plRenderGen();
+    plToast('☁️ 불러오기 완료!');
+  } catch (e) { plToast('불러오기 실패 — 네트워크 확인'); }
 }
 function plRestoreState() {
   const D = PLANNING_DATA;
