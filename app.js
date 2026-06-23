@@ -7476,8 +7476,9 @@ function editCategoryGoal(category) {
 // ========== Planning Tab (기획) ==========
 // 데이터: data/planning_data.js (PLANNING_DATA) — 레퍼 50개 분석 기반
 let plSel = { len: '30초 내외', purpose: 'info', prod: 'speak', section: 'gen' };
-let plLastCombo = null; // 이번 생성의 포맷·훅 조합 (미리보기·임시저장용)
 let plCustomHooks = null; // Supabase에서 로드 (planning_hooks)
+const PL_DRAFT_LS = 'yudit_planning_draft'; // localStorage 키 (기기별 자동저장)
+const PL_DRAFT_CLOUD = 'planning_draft';    // Supabase 키 (기기 연동 임시저장)
 
 async function plLoadCustomHooks() {
   if (plCustomHooks !== null) return;
@@ -7619,29 +7620,7 @@ function plFillPreset() {
 }
 function plPick(kind, val, btn) {
   plSel[kind] = val;
-  document.querySelectorAll('.pl-pill-' + kind).forEach(b => {
-    b.className = b.className.replace('bg-botanical-terracotta border-botanical-terracotta text-white font-bold', 'border-botanical-stone text-botanical-sage');
-  });
-  btn.className = btn.className.replace('border-botanical-stone text-botanical-sage', 'bg-botanical-terracotta border-botanical-terracotta text-white font-bold');
-}
-// 진입(entry) + 목적(purpose)으로 훅 풀 구성 → 같은 진입으로 보충 → 전역 보충
-// (정보 주제엔 정보형 훅, 공감 주제엔 공감형 훅이 나오게)
-function plHookPool(entry, purpose) {
-  const D = PLANNING_DATA;
-  const map = r => ({ src: 'R' + r.no, hook: r.hook, tmpl: r.template });
-  const withTmpl = r => r.template;
-  let pool = D.refs.filter(r => withTmpl(r) && r.entry === entry && r.purpose === purpose).map(map);
-  if (pool.length < 3) pool = pool.concat(D.refs.filter(r => withTmpl(r) && r.entry === entry && r.purpose !== purpose).map(map).sort(() => Math.random() - 0.5));
-  if (pool.length < 3) pool = pool.concat(D.refs.filter(r => withTmpl(r) && r.entry !== entry).map(map).sort(() => Math.random() - 0.5));
-  // 직접 추가한 훅도 보조 풀로
-  pool = pool.concat((plCustomHooks || []).map(h => ({ src: h.id, hook: h.hook, tmpl: h.template || h.hook })));
-  return pool;
-}
-function plPickHooks(entry, purpose, n) {
-  const pool = plHookPool(entry, purpose).sort(() => Math.random() - 0.5);
-  const out = [], seen = new Set();
-  for (const h of pool) { if (seen.has(h.src)) continue; seen.add(h.src); out.push(h); if (out.length >= n) break; }
-  return out;
+  plPillSet(kind, btn.textContent);
 }
 // ===== 1단계: 훅·표지 프롬프트 =====
 function plBuildHookPrompt() {
@@ -7786,23 +7765,23 @@ function plCollectState() {
 }
 // 자동저장 — 기기별 로컬 (즉시, 부담 0)
 function plSaveState() {
-  try { localStorage.setItem('yudit_planning_draft', JSON.stringify(plCollectState())); } catch (e) {}
+  try { localStorage.setItem(PL_DRAFT_LS, JSON.stringify(plCollectState())); } catch (e) {}
 }
 // 임시저장 — 기기 연동 (PC/폰/태블릿 공유). 누를 때만 Supabase 저장
 async function plCloudSave() {
-  try { await upsertToSupabase('planning_draft', plCollectState()); plToast('☁️ 기기 연동 저장 완료!'); }
+  try { await upsertToSupabase(PL_DRAFT_CLOUD, plCollectState()); plToast('☁️ 기기 연동 저장 완료!'); }
   catch (e) { plToast('저장 실패 — 네트워크 확인'); }
 }
 async function plCloudLoad() {
   try {
-    const res = await fetch(`${SUPABASE_URL}/rest/v1/${SUPABASE_TABLE}?key=eq.planning_draft&select=data&order=updated_at.desc&limit=1`, {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/${SUPABASE_TABLE}?key=eq.${PL_DRAFT_CLOUD}&select=data&order=updated_at.desc&limit=1`, {
       headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
     });
     const rows = res.ok ? await res.json() : [];
     const st = rows[0] && rows[0].data;
     if (!st) { plToast('기기 연동 저장본이 없어요'); return; }
     if (!confirm('기기 연동 저장본을 불러올까요? 지금 작성 중인 내용은 덮어써져요.')) return;
-    localStorage.setItem('yudit_planning_draft', JSON.stringify(st));
+    localStorage.setItem(PL_DRAFT_LS, JSON.stringify(st));
     plRenderGen();
     plToast('☁️ 불러오기 완료!');
   } catch (e) { plToast('불러오기 실패 — 네트워크 확인'); }
@@ -7810,7 +7789,7 @@ async function plCloudLoad() {
 function plRestoreState() {
   const D = PLANNING_DATA;
   let st;
-  try { st = JSON.parse(localStorage.getItem('yudit_planning_draft') || 'null'); } catch (e) { st = null; }
+  try { st = JSON.parse(localStorage.getItem(PL_DRAFT_LS) || 'null'); } catch (e) { st = null; }
   if (!st) return;
   const set = (id, v) => { const el = document.getElementById(id); if (el != null && v != null) el.value = v; };
   set('pl-cat', st.cat); set('pl-pos', st.pos); set('pl-tar', st.tar); set('pl-msg', st.msg);
@@ -7819,15 +7798,9 @@ function plRestoreState() {
   if (st.len && D.lengths.includes(st.len)) plSel.len = st.len; // 옛 길이값은 무시 → 기본 '30초 내외'
   if (st.prod) plSel.prod = st.prod;
   // 알약 활성 복원 (purpose/prod는 표시 이름으로 매칭)
-  const pp = (D.purposes.find(p => p.id === plSel.purpose) || {}).name;
-  const pd = (D.productionOptions.find(p => p.id === plSel.prod) || {}).name;
-  const labelOf = { purpose: pp, len: plSel.len, prod: pd };
-  ['purpose', 'len', 'prod'].forEach(kind => {
-    document.querySelectorAll('.pl-pill-' + kind).forEach(b => {
-      const on = b.textContent === labelOf[kind];
-      b.className = b.className.replace(/bg-botanical-terracotta border-botanical-terracotta text-white font-bold|border-botanical-stone text-botanical-sage/g, on ? 'bg-botanical-terracotta border-botanical-terracotta text-white font-bold' : 'border-botanical-stone text-botanical-sage');
-    });
-  });
+  plPillSet('purpose', (D.purposes.find(p => p.id === plSel.purpose) || {}).name);
+  plPillSet('len', plSel.len);
+  plPillSet('prod', (D.productionOptions.find(p => p.id === plSel.prod) || {}).name);
   // 생성된 프롬프트 복원
   if (st.out1) { document.getElementById('pl-out1-card').classList.remove('hidden'); document.getElementById('pl-out1').textContent = st.out1; }
   if (st.out2) { document.getElementById('pl-out2-card').classList.remove('hidden'); document.getElementById('pl-out2').textContent = st.out2; }
