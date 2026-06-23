@@ -7814,7 +7814,7 @@ function plSyncStep2() {
   const box = document.getElementById('pl-step2-ctx'); if (!box) return;
   const tv = (document.getElementById('pl-topic') ? document.getElementById('pl-topic').value : '').trim();
   const ev = (document.getElementById('pl-exp') ? document.getElementById('pl-exp').value : '').trim();
-  box.innerHTML = `📌 주제: <b>${tv || '(1단계에 입력)'}</b>` + (ev ? ` · 경험 반영됨` : '');
+  box.innerHTML = (tv || ev) ? `📌 1단계 주제·경험이 그대로 반영돼요 ✓` : `📌 주제는 1단계에 입력하세요`;
 }
 // 알약 활성 표시 갱신 헬퍼
 function plPillSet(kind, label) {
