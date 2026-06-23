@@ -7545,7 +7545,7 @@ function plRenderGen() {
     <div class="bg-white rounded-2xl p-5 shadow-sm mb-4">
       <div class="flex items-center justify-between mb-3">
         <h3 class="font-medium text-sm">내 계정 프로필</h3>
-        <button onclick="plResetGen()" class="text-[11px] text-botanical-sage hover:text-botanical-terracotta">↺ 초기화</button>
+        <button onclick="plResetProfile()" class="text-[11px] text-botanical-sage hover:text-botanical-terracotta">↺ 초기화</button>
       </div>
       <label class="block text-xs text-botanical-sage mb-1">카테고리</label>
       <select id="pl-cat" class="${PL_INPUT_CLS}" onchange="plFillPreset();plSaveState()">
@@ -7560,21 +7560,30 @@ function plRenderGen() {
     </div>
 
     <div class="bg-white rounded-2xl p-5 shadow-sm mb-4">
-      <div class="flex items-center gap-2 mb-1"><span class="w-5 h-5 rounded-full bg-botanical-terracotta text-white text-[11px] font-bold flex items-center justify-center">1</span><h3 class="font-medium text-sm">훅 · 표지 뽑기</h3></div>
-      <p class="text-[11px] text-botanical-sage mb-3">주제 넣고 프롬프트 복사 → AI가 앵글별 표지+훅 8세트. 맘에 드는 1세트 골라 2단계로.</p>
+      <div class="flex items-center justify-between mb-1">
+        <div class="flex items-center gap-2"><span class="w-5 h-5 rounded-full bg-botanical-terracotta text-white text-[11px] font-bold flex items-center justify-center">1</span><h3 class="font-medium text-sm">훅 · 표지 뽑기</h3></div>
+        <button onclick="plResetStep1()" class="text-[11px] text-botanical-sage hover:text-botanical-terracotta">↺ 초기화</button>
+      </div>
+      <p class="text-[11px] text-botanical-sage mb-3">주제·경험 넣고 프롬프트 복사 → AI가 앵글별 표지+훅 8세트. 맘에 드는 1세트 골라 2단계로.</p>
       <label class="block text-xs text-botanical-sage mb-1">목적</label>
       <div class="flex flex-wrap gap-1.5" id="pl-purpose">
         ${D.purposes.map(p => `<button onclick="plPick('purpose','${p.id}',this);plSaveState()" class="pl-pill-purpose px-3 py-1.5 rounded-full text-xs border ${p.id === plSel.purpose ? 'bg-botanical-terracotta border-botanical-terracotta text-white font-bold' : 'border-botanical-stone text-botanical-sage'}">${p.name}</button>`).join('')}
       </div>
       <label class="block text-xs text-botanical-sage mb-1 mt-3">주제</label>
-      <textarea id="pl-topic" rows="2" class="${PL_INPUT_CLS}" placeholder="예: 통장 쪼개기 / 신혼 가전 싸게 사는 법" oninput="plSaveState()"></textarea>
+      <textarea id="pl-topic" rows="2" class="${PL_INPUT_CLS}" placeholder="예: 통장 쪼개기 / 신혼 가전 싸게 사는 법" oninput="plSaveState();plSyncStep2()"></textarea>
+      <label class="block text-xs text-botanical-sage mb-1 mt-3">내 경험·에피소드 <span class="text-botanical-stone">(선택 — 있으면 훅이 더 세져요)</span></label>
+      <textarea id="pl-exp" rows="2" class="${PL_INPUT_CLS}" placeholder="예: 연 1억 모으는데 가계부 안 씀 / 비워도 OK" oninput="plSaveState();plSyncStep2()"></textarea>
       <button onclick="plGenHook()" class="w-full py-3 bg-botanical-fg text-white rounded-xl text-sm font-bold mt-4 hover:opacity-90 transition-all">① 훅·표지 프롬프트 생성</button>
       <div id="pl-out1-card" class="hidden">${outBlock(1)}</div>
     </div>
 
     <div class="bg-white rounded-2xl p-5 shadow-sm mb-4">
-      <div class="flex items-center gap-2 mb-1"><span class="w-5 h-5 rounded-full bg-botanical-terracotta text-white text-[11px] font-bold flex items-center justify-center">2</span><h3 class="font-medium text-sm">대본 뽑기</h3></div>
-      <p class="text-[11px] text-botanical-sage mb-3">1단계서 고른 표지·훅을 붙여넣고 대본 프롬프트 추출.</p>
+      <div class="flex items-center justify-between mb-1">
+        <div class="flex items-center gap-2"><span class="w-5 h-5 rounded-full bg-botanical-terracotta text-white text-[11px] font-bold flex items-center justify-center">2</span><h3 class="font-medium text-sm">대본 뽑기</h3></div>
+        <button onclick="plResetStep2()" class="text-[11px] text-botanical-sage hover:text-botanical-terracotta">↺ 초기화</button>
+      </div>
+      <p class="text-[11px] text-botanical-sage mb-3">고른 표지·훅을 붙여넣으면, 1단계 주제·경험이 자동 반영돼 대본 프롬프트가 나와요.</p>
+      <div id="pl-step2-ctx" class="text-[11px] text-botanical-fg bg-botanical-cream/60 rounded-lg px-3 py-2 mb-3"></div>
       <label class="block text-xs text-botanical-sage mb-1">확정 표지</label>
       <input type="text" id="pl-cover" class="${PL_INPUT_CLS}" placeholder="고른 표지 붙여넣기" oninput="plSaveState()">
       <label class="block text-xs text-botanical-sage mb-1 mt-3">확정 훅</label>
@@ -7592,14 +7601,13 @@ function plRenderGen() {
       <div class="flex flex-wrap gap-1.5" id="pl-prod">
         ${D.productionOptions.map(p => `<button onclick="plPick('prod','${p.id}',this);plSaveState()" class="pl-pill-prod px-3 py-1.5 rounded-full text-xs border ${p.id === plSel.prod ? 'bg-botanical-terracotta border-botanical-terracotta text-white font-bold' : 'border-botanical-stone text-botanical-sage'}" title="${p.desc}">${p.name}</button>`).join('')}
       </div>
-      <label class="block text-xs text-botanical-sage mb-1 mt-3">내 경험·에피소드 <span class="text-botanical-stone">(선택)</span></label>
-      <textarea id="pl-exp" rows="2" class="${PL_INPUT_CLS}" placeholder="비워두면 AI가 자리만 표시해요" oninput="plSaveState()"></textarea>
       <button onclick="plGenScript()" class="w-full py-3 bg-botanical-fg text-white rounded-xl text-sm font-bold mt-4 hover:opacity-90 transition-all">② 대본 프롬프트 생성</button>
       <div id="pl-out2-card" class="hidden">${outBlock(2)}</div>
     </div>
   `;
   plFillPreset();
   plRestoreState();
+  plSyncStep2();
 }
 function plFillPreset() {
   const p = PLANNING_DATA.presets[document.getElementById('pl-cat').value];
@@ -7639,6 +7647,7 @@ function plBuildHookPrompt() {
   const cat = document.getElementById('pl-cat').value;
   const pos = document.getElementById('pl-pos').value, tar = document.getElementById('pl-tar').value, msg = document.getElementById('pl-msg').value;
   const topic = (document.getElementById('pl-topic').value || '').trim() || '(주제 입력)';
+  const exp = (document.getElementById('pl-exp') ? document.getElementById('pl-exp').value : '').trim();
   const purpDef = D.purposes.find(p => p.id === plSel.purpose);
   // 같은 목적 레퍼 훅 5개 + 터진 이유 (원리 학습용)
   const exRefs = D.refs.filter(r => r.purpose === plSel.purpose && r.viral).sort(() => Math.random() - 0.5).slice(0, 5);
@@ -7660,6 +7669,7 @@ function plBuildHookPrompt() {
 
 [주제] ${topic}
 [목적] ${purpDef.name}
+[내 경험·에피소드] ${exp || '(없음)'}${exp ? ' — 이 경험을 성과·숫자·의외 고백·반전 앵글의 훅 소재로 적극 활용하라' : ''}
 
 [검증된 레퍼가 왜 터졌나 — 원리만 배워라, 문장은 베끼지 말 것]
 ${refEx}
@@ -7799,12 +7809,42 @@ function plRestoreState() {
   if (st.out1) { document.getElementById('pl-out1-card').classList.remove('hidden'); document.getElementById('pl-out1').textContent = st.out1; }
   if (st.out2) { document.getElementById('pl-out2-card').classList.remove('hidden'); document.getElementById('pl-out2').textContent = st.out2; }
 }
-function plResetGen() {
-  if (!confirm('작성한 내용과 생성된 프롬프트를 모두 비울까요?')) return;
-  localStorage.removeItem('yudit_planning_draft');
-  plSel.purpose = 'info'; plSel.len = '30초 내외'; plSel.prod = 'speak';
-  plRenderGen();
-  plToast('초기화 완료');
+// 2단계 상단에 1단계 주제·경험 승계 표시
+function plSyncStep2() {
+  const box = document.getElementById('pl-step2-ctx'); if (!box) return;
+  const tv = (document.getElementById('pl-topic') ? document.getElementById('pl-topic').value : '').trim();
+  const ev = (document.getElementById('pl-exp') ? document.getElementById('pl-exp').value : '').trim();
+  box.innerHTML = `📌 주제: <b>${tv || '(1단계에 입력)'}</b>` + (ev ? ` · 경험 반영됨` : '');
+}
+// 알약 활성 표시 갱신 헬퍼
+function plPillSet(kind, label) {
+  document.querySelectorAll('.pl-pill-' + kind).forEach(b => {
+    const on = b.textContent === label;
+    b.className = b.className.replace(/bg-botanical-terracotta border-botanical-terracotta text-white font-bold|border-botanical-stone text-botanical-sage/g, on ? 'bg-botanical-terracotta border-botanical-terracotta text-white font-bold' : 'border-botanical-stone text-botanical-sage');
+  });
+}
+function plResetProfile() {
+  ['pl-pos', 'pl-tar', 'pl-msg'].forEach(id => { const e = document.getElementById(id); if (e) e.value = ''; });
+  plSaveState(); plToast('계정 프로필 초기화');
+}
+function plResetStep1() {
+  const t = document.getElementById('pl-topic'); if (t) t.value = '';
+  const e = document.getElementById('pl-exp'); if (e) e.value = '';
+  plSel.purpose = 'info';
+  plPillSet('purpose', (PLANNING_DATA.purposes.find(p => p.id === 'info') || {}).name);
+  document.getElementById('pl-out1-card').classList.add('hidden');
+  document.getElementById('pl-out1').textContent = '';
+  plSyncStep2(); plSaveState(); plToast('1단계 초기화');
+}
+function plResetStep2() {
+  ['pl-cover', 'pl-hook'].forEach(id => { const e = document.getElementById(id); if (e) e.value = ''; });
+  document.getElementById('pl-skel').value = '';
+  plSel.len = '30초 내외'; plSel.prod = 'speak';
+  plPillSet('len', '30초 내외');
+  plPillSet('prod', (PLANNING_DATA.productionOptions.find(p => p.id === 'speak') || {}).name);
+  document.getElementById('pl-out2-card').classList.add('hidden');
+  document.getElementById('pl-out2').textContent = '';
+  plSaveState(); plToast('2단계 초기화');
 }
 
 // ---------- 레퍼 보관함 ----------
