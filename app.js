@@ -7568,8 +7568,7 @@ function plRenderGen() {
         <div class="flex items-center gap-2"><span class="w-5 h-5 rounded-full bg-botanical-terracotta text-white text-[11px] font-bold flex items-center justify-center">1</span><h3 class="font-medium text-sm">훅 · 표지 뽑기</h3></div>
         <button onclick="plResetStep1()" class="text-[11px] text-botanical-sage hover:text-botanical-terracotta">↺ 초기화</button>
       </div>
-      <p class="text-[11px] text-botanical-sage mb-3">주제·경험 넣고 프롬프트 복사 → AI가 앵글별 표지+훅 8세트. 맘에 드는 1세트 골라 2단계로.</p>
-      <label class="block text-xs text-botanical-sage mb-1">목적</label>
+      <label class="block text-xs text-botanical-sage mb-1 mt-2">목적</label>
       <div class="flex flex-wrap gap-1.5" id="pl-purpose">
         ${D.purposes.map(p => `<button onclick="plPick('purpose','${p.id}',this);plSaveState()" class="pl-pill-purpose px-3 py-1.5 rounded-full text-xs border ${p.id === plSel.purpose ? 'bg-botanical-terracotta border-botanical-terracotta text-white font-bold' : 'border-botanical-stone text-botanical-sage'}">${p.name}</button>`).join('')}
       </div>
@@ -7586,8 +7585,7 @@ function plRenderGen() {
         <div class="flex items-center gap-2"><span class="w-5 h-5 rounded-full bg-botanical-terracotta text-white text-[11px] font-bold flex items-center justify-center">2</span><h3 class="font-medium text-sm">대본 뽑기</h3></div>
         <button onclick="plResetStep2()" class="text-[11px] text-botanical-sage hover:text-botanical-terracotta">↺ 초기화</button>
       </div>
-      <p class="text-[11px] text-botanical-sage mb-3">고른 표지·훅을 붙여넣으면, 1단계 주제·경험이 자동 반영돼 대본 프롬프트가 나와요.</p>
-      <div id="pl-step2-ctx" class="text-[11px] text-botanical-fg bg-botanical-cream/60 rounded-lg px-3 py-2 mb-3"></div>
+      <div id="pl-step2-ctx" class="text-[11px] text-botanical-fg bg-botanical-cream/60 rounded-lg px-3 py-2 mb-3 mt-2"></div>
       <label class="block text-xs text-botanical-sage mb-1">확정 표지</label>
       <input type="text" id="pl-cover" class="${PL_INPUT_CLS}" placeholder="고른 표지 붙여넣기" oninput="plSaveState()">
       <label class="block text-xs text-botanical-sage mb-1 mt-3">확정 훅</label>
