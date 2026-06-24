@@ -7628,6 +7628,17 @@ function plRenderGen() {
       <button onclick="plGenScript()" class="w-full py-3 bg-botanical-fg text-white rounded-xl text-sm font-bold mt-4 hover:opacity-90 transition-all">② 대본 프롬프트 생성</button>
       <div id="pl-out2-card" class="hidden">${outBlock(2)}</div>
     </div>
+
+    <div class="bg-white rounded-2xl p-5 shadow-sm mb-4">
+      <div class="flex items-center justify-between mb-1">
+        <div class="flex items-center gap-2"><span class="w-5 h-5 rounded-full bg-botanical-terracotta text-white text-[11px] font-bold flex items-center justify-center">3</span><h3 class="font-medium text-sm">대사 퇴고</h3></div>
+        <button onclick="plResetPolish()" class="text-[11px] text-botanical-sage hover:text-botanical-terracotta">↺ 초기화</button>
+      </div>
+      <label class="block text-xs text-botanical-sage mb-1 mt-2">수정한 대사 붙여넣기 <span class="text-botanical-stone">(②로 뽑아 내가 고친 대본)</span></label>
+      <textarea id="pl-polish" rows="6" class="${PL_INPUT_CLS}" style="resize:none;overflow:hidden;min-height:120px" placeholder="여기에 내가 수정한 대사를 통째로 붙여넣으세요" oninput="plAutoGrow(this);plSaveState()"></textarea>
+      <button onclick="plGenPolish()" class="w-full py-3 bg-botanical-fg text-white rounded-xl text-sm font-bold mt-4 hover:opacity-90 transition-all">③ 퇴고 프롬프트 생성</button>
+      <div id="pl-out3-card" class="hidden">${outBlock(3)}</div>
+    </div>
   `;
   plFillPreset();
   plRestoreState();
@@ -7794,6 +7805,61 @@ function plGenScript() {
   plSaveState();
   document.getElementById('pl-out2-card').scrollIntoView({ behavior: 'smooth' });
 }
+
+// ===== 3단계: 대사 퇴고 프롬프트 =====
+function plBuildPolishPrompt() {
+  const cat = document.getElementById('pl-cat').value;
+  const pos = document.getElementById('pl-pos').value, tar = document.getElementById('pl-tar').value, msg = document.getElementById('pl-msg').value;
+  const topic = (document.getElementById('pl-topic').value || '').trim();
+  const script = (document.getElementById('pl-polish').value || '').trim();
+  return `너는 인스타그램 릴스 대본 퇴고 에디터다. 아래 [대사]를 유디트 채널 기준으로 퇴고하라. 좋은 문장은 그대로 두고, 고칠 것만 정확히 짚어라. 다 고치려 하지 마라.
+
+[계정 정체성 — 여기에 정렬]
+- 카테고리: ${cat}
+- 포지셔닝: ${pos}
+- 핵심 메시지: ${msg}
+- 타겟 독자: ${tar}
+${topic ? '- 이번 주제: ' + topic + '\n' : ''}- 톤: 유디트 말투(구어체 ~해요/~거든요), 얼굴 미노출(보이스오버+자막), 대기업 부부 페르소나
+
+[퇴고 기준 — 이 잣대로 본다]
+1. 계정 정체성에 맞나 (벗어난 메시지는 정렬, 채널 톤과 충돌하면 고친다)
+2. 첫 문장: 단정·추상 ✕ → 질문·장면으로 열고, 주제+권위/타겟+이득을 한 호흡에 응축
+3. 숫자·권위 구체화 (막연한 말 → 3억/400만원/19개국 같은 수치·실적)
+4. 군더더기·당연한 단계 컷 (누구나 아는 절차·중복은 삭제)
+5. 항목은 핵심문장을 앞에, 디테일은 한 줄 또는 자막으로
+6. 모호·부정확 정보 수정 (틀린 숫자·애매한 표현 바로잡기)
+7. 톤: 자랑 다운 → 인간미·겸손 (롤모델인 채로 친근하게)
+8. 인사이트 한 줄 또렷이 (관점 재정의 — 일반론 ✕)
+9. 즉각 실행·지름길로 보이게 (머리로 아는 추상 교훈 < 따라할 수 있는 구체 행동)
+10. CTA: 행동 지시 + 대상 지정(예: 남편한테 공유하고 세팅) / 또는 다음편 예고
+11. 화면 연출 메모 (서브자막·한 줄씩 등장·마지막에 한 번에=캡쳐타임)
+
+[대사 — 퇴고 대상]
+${script || '(수정한 대사 붙여넣기)'}
+
+[출력 — 이 형식 그대로]
+① 퇴고 (대사를 구간별로 끊어, 고칠 것만 짚는다):
+   원본: ___
+   → 수정: ___        (또는  → 삭제: 사유  /  → 그대로 OK: 사유)
+   이유: 어떤 기준을 적용했는지 한 줄 (예: 단정→질문, 기준2)
+   ※ 이미 좋은 문장은 반드시 "그대로 OK"로 남기고 절대 건드리지 마라.
+② 최종 수정본: 퇴고 반영해 처음부터 끝까지 이어진 완성 대사 (바로 복붙 가능하게)
+③ 연출 메모: 서브자막·자막 타이밍·한 줄씩 등장/캡쳐타임 등 화면 지시`;
+}
+function plGenPolish() {
+  const txt = (document.getElementById('pl-polish').value || '').trim();
+  if (!txt) { alert('수정한 대사를 먼저 붙여넣어주세요'); return; }
+  document.getElementById('pl-out3-card').classList.remove('hidden');
+  document.getElementById('pl-out3').textContent = plBuildPolishPrompt();
+  plSaveState();
+  document.getElementById('pl-out3-card').scrollIntoView({ behavior: 'smooth' });
+}
+function plResetPolish() {
+  const e = document.getElementById('pl-polish'); if (e) { e.value = ''; plAutoGrow(e); }
+  document.getElementById('pl-out3-card').classList.add('hidden');
+  document.getElementById('pl-out3').textContent = '';
+  plSaveState(); plToast('3단계 초기화');
+}
 function plCopy(id) { navigator.clipboard.writeText(document.getElementById(id).textContent).then(() => plToast('복사 완료! AI에 붙여넣으세요')); }
 
 // ---------- 임시저장 / 초기화 ----------
@@ -7804,7 +7870,8 @@ function plCollectState() {
     cat: g('pl-cat'), pos: g('pl-pos'), tar: g('pl-tar'), msg: g('pl-msg'),
     topic: g('pl-topic'), cover: g('pl-cover'), hook: g('pl-hook'), skel: g('pl-skel'), exp: g('pl-exp'),
     purpose: plSel.purpose, len: plSel.len, prod: plSel.prod,
-    out1: o('pl-out1'), out2: o('pl-out2')
+    out1: o('pl-out1'), out2: o('pl-out2'),
+    polish: g('pl-polish'), out3: o('pl-out3')
   };
 }
 // 자동저장 — 기기별 로컬 (즉시, 부담 0)
@@ -7838,7 +7905,8 @@ function plRestoreState() {
   const set = (id, v) => { const el = document.getElementById(id); if (el != null && v != null) el.value = v; };
   set('pl-cat', st.cat); set('pl-pos', st.pos); set('pl-tar', st.tar); set('pl-msg', st.msg);
   set('pl-topic', st.topic); set('pl-cover', st.cover); set('pl-hook', st.hook); set('pl-skel', st.skel); set('pl-exp', st.exp);
-  ['pl-topic', 'pl-exp'].forEach(id => plAutoGrow(document.getElementById(id))); // 복원된 긴 내용도 펼치기
+  set('pl-polish', st.polish);
+  ['pl-topic', 'pl-exp', 'pl-polish'].forEach(id => plAutoGrow(document.getElementById(id))); // 복원된 긴 내용도 펼치기
   if (st.purpose) plSel.purpose = st.purpose;
   if (st.len && D.lengths.includes(st.len)) plSel.len = st.len; // 옛 길이값은 무시 → 기본 '30초 내외'
   if (st.prod) plSel.prod = st.prod;
@@ -7849,6 +7917,7 @@ function plRestoreState() {
   // 생성된 프롬프트 복원
   if (st.out1) { document.getElementById('pl-out1-card').classList.remove('hidden'); document.getElementById('pl-out1').textContent = st.out1; }
   if (st.out2) { document.getElementById('pl-out2-card').classList.remove('hidden'); document.getElementById('pl-out2').textContent = st.out2; }
+  if (st.out3) { const c = document.getElementById('pl-out3-card'); if (c) { c.classList.remove('hidden'); document.getElementById('pl-out3').textContent = st.out3; } }
 }
 // 2단계 상단에 1단계 주제·경험 승계 표시
 function plSyncStep2() {
