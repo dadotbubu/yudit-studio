@@ -7663,7 +7663,7 @@ function plBuildHookPrompt() {
     const why = (r.viral || '').split('\n').filter(Boolean)[0] || '';
     return `  · ${r.hook}${why ? '\n    → ' + why : ''}`;
   }).join('\n');
-  const angles = D.hookAngles.map((a, i) => `${i + 1}. ${a.name} — ${a.desc}`).join('\n');
+  const angles = D.hookAngles.map((a, i) => `${i + 1}. ${a.name} — ${a.desc}${a.pattern ? '\n   └ 공식: ' + a.pattern : ''}`).join('\n');
   const gateBody = plSel.purpose === 'empathy'
     ? '이 주제가 공감되고 곱씹게 만드나 (공감 상황 / 나만의 인사이트 / 솔직한 감정) — ○/△/✕ + 한 줄'
     : '이 주제가 저장될 무기가 있나 (실제 경험 / 남들 모르는 디테일 / 진짜 통증) — ○/△/✕ + 한 줄';
@@ -7682,7 +7682,9 @@ function plBuildHookPrompt() {
 [검증된 레퍼가 왜 터졌나 — 원리만 배워라, 문장은 베끼지 말 것]
 ${refEx}
 
-[훅 앵글 — 아래 11개 중 주제에 잘 맞는 것으로 창작]
+[첫 문장 규칙 — 차별점은 하나만] 차별점은 사람·시간·방법·결과 중 하나다. 첫 문장에 딱 하나만 박아라. 다 넣으려 하지 마라 — 한 가지면 멈춘다.
+
+[훅 앵글 — 아래 11개 중 주제에 잘 맞는 것으로 창작 (공식 있으면 그 틀로)]
 ${angles}
 
 [표지 vs 훅 — 둘 다 짧고 간결하게 (레퍼처럼)]
