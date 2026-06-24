@@ -7965,11 +7965,13 @@ function plLibList() {
   const tag = (txt, cls) => `<span class="inline-block px-2 py-0.5 rounded-full bg-botanical-cream border border-botanical-stone text-[10px] ${cls || 'text-botanical-sage'} mr-1">${txt}</span>`;
   document.getElementById('pl-lib-items').innerHTML = list.map(e => `
     <div class="py-3 cursor-pointer hover:bg-botanical-cream/40 transition-all" onclick="plOpenDetail('${e.type}','${e.no}')">
-      ${e.type === 'ref' && e.cover ? `<div class="text-xs text-botanical-sage truncate">표지 · ${e.cover}</div>` : ''}
-      <div class="text-sm leading-snug truncate">${e.type === 'ref' ? '훅 · ' : ''}${e.hook}</div>
-      <div class="mt-1.5">
+      <div class="flex items-center gap-1 mb-0.5">
         ${e.type === 'hook' ? tag(e.hNo + ' · 훅만', 'text-botanical-terracotta font-bold') : tag(e.cat) + (e.own ? tag('★유디트', 'text-botanical-terracotta font-bold') : '') + (e.sub ? tag('자막만') : '')}
+        ${e.type === 'ref'
+          ? (e.cover ? `<span class="text-xs text-botanical-sage truncate min-w-0">표지 · ${e.cover}</span>` : '')
+          : `<span class="text-sm leading-snug truncate min-w-0">${e.hook}</span>`}
       </div>
+      ${e.type === 'ref' ? `<div class="text-sm leading-snug truncate">훅 · ${e.hook}</div>` : ''}
     </div>`).join('') || '<div class="py-8 text-center text-sm text-botanical-sage">검색 결과 없음</div>';
 }
 function plOpenDetail(type, no) {
