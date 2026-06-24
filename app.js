@@ -7631,12 +7631,12 @@ function plRenderGen() {
 
     <div class="bg-white rounded-2xl p-5 shadow-sm mb-4">
       <div class="flex items-center justify-between mb-1">
-        <div class="flex items-center gap-2"><span class="w-5 h-5 rounded-full bg-botanical-terracotta text-white text-[11px] font-bold flex items-center justify-center">3</span><h3 class="font-medium text-sm">대사 퇴고</h3></div>
+        <div class="flex items-center gap-2"><span class="w-5 h-5 rounded-full bg-botanical-terracotta text-white text-[11px] font-bold flex items-center justify-center">3</span><h3 class="font-medium text-sm">대사 피드백</h3></div>
         <button onclick="plResetPolish()" class="text-[11px] text-botanical-sage hover:text-botanical-terracotta">↺ 초기화</button>
       </div>
       <label class="block text-xs text-botanical-sage mb-1 mt-2">수정한 대사 붙여넣기 <span class="text-botanical-stone">(②로 뽑아 내가 고친 대본)</span></label>
       <textarea id="pl-polish" rows="6" class="${PL_INPUT_CLS}" style="resize:none;overflow:hidden;min-height:120px" placeholder="여기에 내가 수정한 대사를 통째로 붙여넣으세요" oninput="plAutoGrow(this);plSaveState()"></textarea>
-      <button onclick="plGenPolish()" class="w-full py-3 bg-botanical-fg text-white rounded-xl text-sm font-bold mt-4 hover:opacity-90 transition-all">③ 퇴고 프롬프트 생성</button>
+      <button onclick="plGenPolish()" class="w-full py-3 bg-botanical-fg text-white rounded-xl text-sm font-bold mt-4 hover:opacity-90 transition-all">③ 피드백 프롬프트 생성</button>
       <div id="pl-out3-card" class="hidden">${outBlock(3)}</div>
     </div>
   `;
@@ -7806,13 +7806,13 @@ function plGenScript() {
   document.getElementById('pl-out2-card').scrollIntoView({ behavior: 'smooth' });
 }
 
-// ===== 3단계: 대사 퇴고 프롬프트 =====
+// ===== 3단계: 대사 피드백 프롬프트 =====
 function plBuildPolishPrompt() {
   const cat = document.getElementById('pl-cat').value;
   const pos = document.getElementById('pl-pos').value, tar = document.getElementById('pl-tar').value, msg = document.getElementById('pl-msg').value;
   const topic = (document.getElementById('pl-topic').value || '').trim();
   const script = (document.getElementById('pl-polish').value || '').trim();
-  return `너는 인스타그램 릴스 대본을 봐주는 퇴고 에디터다. 아래 [대사]를 구간별로 짚어 피드백하라.
+  return `너는 터지는 인스타그램 릴스를 수백 개 분석·기획해 본 릴스 기획자다. 아래 [대사]에 구간별로 피드백을 준다.
 규칙: 인사·칭찬·격려 빼고 바로 본론. 각 구간을 어떻게 고칠지 ★고친 문장 예시까지 같이 보여줘라★ (방향만 말하면 안 와닿는다). 단 전체 대본을 통으로 새로 쓰진 말고 구간별로만. 좋은 문장은 "그대로 OK".
 ★★짧고 펀치 있게 (이게 제일 중요): 각 칸 1~2줄로 끝내라. 메커니즘·원리를 길게 설명하지 마라 — 근거는 한 마디면 충분("절세돼요" 정도). '왜' 칸에 잣대 번호(#1 등)나 학술 설명 쓰지 말고 짧은 일상말로. 틀린 숫자만 짧게 고치고, 금융 규제·표시 경고 같은 건 늘어놓지 마라. 고친 문장도 짧고 입에 붙게. (논문처럼 길어지면 실패다 — 친구가 빠르게 톡 던지듯)
 ★★전부 고치지 마라: 멀쩡한 문장은 손대지 말 것. 한 대본에서 정말 바꿔야 할 2~4군데만 골라 짚어라. 좋은 구간은 "그대로 OK" 한 줄로 묶거나 아예 표에서 빼라. (다 고치려 들면 어항이 아니다)
@@ -7825,7 +7825,7 @@ function plBuildPolishPrompt() {
 - 타겟 독자: ${tar}
 ${topic ? '- 이번 주제: ' + topic + '\n' : ''}- 톤: 유디트 말투(구어체 ~해요/~거든요), 얼굴 미노출(보이스오버+자막), 대기업 부부 페르소나
 
-[퇴고 잣대]
+[피드백 잣대]
 1. 첫 문장: 주제 + 내 권위 + 얻을 이득(+타겟)이 한 호흡에 드러나나. 첫 줄에 '이 사람 뭐 하지?' 궁금증. (단정·추상 ✕ → 질문·장면으로)
 2. 구체 수치·결과로 (막연한 말 → 3억·400만원 같은 숫자, 서브자막으로 박기)
 3. 군더더기·당연한 단계 삭제 (누구나 아는 절차·중복)
@@ -7836,7 +7836,7 @@ ${topic ? '- 이번 주제: ' + topic + '\n' : ''}- 톤: 유디트 말투(구어
 8. ★훅 서브자막 (작성자가 자주 빠뜨리는 1순위 — 꼭 챙겨라): 서브자막은 표지와 별개로, 훅(첫 부분)을 보강하는 '강력한 한 문장'이다. (표지 문장이 와도 되지만, 보통은 핵심·숫자·결과·권위·반전을 화면에 한 번 더 박는 임팩트 한 줄.) 훅에 붙일 서브자막 1~2개를 따로 제안. (영상 내내 갈지 훅에서만 쓸지는 작성자가 판단하니 후보만 준다.)
 9. 그 외 연출 (지수 띄우기·장면 메모·한 줄씩 등장 → 마지막에 한 번에=캡쳐타임). 더 좋은 레퍼 사례 있으면 벤치마크 제시
 
-[대사 — 퇴고 대상]
+[대사 — 피드백 대상]
 ${script || '(수정한 대사 붙여넣기)'}
 
 [출력 — 인사치레 없이, 반드시 마크다운 표로]
