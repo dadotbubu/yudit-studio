@@ -7677,7 +7677,9 @@ function plBuildHookPrompt(mode = 'chat') {
   const topic = (document.getElementById('pl-topic').value || '').trim() || '(주제 입력)';
   const exp = (document.getElementById('pl-exp') ? document.getElementById('pl-exp').value : '').trim();
   const purpDef = D.purposes.find(p => p.id === plSel.purpose);
-  if (mode === 'code') return `앤, 이 주제로 훅·표지 뽑아줘. 우리 채널(yudit_insta) 레퍼·세계관·훅 13앵글·차별점 규칙("하나만 박기")은 네가 아는 걸로 적용해서, 13앵글 순서대로 표지+훅 1세트씩 (안 맞는 앵글은 생략). 표지·훅 5요소(주제·권위/타겟·이득·창작·유디트화)는 속으로 점검해 통과한 것만, 점검은 끝에 한 줄 요약.
+  if (mode === 'code') return `앤, 너는 우리 채널(yudit_insta) 레퍼 수백 개와 터지는 릴스 공식을 머릿속에 가진 인플루언서다 — 어항처럼. 단순 지시 수행이 아니라 그 감각으로 직접 기획해. (필요하면 planning_data.js·세계관 문서·훅 13앵글을 직접 열어 참고할 것.)
+
+그 감각으로 이 주제 훅·표지를 뽑아줘. 13앵글 순서대로 표지+훅 1세트씩(안 맞는 앵글은 생략), 차별점은 첫 문장에 하나만, 표지·훅 5요소(주제·권위/타겟·이득·창작·유디트화)는 속으로 점검해 통과한 것만(점검은 끝에 한 줄 요약).
 
 [목적] ${purpDef.name}
 [주제] ${topic}
@@ -7760,7 +7762,9 @@ function plBuildScriptPrompt(mode = 'chat') {
   const prodBlock = plSel.prod === 'dialogue'
     ? '두 사람(부부/동료)이 주고받는 대화 장면으로 구성, 대사를 화자별로 분리. 진행자 얼굴 미노출 — 음성·자막·보조 화면.'
     : '진행자 얼굴 없이 음성 내레이션 + 화면(보조 영상·자막)으로 구성. 화면 메모 충실히.';
-  if (mode === 'code') return `앤, 확정 훅·표지로 [${skel.name}${curveDef ? ' · ' + curveDef.name : ''}] 골격 대본 써줘. 우리 채널 골격 구조·기획 원칙·인사이트(나만의 인사이트·인간미) 체크·연출 규칙은 네가 아는 걸로.
+  if (mode === 'code') return `앤, 너는 우리 채널(yudit_insta) 레퍼 수백 개와 터지는 릴스 공식을 머릿속에 가진 인플루언서다 — 어항처럼. 그 감각으로 직접 기획해. (필요하면 planning_data.js·세계관 문서·골격을 직접 참고.)
+
+확정 훅·표지로 [${skel.name}${curveDef ? ' · ' + curveDef.name : ''}] 골격 대본 써줘. 골격 구조·기획 원칙·인사이트(나만의 인사이트·인간미) 체크·연출 규칙은 네 감각으로.
 
 [확정 표지] ${cover || '(1단계 표지)'}
 [확정 훅] ${hook || '(1단계 훅)'}
@@ -7836,7 +7840,9 @@ function plBuildPolishPrompt(mode = 'chat') {
   const pos = document.getElementById('pl-pos').value, tar = document.getElementById('pl-tar').value, msg = document.getElementById('pl-msg').value;
   const topic = (document.getElementById('pl-topic').value || '').trim();
   const script = (document.getElementById('pl-polish').value || '').trim();
-  if (mode === 'code') return `앤, 이 대사 피드백해줘. 어항 스타일(짧고 펀치 / 고칠 것만 2~4군데 / 짧되 유용한 알맹이 한 줄씩 / 표로 원본|고친 문장|왜 / ⓢ훅 서브자막 수치로 혹하게 / 공유자료 3개·저장·공유 구분)로, 우리 채널 정체성·세계관·레퍼는 네가 아는 걸로. 계정 진단·팩트체크 머리말 없이 표만.
+  if (mode === 'code') return `앤, 너는 우리 채널(yudit_insta) 레퍼 수백 개와 '터지는 피드백' 감각을 머릿속에 가진 인플루언서다 — 어항 그 자체. 단순 첨삭이 아니라 그 감각으로 직접 피드백해. (필요하면 레퍼·어항 피드백 패턴·세계관을 참고.)
+
+이 대사 피드백해줘 — 짧고 펀치 / 고칠 것만 2~4군데 / 짧되 유용한 알맹이 한 줄씩 / 표로(원본|고친 문장|왜) / ⓢ훅 서브자막 수치로 혹하게 / 공유자료 3개·저장·공유 구분. 계정 진단·팩트체크 머리말 없이 표만.
 
 [대사]
 ${script || '(대사 붙여넣기)'}`;
