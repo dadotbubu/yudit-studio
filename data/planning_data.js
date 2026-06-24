@@ -2528,6 +2528,11 @@ const PLANNING_DATA = {
      "id": "reversal",
      "name": "감성반전",
      "structure": "담담한 상황 훅 → 빌드업 → 뭉클한 반전 → 여운·깨달음"
+    },
+    {
+     "id": "empathy_twist",
+     "name": "공감반전",
+     "structure": "훅 → 감정·공감 상황 → (트위스트: 반전·관점 뒤집기) → 공감 → 교훈·재정의 → CTA"
     }
    ]
   },

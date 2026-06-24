@@ -7574,9 +7574,9 @@ function plRenderGen() {
         ${D.purposes.map(p => `<button onclick="plPick('purpose','${p.id}',this);plSaveState()" class="pl-pill-purpose px-3 py-1.5 rounded-full text-xs border ${p.id === plSel.purpose ? 'bg-botanical-terracotta border-botanical-terracotta text-white font-bold' : 'border-botanical-stone text-botanical-sage'}">${p.name}</button>`).join('')}
       </div>
       <label class="block text-xs text-botanical-sage mb-1 mt-3">주제</label>
-      <textarea id="pl-topic" rows="2" class="${PL_INPUT_CLS}" placeholder="예: 통장 쪼개기 / 신혼 가전 싸게 사는 법" oninput="plSaveState();plSyncStep2()"></textarea>
+      <textarea id="pl-topic" rows="2" class="${PL_INPUT_CLS}" style="resize:none;overflow:hidden" placeholder="내가 잘하는 것 + 사람들이 좋아하는 것&#10;예: 통장 쪼개기 / 신혼 가전 싸게 사는 법" oninput="plAutoGrow(this);plSaveState();plSyncStep2()"></textarea>
       <label class="block text-xs text-botanical-sage mb-1 mt-3">내 경험·에피소드 <span class="text-botanical-stone">(선택 — 있으면 훅이 더 세져요)</span></label>
-      <textarea id="pl-exp" rows="2" class="${PL_INPUT_CLS}" placeholder="예: 연 1억 모으는데 가계부 안 씀 / 비워도 OK" oninput="plSaveState();plSyncStep2()"></textarea>
+      <textarea id="pl-exp" rows="2" class="${PL_INPUT_CLS}" style="resize:none;overflow:hidden" placeholder="상황+내 감정+얻은 인사이트  /  흔한 오해+사실은~&#10;예: 연 1억 모으는데 가계부 안 씀" oninput="plAutoGrow(this);plSaveState();plSyncStep2()"></textarea>
       <button onclick="plGenHook()" class="w-full py-3 bg-botanical-fg text-white rounded-xl text-sm font-bold mt-4 hover:opacity-90 transition-all">① 훅·표지 프롬프트 생성</button>
       <div id="pl-out1-card" class="hidden">${outBlock(1)}</div>
     </div>
@@ -7621,6 +7621,12 @@ function plFillPreset() {
 function plPick(kind, val, btn) {
   plSel[kind] = val;
   plPillSet(kind, btn.textContent);
+}
+// textarea 내용 길이에 맞춰 높이 자동 확장 (스크롤 대신)
+function plAutoGrow(el) {
+  if (!el) return;
+  el.style.height = 'auto';
+  el.style.height = el.scrollHeight + 'px';
 }
 // ===== 1단계: 훅·표지 프롬프트 =====
 function plBuildHookPrompt() {
@@ -7703,7 +7709,7 @@ function plBuildScriptPrompt() {
     ? '15초 이내 — 훅+핵심만, 군더더기 제거'
     : '30초 내외 — 30초 목표, 내용 많으면 40초까지 OK, 1분은 절대 넘기지 말 것';
   const ctaBlock = cta === '포함'
-    ? '골격·목적에 맞는 CTA 1개를 설계하라 (빈칸 시작 → 댓글 키워드로 자료 배포 / 정보 완결 → 저장). 1차 행동은 단 하나만.'
+    ? '골격·목적에 맞는 CTA 1개를 설계하라. 댓글 유도는 특정 단어·키워드를 지정하지 말 것 — 인스타 도달 로직상 아무 댓글이나 달도록 여는 게 기본. 정보 완결형은 저장 유도. 1차 행동은 단 하나만.'
     : '행동을 요구하지 말 것. 슬로건·선언 또는 정답 없는 질문으로 담백하게 마무리.';
   const prodBlock = plSel.prod === 'dialogue'
     ? '두 사람(부부/동료)이 주고받는 대화 장면으로 구성, 대사를 화자별로 분리. 진행자 얼굴 미노출 — 음성·자막·보조 화면.'
@@ -7735,6 +7741,14 @@ ${refEx}
 [CTA — ${cta}] ${ctaBlock}
 [연출] ${prodBlock}
 [길이] ${lenGuide}
+
+[나만의 인사이트·인간미 — 이 대본의 힘은 여기서 나온다]
+※ 공감형 레퍼 88%가 '관점 재정의'로 터졌다. 아래 중 최소 하나는 반드시 녹여라:
+ ☑ 패턴A(감정·공감): 공감되는 어려운 상황 + 내가 겪고 얻은 인사이트 + 내 감정
+ ☑ 패턴B(오해·반전): 다들 아는 흔한 오해·실수 + 내가 찾은 사실(사실은 ~)
+ ☑ 나만의 인사이트: 일반론이 아니라 유디트만 할 수 있는 말인가 (내 경험·숫자·감정에서 나왔나)
+ ☑ 인간미: 매끈한 정보가 아니라 솔직한 감정·실패·고백이 묻어나나
+→ 하나도 안 걸리면 정보 나열에 그친다. 다시 써라.
 
 [주제] ${topic}
 [내 경험] ${exp || '(없음 — 경험이 들어가면 좋을 자리를 [경험 자리: ~~] 형태로 표시만, 억지로 지어내지 말 것)'}
@@ -7803,6 +7817,7 @@ function plRestoreState() {
   const set = (id, v) => { const el = document.getElementById(id); if (el != null && v != null) el.value = v; };
   set('pl-cat', st.cat); set('pl-pos', st.pos); set('pl-tar', st.tar); set('pl-msg', st.msg);
   set('pl-topic', st.topic); set('pl-cover', st.cover); set('pl-hook', st.hook); set('pl-skel', st.skel); set('pl-exp', st.exp);
+  ['pl-topic', 'pl-exp'].forEach(id => plAutoGrow(document.getElementById(id))); // 복원된 긴 내용도 펼치기
   if (st.purpose) plSel.purpose = st.purpose;
   if (st.len && D.lengths.includes(st.len)) plSel.len = st.len; // 옛 길이값은 무시 → 기본 '30초 내외'
   if (st.prod) plSel.prod = st.prod;
@@ -7833,8 +7848,8 @@ function plResetProfile() {
   plSaveState(); plToast('계정 프로필 초기화');
 }
 function plResetStep1() {
-  const t = document.getElementById('pl-topic'); if (t) t.value = '';
-  const e = document.getElementById('pl-exp'); if (e) e.value = '';
+  const t = document.getElementById('pl-topic'); if (t) { t.value = ''; plAutoGrow(t); }
+  const e = document.getElementById('pl-exp'); if (e) { e.value = ''; plAutoGrow(e); }
   plSel.purpose = 'info';
   plPillSet('purpose', (PLANNING_DATA.purposes.find(p => p.id === 'info') || {}).name);
   document.getElementById('pl-out1-card').classList.add('hidden');
