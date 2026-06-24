@@ -7890,7 +7890,7 @@ function plResetStep2() {
 function plLibEntries() {
   const D = PLANNING_DATA;
   const skName = id => (D.skeletons.find(s => s.id === id) || {}).name || '';
-  const refs = D.refs.map(r => ({ type: 'ref', no: r.no, hook: r.hook, cat: r.category, len: r.length, fmt: r.format, skel: r.skeleton, skelName: skName(r.skeleton), kw: r.keywords, own: r.own, sub: r.sub, script: r.script }));
+  const refs = D.refs.map(r => ({ type: 'ref', no: r.no, hook: r.hook, cover: r.cover, cat: r.category, len: r.length, fmt: r.format, skel: r.skeleton, skelName: skName(r.skeleton), kw: r.keywords, own: r.own, sub: r.sub, script: r.script }));
   const hooks = D.hookBank.concat(plCustomHooks || []).map((h, i) => ({ type: 'hook', no: h.id, hNo: 'H' + (i + 1), hook: h.hook, cat: '', len: '', fmt: '', kw: [], pattern: h.pattern || '', template: h.template || '' }));
   return hooks.concat(refs);
 }
@@ -7965,9 +7965,10 @@ function plLibList() {
   const tag = (txt, cls) => `<span class="inline-block px-2 py-0.5 rounded-full bg-botanical-cream border border-botanical-stone text-[10px] ${cls || 'text-botanical-sage'} mr-1">${txt}</span>`;
   document.getElementById('pl-lib-items').innerHTML = list.map(e => `
     <div class="py-3 cursor-pointer hover:bg-botanical-cream/40 transition-all" onclick="plOpenDetail('${e.type}','${e.no}')">
-      <div class="text-sm leading-snug">${e.hook}</div>
+      ${e.type === 'ref' && e.cover ? `<div class="text-xs text-botanical-sage truncate">표지 · ${e.cover}</div>` : ''}
+      <div class="text-sm leading-snug truncate">${e.type === 'ref' ? '훅 · ' : ''}${e.hook}</div>
       <div class="mt-1.5">
-        ${e.type === 'hook' ? tag(e.hNo + ' · 훅만', 'text-botanical-terracotta font-bold') + (e.pattern ? `<span class="text-[10px] text-botanical-sage">${e.pattern.split('(')[0].trim()}</span>` : '') : tag(e.cat) + (e.own ? tag('★유디트', 'text-botanical-terracotta font-bold') : '') + (e.sub ? tag('자막만') : '') + `<span class="text-[10px] text-botanical-sage">${e.skelName || ''}</span>`}
+        ${e.type === 'hook' ? tag(e.hNo + ' · 훅만', 'text-botanical-terracotta font-bold') : tag(e.cat) + (e.own ? tag('★유디트', 'text-botanical-terracotta font-bold') : '') + (e.sub ? tag('자막만') : '')}
       </div>
     </div>`).join('') || '<div class="py-8 text-center text-sm text-botanical-sage">검색 결과 없음</div>';
 }
