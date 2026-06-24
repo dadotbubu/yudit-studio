@@ -7558,9 +7558,9 @@ function plRenderGen() {
   const outBlock = (n) => `
       <div class="flex gap-1.5 mb-2 mt-3">
         <button onclick="plCopy('pl-out${n}')" class="flex-1 py-2 rounded-lg text-xs border border-botanical-terracotta text-botanical-terracotta font-bold">📋 복사</button>
-        <button onclick="plOpenExt('https://claude.ai/new')" class="flex-1 py-2 rounded-lg text-xs border border-botanical-stone text-botanical-fg">Claude</button>
-        <button onclick="plOpenExt('https://chatgpt.com')" class="flex-1 py-2 rounded-lg text-xs border border-botanical-stone text-botanical-fg">GPT</button>
-        <button onclick="plOpenExt('https://gemini.google.com/app')" class="flex-1 py-2 rounded-lg text-xs border border-botanical-stone text-botanical-fg">제미나이</button>
+        <button onclick="plOpenExt('https://claude.ai/new')" class="pl-ext-${n} flex-1 py-2 rounded-lg text-xs border border-botanical-stone text-botanical-fg">Claude</button>
+        <button onclick="plOpenExt('https://chatgpt.com')" class="pl-ext-${n} flex-1 py-2 rounded-lg text-xs border border-botanical-stone text-botanical-fg">GPT</button>
+        <button onclick="plOpenExt('https://gemini.google.com/app')" class="pl-ext-${n} flex-1 py-2 rounded-lg text-xs border border-botanical-stone text-botanical-fg">제미나이</button>
       </div>
       <div id="pl-out${n}" class="whitespace-pre-wrap bg-botanical-cream/50 border border-botanical-stone rounded-xl p-4 text-xs leading-relaxed max-h-[340px] overflow-auto"></div>`;
   document.getElementById('pl-sec-gen').innerHTML = `
@@ -7598,7 +7598,10 @@ function plRenderGen() {
       <textarea id="pl-topic" rows="2" class="${PL_INPUT_CLS}" style="resize:none;overflow:hidden" placeholder="내가 잘하는 것 + 사람들이 좋아하는 것&#10;예: 통장 쪼개기 / 신혼 가전 싸게 사는 법" oninput="plAutoGrow(this);plSaveState();plSyncStep2()"></textarea>
       <label class="block text-xs text-botanical-sage mb-1 mt-3">내 경험·에피소드 <span class="text-botanical-stone">(선택 — 있으면 훅이 더 세져요)</span></label>
       <textarea id="pl-exp" rows="2" class="${PL_INPUT_CLS}" style="resize:none;overflow:hidden" placeholder="상황+내 감정+얻은 인사이트  /  흔한 오해+사실은~&#10;예: 연 1억 모으는데 가계부 안 씀" oninput="plAutoGrow(this);plSaveState();plSyncStep2()"></textarea>
-      <button onclick="plGenHook()" class="w-full py-3 bg-botanical-fg text-white rounded-xl text-sm font-bold mt-4 hover:opacity-90 transition-all">① 훅·표지 프롬프트 생성</button>
+      <div class="flex gap-2 mt-4">
+        <button onclick="plGenHook('chat')" class="flex-1 py-3 bg-botanical-fg text-white rounded-xl text-sm font-bold hover:opacity-90 transition-all">① 채팅 프롬프트</button>
+        <button onclick="plGenHook('code')" class="flex-1 py-3 bg-botanical-terracotta text-white rounded-xl text-sm font-bold hover:opacity-90 transition-all">① 코드 프롬프트 (앤)</button>
+      </div>
       <div id="pl-out1-card" class="hidden">${outBlock(1)}</div>
     </div>
 
@@ -7625,7 +7628,10 @@ function plRenderGen() {
       <div class="flex flex-wrap gap-1.5" id="pl-prod">
         ${D.productionOptions.map(p => `<button onclick="plPick('prod','${p.id}',this);plSaveState()" class="pl-pill-prod px-3 py-1.5 rounded-full text-xs border ${p.id === plSel.prod ? 'bg-botanical-terracotta border-botanical-terracotta text-white font-bold' : 'border-botanical-stone text-botanical-sage'}" title="${p.desc}">${p.name}</button>`).join('')}
       </div>
-      <button onclick="plGenScript()" class="w-full py-3 bg-botanical-fg text-white rounded-xl text-sm font-bold mt-4 hover:opacity-90 transition-all">② 대본 프롬프트 생성</button>
+      <div class="flex gap-2 mt-4">
+        <button onclick="plGenScript('chat')" class="flex-1 py-3 bg-botanical-fg text-white rounded-xl text-sm font-bold hover:opacity-90 transition-all">② 채팅 프롬프트</button>
+        <button onclick="plGenScript('code')" class="flex-1 py-3 bg-botanical-terracotta text-white rounded-xl text-sm font-bold hover:opacity-90 transition-all">② 코드 프롬프트 (앤)</button>
+      </div>
       <div id="pl-out2-card" class="hidden">${outBlock(2)}</div>
     </div>
 
@@ -7636,7 +7642,10 @@ function plRenderGen() {
       </div>
       <label class="block text-xs text-botanical-sage mb-1 mt-2">수정한 대사 붙여넣기 <span class="text-botanical-stone">(②로 뽑아 내가 고친 대본)</span></label>
       <textarea id="pl-polish" rows="6" class="${PL_INPUT_CLS}" style="resize:none;overflow:hidden;min-height:120px" placeholder="여기에 내가 수정한 대사를 통째로 붙여넣으세요" oninput="plAutoGrow(this);plSaveState()"></textarea>
-      <button onclick="plGenPolish()" class="w-full py-3 bg-botanical-fg text-white rounded-xl text-sm font-bold mt-4 hover:opacity-90 transition-all">③ 피드백 프롬프트 생성</button>
+      <div class="flex gap-2 mt-4">
+        <button onclick="plGenPolish('chat')" class="flex-1 py-3 bg-botanical-fg text-white rounded-xl text-sm font-bold hover:opacity-90 transition-all">③ 채팅 프롬프트</button>
+        <button onclick="plGenPolish('code')" class="flex-1 py-3 bg-botanical-terracotta text-white rounded-xl text-sm font-bold hover:opacity-90 transition-all">③ 코드 프롬프트 (앤)</button>
+      </div>
       <div id="pl-out3-card" class="hidden">${outBlock(3)}</div>
     </div>
   `;
@@ -7661,13 +7670,18 @@ function plAutoGrow(el) {
   el.style.height = el.scrollHeight + 'px';
 }
 // ===== 1단계: 훅·표지 프롬프트 =====
-function plBuildHookPrompt() {
+function plBuildHookPrompt(mode = 'chat') {
   const D = PLANNING_DATA;
   const cat = document.getElementById('pl-cat').value;
   const pos = document.getElementById('pl-pos').value, tar = document.getElementById('pl-tar').value, msg = document.getElementById('pl-msg').value;
   const topic = (document.getElementById('pl-topic').value || '').trim() || '(주제 입력)';
   const exp = (document.getElementById('pl-exp') ? document.getElementById('pl-exp').value : '').trim();
   const purpDef = D.purposes.find(p => p.id === plSel.purpose);
+  if (mode === 'code') return `앤, 이 주제로 훅·표지 뽑아줘. 우리 채널(yudit_insta) 레퍼·세계관·훅 13앵글·차별점 규칙("하나만 박기")은 네가 아는 걸로 적용해서, 13앵글 순서대로 표지+훅 1세트씩 (안 맞는 앵글은 생략). 표지·훅 5요소(주제·권위/타겟·이득·창작·유디트화)는 속으로 점검해 통과한 것만, 점검은 끝에 한 줄 요약.
+
+[목적] ${purpDef.name}
+[주제] ${topic}
+[내 경험] ${exp || '(없음)'}`;
   // 같은 목적 레퍼 훅 5개 + 터진 이유 (원리 학습용)
   const exRefs = D.refs.filter(r => r.purpose === plSel.purpose && r.viral).sort(() => Math.random() - 0.5).slice(0, 5);
   const refEx = exRefs.map(r => {
@@ -7723,7 +7737,7 @@ ${angles}
 }
 
 // ===== 2단계: 대본 프롬프트 (확정 훅·표지 → 골격대로) =====
-function plBuildScriptPrompt() {
+function plBuildScriptPrompt(mode = 'chat') {
   const D = PLANNING_DATA;
   const cat = document.getElementById('pl-cat').value;
   const pos = document.getElementById('pl-pos').value, tar = document.getElementById('pl-tar').value, msg = document.getElementById('pl-msg').value;
@@ -7746,6 +7760,14 @@ function plBuildScriptPrompt() {
   const prodBlock = plSel.prod === 'dialogue'
     ? '두 사람(부부/동료)이 주고받는 대화 장면으로 구성, 대사를 화자별로 분리. 진행자 얼굴 미노출 — 음성·자막·보조 화면.'
     : '진행자 얼굴 없이 음성 내레이션 + 화면(보조 영상·자막)으로 구성. 화면 메모 충실히.';
+  if (mode === 'code') return `앤, 확정 훅·표지로 [${skel.name}${curveDef ? ' · ' + curveDef.name : ''}] 골격 대본 써줘. 우리 채널 골격 구조·기획 원칙·인사이트(나만의 인사이트·인간미) 체크·연출 규칙은 네가 아는 걸로.
+
+[확정 표지] ${cover || '(1단계 표지)'}
+[확정 훅] ${hook || '(1단계 훅)'}
+[주제] ${topic}
+[내 경험] ${exp || '(없음)'}
+[길이] ${lenGuide}
+[연출] ${plSel.prod === 'dialogue' ? '대화형(부부/동료, 얼굴 미노출)' : '발표형(보이스오버+자막, 얼굴 미노출)'}`;
   const bodyLine = `[${struct.split(' → ').join('] → [')}]`;
   const exRefs = D.refs.filter(r => r.skeleton === skel.id).sort(() => Math.random() - 0.5).slice(0, 2);
   const refEx = exRefs.map(r => `  · ${r.hook}`).join('\n');
@@ -7793,25 +7815,31 @@ ${refEx}
 ③ HUMAN CHECK: 유디트가 직접 확인·수정할 포인트 2~3개 (경험·숫자 자리, 사실 확인 필요)`;
 }
 
-function plGenHook() {
+function plGenHook(mode = 'chat') {
   document.getElementById('pl-out1-card').classList.remove('hidden');
-  document.getElementById('pl-out1').textContent = plBuildHookPrompt();
+  document.getElementById('pl-out1').textContent = plBuildHookPrompt(mode);
+  document.querySelectorAll('.pl-ext-1').forEach(b => b.classList.toggle('hidden', mode === 'code'));
   plSaveState();
   document.getElementById('pl-out1-card').scrollIntoView({ behavior: 'smooth' });
 }
-function plGenScript() {
+function plGenScript(mode = 'chat') {
   document.getElementById('pl-out2-card').classList.remove('hidden');
-  document.getElementById('pl-out2').textContent = plBuildScriptPrompt();
+  document.getElementById('pl-out2').textContent = plBuildScriptPrompt(mode);
+  document.querySelectorAll('.pl-ext-2').forEach(b => b.classList.toggle('hidden', mode === 'code'));
   plSaveState();
   document.getElementById('pl-out2-card').scrollIntoView({ behavior: 'smooth' });
 }
 
 // ===== 3단계: 대사 피드백 프롬프트 =====
-function plBuildPolishPrompt() {
+function plBuildPolishPrompt(mode = 'chat') {
   const cat = document.getElementById('pl-cat').value;
   const pos = document.getElementById('pl-pos').value, tar = document.getElementById('pl-tar').value, msg = document.getElementById('pl-msg').value;
   const topic = (document.getElementById('pl-topic').value || '').trim();
   const script = (document.getElementById('pl-polish').value || '').trim();
+  if (mode === 'code') return `앤, 이 대사 피드백해줘. 어항 스타일(짧고 펀치 / 고칠 것만 2~4군데 / 짧되 유용한 알맹이 한 줄씩 / 표로 원본|고친 문장|왜 / ⓢ훅 서브자막 수치로 혹하게 / 공유자료 3개·저장·공유 구분)로, 우리 채널 정체성·세계관·레퍼는 네가 아는 걸로. 계정 진단·팩트체크 머리말 없이 표만.
+
+[대사]
+${script || '(대사 붙여넣기)'}`;
   return `너는 터지는 인스타그램 릴스를 수백 개 분석·기획해 본 릴스 기획자다. 아래 [대사]에 구간별로 피드백을 준다.
 규칙: 인사·칭찬·격려 빼고 바로 본론. 각 구간을 어떻게 고칠지 ★고친 문장 예시까지 같이 보여줘라★ (방향만 말하면 안 와닿는다). 단 전체 대본을 통으로 새로 쓰진 말고 구간별로만. 좋은 문장은 "그대로 OK".
 ★★짧고 펀치 있게 (이게 제일 중요): 각 칸 1~2줄로 끝내라. 메커니즘·원리를 길게 설명하지 마라 — 근거는 한 마디면 충분("절세돼요" 정도). '왜' 칸에 잣대 번호(#1 등)나 학술 설명 쓰지 말고 짧은 일상말로. 틀린 숫자만 짧게 고치고, 금융 규제·표시 경고 같은 건 늘어놓지 마라. 고친 문장도 짧고 입에 붙게. (논문처럼 길어지면 실패다 — 친구가 빠르게 톡 던지듯)
@@ -7859,11 +7887,12 @@ ${script || '(수정한 대사 붙여넣기)'}
 → 딱 3개만. 길게 설명하지 마라(헤비 ❌). 유형 섞어서 — 체크리스트/비교표/템플릿/앱정보. 맨 위 1개에 ★(제일 터질 것).
 → 저장↑(체크리스트·템플릿·정리표) / 공유↑(배우자·친구한테 보낼 것) 구분. 구체 도구명 모르면 흔히 쓰는 걸로.`;
 }
-function plGenPolish() {
+function plGenPolish(mode = 'chat') {
   const txt = (document.getElementById('pl-polish').value || '').trim();
   if (!txt) { alert('수정한 대사를 먼저 붙여넣어주세요'); return; }
   document.getElementById('pl-out3-card').classList.remove('hidden');
-  document.getElementById('pl-out3').textContent = plBuildPolishPrompt();
+  document.getElementById('pl-out3').textContent = plBuildPolishPrompt(mode);
+  document.querySelectorAll('.pl-ext-3').forEach(b => b.classList.toggle('hidden', mode === 'code'));
   plSaveState();
   document.getElementById('pl-out3-card').scrollIntoView({ behavior: 'smooth' });
 }
