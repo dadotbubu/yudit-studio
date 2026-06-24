@@ -7506,11 +7506,12 @@ function plRenderIdeas() {
           <div class="flex items-center justify-between mb-1">
             <div class="flex items-center gap-1.5">
               <span class="inline-block px-2 py-0.5 rounded-md text-xs font-medium bg-botanical-cream text-botanical-sage whitespace-nowrap">${idea.category}</span>
-              ${idea.link ? '<span class="inline-block px-2 py-0.5 rounded-md text-xs font-medium" style="background-color:#87948320;color:#879483;">레퍼</span>' : '<span class="inline-block px-2 py-0.5 rounded-md text-xs font-medium bg-botanical-stone text-botanical-sage">오리지널</span>'}
+              ${idea.link ? `<a href="${idea.link}" target="_blank" title="레퍼런스 열기" class="inline-block px-2 py-0.5 rounded-md text-xs font-medium hover:underline" style="background-color:#87948320;color:#879483;">레퍼 ↗</a>` : '<span class="inline-block px-2 py-0.5 rounded-md text-xs font-medium bg-botanical-stone text-botanical-sage">오리지널</span>'}
             </div>
             <div class="flex items-center gap-2">
-              ${idea.link ? `<a href="${idea.link}" target="_blank" class="text-xs text-blue-500 hover:text-blue-700">열기</a><span class="text-botanical-stone">|</span>` : ''}
               <button onclick="editIdea('${idea.id}')" class="text-xs text-botanical-sage hover:text-botanical-fg transition-all">수정</button>
+              <span class="text-botanical-stone">|</span>
+              <button onclick="plUseIdea('${idea.id}')" class="text-xs font-bold text-botanical-terracotta hover:text-botanical-terracotta/70 transition-all">기획</button>
               <span class="text-botanical-stone">|</span>
               <button onclick="moveIdeaToPlanner('${idea.id}')" class="text-xs text-blue-500 hover:text-blue-700 transition-all">이동</button>
               <span class="text-botanical-stone">|</span>
@@ -7519,7 +7520,6 @@ function plRenderIdeas() {
           </div>
           <h4 class="text-sm font-medium text-botanical-fg truncate">${idea.title}</h4>
           ${idea.description ? `<p class="text-xs text-botanical-sage truncate">${idea.description}</p>` : ''}
-          <button onclick="plUseIdea('${idea.id}')" class="mt-2 w-full py-2 rounded-lg text-xs font-bold border border-botanical-terracotta text-botanical-terracotta hover:bg-botanical-terracotta/10 transition-all">이 주제로 ✍️ 기획 시작</button>
         </div>
       `).join('')}</div>` : `
         <div class="py-16 text-center text-botanical-sage">
