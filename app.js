@@ -1894,18 +1894,21 @@ function changeDashMonth(monthStr) {
   renderDashboard();
 }
 
-// 플래너 서브탭 상태
-let plannerSubTab = 'plans'; // 'plans' or 'ideas'
+// 아이디어 필터 상태 (아이디어는 기획 탭으로 이동됨)
 let ideaCategoryFilter = 'all'; // 'all', 'Career Guide', 'AI Work', 'Money Log', 'Life Style'
-
-function switchPlannerTab(tab) {
-  plannerSubTab = tab;
-  renderDashboard();
-}
+let ideaSourceFilter = 'all';   // 'all' | 'original'(링크X) | 'reference'(링크O)
 
 function switchIdeaCategory(cat) {
   ideaCategoryFilter = cat;
-  renderDashboard();
+  plRenderIdeas();
+}
+function switchIdeaSource(src) {
+  ideaSourceFilter = src;
+  plRenderIdeas();
+}
+// 아이디어 변경 후 기획 탭 아이디어 섹션만 갱신 (DOM에 있을 때만)
+function plIdeasRefresh() {
+  if (document.getElementById('pl-sec-idea')) plRenderIdeas();
 }
 
 function renderDashboard() {
@@ -1920,9 +1923,6 @@ function renderDashboard() {
   // 해당 월의 plans 가져오기
   const monthData = plansData[dashMonthStr] || { plans: [], ideas: [] };
   const monthPlans = monthData.plans || [];
-
-  // 전역 아이디어 가져오기 (월과 무관)
-  const allIdeas = plansData._ideas || [];
 
   // 주차별로 plans 그룹화 (1~4주차)
   const plansByWeek = { 1: [], 2: [], 3: [], 4: [] };
@@ -1949,21 +1949,15 @@ function renderDashboard() {
   const totalGoal = totalGoalConfig || 8;
 
   document.getElementById('dashboard-content').innerHTML = `
-    <!-- 서브탭 (성과분석 스타일) -->
-    <div class="flex gap-6 mb-6 border-b border-botanical-stone/30">
-      <button onclick="switchPlannerTab('plans')" id="planner-tab-plans" class="planner-tab-btn pb-3 text-sm font-medium border-b-2 ${plannerSubTab === 'plans' ? 'border-botanical-fg text-botanical-fg' : 'border-transparent text-botanical-sage hover:text-botanical-fg'}">월간 계획</button>
-      <button onclick="switchPlannerTab('ideas')" id="planner-tab-ideas" class="planner-tab-btn pb-3 text-sm font-medium border-b-2 ${plannerSubTab === 'ideas' ? 'border-botanical-fg text-botanical-fg' : 'border-transparent text-botanical-sage hover:text-botanical-fg'}">아이디어</button>
-    </div>
-
-    <!-- 월 선택기 (플랜 탭에서만 표시) -->
-    <div id="planner-month-selector" class="${plannerSubTab === 'ideas' ? 'hidden' : ''} mb-6">
+    <!-- 월 선택기 -->
+    <div class="mb-6">
       <div class="flex items-center gap-3">
         ${renderMonthSelect('dashboard-month-select', dashSelectedMonth, 'changeDashMonth')}
       </div>
     </div>
 
-    <!-- 카테고리별 진행 상황 (플랜 탭에서만 표시) -->
-    <div id="planner-progress" class="${plannerSubTab === 'ideas' ? 'hidden' : ''} mb-6">
+    <!-- 카테고리별 진행 상황 -->
+    <div class="mb-6">
       <div class="bg-white rounded-2xl p-4 md:p-5 shadow-sm">
         <div class="flex items-center justify-between mb-4">
           <h3 class="text-sm font-semibold text-botanical-fg">카테고리별 진행 상황</h3>
@@ -1995,8 +1989,8 @@ function renderDashboard() {
       </div>
     </div>
 
-    <!-- 월간 계획 탭 -->
-    <div id="planner-plans-tab" class="${plannerSubTab === 'plans' ? '' : 'hidden'}">
+    <!-- 월간 계획 -->
+    <div>
       <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
         ${[1, 2, 3, 4].map(week => {
           const weekPlans = plansByWeek[week] || [];
@@ -2065,54 +2059,6 @@ function renderDashboard() {
       </div>
     </div>
 
-    <!-- 아이디어 탭 -->
-    <div id="planner-ideas-tab" class="${plannerSubTab === 'ideas' ? '' : 'hidden'}">
-      <div class="flex items-center justify-between gap-3 mb-4">
-        <div class="flex flex-wrap gap-1.5">
-          <button onclick="switchIdeaCategory('all')" class="px-3 py-1.5 rounded-lg text-xs font-medium ${ideaCategoryFilter === 'all' ? 'bg-botanical-fg text-white' : 'bg-botanical-stone text-botanical-sage hover:text-botanical-fg'}">전체</button>
-          <button onclick="switchIdeaCategory('Career Guide')" class="px-3 py-1.5 rounded-lg text-xs font-medium ${ideaCategoryFilter === 'Career Guide' ? 'bg-botanical-fg text-white' : 'bg-botanical-stone text-botanical-sage hover:text-botanical-fg'}">Career</button>
-          <button onclick="switchIdeaCategory('Money Log')" class="px-3 py-1.5 rounded-lg text-xs font-medium ${ideaCategoryFilter === 'Money Log' ? 'bg-botanical-fg text-white' : 'bg-botanical-stone text-botanical-sage hover:text-botanical-fg'}">Money</button>
-          <button onclick="switchIdeaCategory('AI Work')" class="px-3 py-1.5 rounded-lg text-xs font-medium ${ideaCategoryFilter === 'AI Work' ? 'bg-botanical-fg text-white' : 'bg-botanical-stone text-botanical-sage hover:text-botanical-fg'}">AI</button>
-          <button onclick="switchIdeaCategory('Life Style')" class="px-3 py-1.5 rounded-lg text-xs font-medium ${ideaCategoryFilter === 'Life Style' ? 'bg-botanical-fg text-white' : 'bg-botanical-stone text-botanical-sage hover:text-botanical-fg'}">Life</button>
-        </div>
-        <button onclick="addIdea()" class="px-3 py-1.5 rounded-lg bg-botanical-fg text-white text-xs font-medium hover:bg-opacity-90 transition-all shrink-0">
-          + 추가
-        </button>
-      </div>
-
-      <div class="bg-white rounded-2xl p-4 shadow-sm">
-        ${(() => {
-          // 카테고리 필터 + 최신순 정렬
-          let filteredIdeas = ideaCategoryFilter === 'all' ? allIdeas : allIdeas.filter(i => i.category === ideaCategoryFilter);
-          filteredIdeas = [...filteredIdeas].sort((a, b) => (b.createdAt || b.id || '').localeCompare(a.createdAt || a.id || ''));
-          return filteredIdeas.length > 0 ? `
-            <div class="space-y-3">
-              ${filteredIdeas.map(idea => `
-                <div class="p-3 rounded-lg border border-botanical-stone hover:border-botanical-sage transition-all">
-                  <div class="flex items-center justify-between mb-1">
-                    <span class="inline-block px-2 py-0.5 rounded-md text-xs font-medium bg-botanical-cream text-botanical-sage whitespace-nowrap">${idea.category}</span>
-                    <div class="flex items-center gap-2">
-                      <button onclick="editIdea('${idea.id}')" class="text-xs text-botanical-sage hover:text-botanical-fg transition-all">수정</button>
-                      <span class="text-botanical-stone">|</span>
-                      <button onclick="moveIdeaToPlanner('${idea.id}')" class="text-xs text-blue-500 hover:text-blue-700 transition-all">이동</button>
-                      <span class="text-botanical-stone">|</span>
-                      <button onclick="deleteIdea('${idea.id}')" class="text-xs text-botanical-terracotta hover:text-red-600 transition-all">삭제</button>
-                    </div>
-                  </div>
-                  <h4 class="text-sm font-medium text-botanical-fg truncate">${idea.title}</h4>
-                  ${idea.description ? `<p class="text-xs text-botanical-sage truncate">${idea.description}</p>` : ''}
-                </div>
-              `).join('')}
-            </div>
-          ` : `
-            <div class="py-16 text-center text-botanical-sage">
-              <p class="text-base mb-2">${ideaCategoryFilter === 'all' ? '아직 등록된 아이디어가 없습니다' : '해당 카테고리에 아이디어가 없습니다'}</p>
-              <p class="text-sm">+ 추가 버튼을 눌러 아이디어를 등록하세요</p>
-            </div>
-          `;
-        })()}
-      </div>
-    </div>
   `;
 }
 
@@ -2592,7 +2538,7 @@ function deleteIdea(ideaId) {
     plansData._ideas = plansData._ideas.filter(idea => idea.id !== ideaId);
 
     saveAllData();
-    renderDashboard();
+    plIdeasRefresh();
   }
 }
 
@@ -2624,7 +2570,7 @@ function saveNewIdea() {
 
   saveAllData();
   closeCalendarPopup();
-  renderDashboard();
+  plIdeasRefresh();
 }
 
 function saveIdea(ideaId) {
@@ -2651,7 +2597,7 @@ function saveIdea(ideaId) {
 
   saveAllData();
   closeCalendarPopup();
-  renderDashboard();
+  plIdeasRefresh();
 }
 
 // 아이디어 → 플래너 이동
@@ -2721,7 +2667,7 @@ function confirmMoveToPlanner(ideaId, monthStr, week) {
 
   saveAllData();
   closeCalendarPopup();
-  renderDashboard();
+  plIdeasRefresh();
   alert('플래너로 이동되었습니다');
 }
 
@@ -7506,15 +7452,18 @@ function renderPlanning() {
     <div class="mb-4">
       <div class="flex gap-1 bg-botanical-stone p-1 rounded-full w-fit">
         <button onclick="plSwitchSection('gen')" id="pl-nav-gen" class="px-3 md:px-4 py-1.5 rounded-full text-xs font-medium">생성기</button>
+        <button onclick="plSwitchSection('idea')" id="pl-nav-idea" class="px-3 md:px-4 py-1.5 rounded-full text-xs font-medium">아이디어</button>
         <button onclick="plSwitchSection('lib')" id="pl-nav-lib" class="px-3 md:px-4 py-1.5 rounded-full text-xs font-medium">레퍼 보관함</button>
         <button onclick="plSwitchSection('kw')" id="pl-nav-kw" class="px-3 md:px-4 py-1.5 rounded-full text-xs font-medium">검색어</button>
       </div>
     </div>
     <div id="pl-sec-gen"></div>
+    <div id="pl-sec-idea" class="hidden"></div>
     <div id="pl-sec-lib" class="hidden"></div>
     <div id="pl-sec-kw" class="hidden"></div>
   `;
   plRenderGen();
+  plRenderIdeas();
   plRenderKw();
   plLoadCustomHooks().then(() => plRenderLib());
   plSwitchSection(plSel.section);
@@ -7522,12 +7471,84 @@ function renderPlanning() {
 
 function plSwitchSection(sec) {
   plSel.section = sec;
-  ['gen', 'lib', 'kw'].forEach(s => {
+  ['gen', 'idea', 'lib', 'kw'].forEach(s => {
     document.getElementById('pl-sec-' + s).classList.toggle('hidden', s !== sec);
     const btn = document.getElementById('pl-nav-' + s);
     if (s === sec) { btn.classList.add('bg-white', 'text-botanical-fg', 'shadow-sm'); btn.classList.remove('text-botanical-sage'); }
     else { btn.classList.remove('bg-white', 'text-botanical-fg', 'shadow-sm'); btn.classList.add('text-botanical-sage'); }
   });
+}
+
+// ---------- 아이디어 (플래너에서 이동) ----------
+function plRenderIdeas() {
+  const box = document.getElementById('pl-sec-idea');
+  if (!box) return;
+  const all = (plansData && plansData._ideas) || [];
+  // 소스 필터: 오리지널(링크X) / 레퍼런스(링크O)
+  let list = all;
+  if (ideaSourceFilter === 'original') list = list.filter(i => !i.link);
+  else if (ideaSourceFilter === 'reference') list = list.filter(i => i.link);
+  // 카테고리 필터
+  if (ideaCategoryFilter !== 'all') list = list.filter(i => i.category === ideaCategoryFilter);
+  // 최신순
+  list = [...list].sort((a, b) => (b.createdAt || b.id || '').localeCompare(a.createdAt || a.id || ''));
+  const srcBtn = (val, label) => `<button onclick="switchIdeaSource('${val}')" class="px-3 py-1.5 rounded-lg text-xs font-medium ${ideaSourceFilter === val ? 'bg-botanical-terracotta text-white' : 'bg-botanical-stone text-botanical-sage hover:text-botanical-fg'}">${label}</button>`;
+  const catBtn = (val, label) => `<button onclick="switchIdeaCategory('${val}')" class="px-3 py-1.5 rounded-lg text-xs font-medium ${ideaCategoryFilter === val ? 'bg-botanical-fg text-white' : 'bg-botanical-stone text-botanical-sage hover:text-botanical-fg'}">${label}</button>`;
+  box.innerHTML = `
+    <div class="flex items-center justify-between gap-2 mb-3">
+      <div class="flex gap-1.5">${srcBtn('all', '전체')}${srcBtn('original', '오리지널')}${srcBtn('reference', '레퍼런스')}</div>
+      <button onclick="addIdea()" class="px-3 py-1.5 rounded-lg bg-botanical-fg text-white text-xs font-medium hover:bg-opacity-90 transition-all shrink-0">+ 추가</button>
+    </div>
+    <div class="flex flex-wrap gap-1.5 mb-4">${catBtn('all', '전체')}${catBtn('Career Guide', 'Career')}${catBtn('Money Log', 'Money')}${catBtn('AI Work', 'AI')}${catBtn('Life Style', 'Life')}</div>
+    <div class="bg-white rounded-2xl p-4 shadow-sm">
+      ${list.length > 0 ? `<div class="space-y-3">${list.map(idea => `
+        <div class="p-3 rounded-lg border border-botanical-stone hover:border-botanical-sage transition-all">
+          <div class="flex items-center justify-between mb-1">
+            <div class="flex items-center gap-1.5">
+              <span class="inline-block px-2 py-0.5 rounded-md text-xs font-medium bg-botanical-cream text-botanical-sage whitespace-nowrap">${idea.category}</span>
+              ${idea.link ? '<span class="inline-block px-2 py-0.5 rounded-md text-xs font-medium" style="background-color:#87948320;color:#879483;">레퍼</span>' : '<span class="inline-block px-2 py-0.5 rounded-md text-xs font-medium bg-botanical-stone text-botanical-sage">오리지널</span>'}
+            </div>
+            <div class="flex items-center gap-2">
+              ${idea.link ? `<a href="${idea.link}" target="_blank" class="text-xs text-blue-500 hover:text-blue-700">열기</a><span class="text-botanical-stone">|</span>` : ''}
+              <button onclick="editIdea('${idea.id}')" class="text-xs text-botanical-sage hover:text-botanical-fg transition-all">수정</button>
+              <span class="text-botanical-stone">|</span>
+              <button onclick="moveIdeaToPlanner('${idea.id}')" class="text-xs text-blue-500 hover:text-blue-700 transition-all">이동</button>
+              <span class="text-botanical-stone">|</span>
+              <button onclick="deleteIdea('${idea.id}')" class="text-xs text-botanical-terracotta hover:text-red-600 transition-all">삭제</button>
+            </div>
+          </div>
+          <h4 class="text-sm font-medium text-botanical-fg truncate">${idea.title}</h4>
+          ${idea.description ? `<p class="text-xs text-botanical-sage truncate">${idea.description}</p>` : ''}
+          <button onclick="plUseIdea('${idea.id}')" class="mt-2 w-full py-2 rounded-lg text-xs font-bold border border-botanical-terracotta text-botanical-terracotta hover:bg-botanical-terracotta/10 transition-all">이 주제로 ✍️ 기획 시작</button>
+        </div>
+      `).join('')}</div>` : `
+        <div class="py-16 text-center text-botanical-sage">
+          <p class="text-base mb-2">${ideaSourceFilter === 'reference' ? '레퍼런스(링크 있는) 아이디어가 없어요' : ideaSourceFilter === 'original' ? '오리지널 아이디어가 없어요' : '아직 아이디어가 없어요'}</p>
+          <p class="text-sm">+ 추가 버튼으로 등록하세요</p>
+        </div>`}
+    </div>
+  `;
+}
+
+// 아이디어 → 기획 생성기로 주제 자동 입력 + 점프
+function plUseIdea(ideaId) {
+  const idea = ((plansData && plansData._ideas) || []).find(i => i.id === ideaId);
+  if (!idea) return;
+  plSwitchSection('gen');
+  const cat = document.getElementById('pl-cat');
+  if (cat && idea.category && [...cat.options].some(o => o.value === idea.category || o.text === idea.category)) {
+    cat.value = idea.category;
+    plFillPreset();
+  }
+  const topic = document.getElementById('pl-topic');
+  if (topic) {
+    topic.value = idea.title + (idea.description ? '\n' + idea.description : '');
+    plAutoGrow(topic);
+  }
+  plSaveState();
+  if (typeof plSyncStep2 === 'function') plSyncStep2();
+  const sec = document.getElementById('pl-sec-gen');
+  if (sec) sec.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
 // ---------- 생성기 ----------
