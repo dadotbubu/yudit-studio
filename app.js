@@ -3430,6 +3430,7 @@ function renderContentForm(content) {
             </div>
             <div class="flex gap-2 flex-wrap md:justify-end">
               <button onclick="copyScript(${content.id}, 'dialogue')" class="px-3 py-1 rounded-full text-xs border border-botanical-stone hover:bg-botanical-cream transition-all">대사 복사</button>
+              <button onclick="copyScriptForFeedback(${content.id})" class="px-3 py-1 rounded-full text-xs border border-botanical-terracotta text-botanical-terracotta font-bold hover:bg-botanical-terracotta hover:text-white transition-all">구간+대사 (피드백용)</button>
               <button onclick="copyScript(${content.id}, 'subtitle')" class="px-3 py-1 rounded-full text-xs border border-botanical-stone hover:bg-botanical-cream transition-all">자막 복사</button>
               <button onclick="copyScriptAll(${content.id})" class="px-3 py-1 rounded-full text-xs border border-botanical-sage bg-botanical-sage/10 text-botanical-sage hover:bg-botanical-sage hover:text-white transition-all">전체 복사</button>
             </div>
@@ -4081,6 +4082,22 @@ function copyScriptAll(contentId) {
   const text = lines.join('\n');
   navigator.clipboard.writeText(text).then(() => {
     alert('표 전체 복사됨 (탭 구분 — 표에 바로 붙여넣기 OK)');
+  }).catch(() => alert('복사 실패'));
+}
+
+// 구간+대사만 (기획 ③ 피드백 붙여넣기용 — 어항처럼 칸칸이 피드백되게)
+function copyScriptForFeedback(contentId) {
+  const content = contentsData.contents.find(c => c.id === contentId);
+  const ver = content?.script?.currentVersion ?? 0;
+  const rows = content?.script?.versions?.[ver]?.rows;
+  if (!rows || rows.length === 0) { alert('복사할 내용이 없습니다'); return; }
+  const text = rows
+    .filter(r => (r.dialogue || '').trim())
+    .map(r => `[${r.section || ''}] ${r.dialogue.trim()}`)
+    .join('\n');
+  if (!text) { alert('복사할 대사가 없습니다'); return; }
+  navigator.clipboard.writeText(text).then(() => {
+    alert('구간+대사 복사됨 — 기획 ③ 피드백에 붙여넣으세요');
   }).catch(() => alert('복사 실패'));
 }
 
