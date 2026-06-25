@@ -7556,13 +7556,10 @@ const PL_INPUT_CLS = 'w-full px-3 py-2 border border-botanical-stone rounded-lg 
 function plRenderGen() {
   const D = PLANNING_DATA;
   const outBlock = (n) => `
-      <div class="flex gap-1.5 mb-2 mt-3">
-        <button onclick="plCopy('pl-out${n}')" class="flex-1 py-2 rounded-lg text-xs border border-botanical-terracotta text-botanical-terracotta font-bold">📋 복사</button>
-        <button onclick="plOpenExt('https://claude.ai/new')" class="pl-ext-${n} flex-1 py-2 rounded-lg text-xs border border-botanical-stone text-botanical-fg">Claude</button>
-        <button onclick="plOpenExt('https://chatgpt.com')" class="pl-ext-${n} flex-1 py-2 rounded-lg text-xs border border-botanical-stone text-botanical-fg">GPT</button>
-        <button onclick="plOpenExt('https://gemini.google.com/app')" class="pl-ext-${n} flex-1 py-2 rounded-lg text-xs border border-botanical-stone text-botanical-fg">제미나이</button>
-      </div>
-      <div id="pl-out${n}" class="whitespace-pre-wrap bg-botanical-cream/50 border border-botanical-stone rounded-xl p-4 text-xs leading-relaxed max-h-[340px] overflow-auto"></div>`;
+      <div class="relative mt-3">
+        <button onclick="plCopy('pl-out${n}')" class="absolute top-2 right-2 z-10 px-2.5 py-1 rounded-lg text-[11px] border border-botanical-terracotta text-botanical-terracotta font-bold bg-white/90 backdrop-blur-sm hover:bg-white">📋 복사</button>
+        <div id="pl-out${n}" class="whitespace-pre-wrap bg-botanical-cream/50 border border-botanical-stone rounded-xl p-4 pt-9 text-xs leading-relaxed max-h-[340px] overflow-auto"></div>
+      </div>`;
   document.getElementById('pl-sec-gen').innerHTML = `
     <div class="flex gap-1.5 mb-4">
       <button onclick="plCloudSave()" class="flex-1 py-2 rounded-lg text-xs border border-botanical-sage text-botanical-sage hover:bg-botanical-sage/10">☁️ 임시저장 (기기 연동)</button>
@@ -7599,8 +7596,8 @@ function plRenderGen() {
       <label class="block text-xs text-botanical-sage mb-1 mt-3">내 경험·에피소드 <span class="text-botanical-stone">(선택 — 있으면 훅이 더 세져요)</span></label>
       <textarea id="pl-exp" rows="2" class="${PL_INPUT_CLS}" style="resize:none;overflow:hidden" placeholder="상황+내 감정+얻은 인사이트  /  흔한 오해+사실은~&#10;예: 연 1억 모으는데 가계부 안 씀" oninput="plAutoGrow(this);plSaveState();plSyncStep2()"></textarea>
       <div class="flex gap-2 mt-4">
-        <button onclick="plGenHook('chat')" class="flex-1 py-3 bg-botanical-fg text-white rounded-xl text-sm font-bold hover:opacity-90 transition-all">① 채팅 프롬프트</button>
         <button onclick="plGenHook('code')" class="flex-1 py-3 bg-botanical-terracotta text-white rounded-xl text-sm font-bold hover:opacity-90 transition-all">① 코드 프롬프트 (앤)</button>
+        <button onclick="plGenHook('chat')" class="flex-1 py-3 bg-botanical-fg text-white rounded-xl text-sm font-bold hover:opacity-90 transition-all">① 채팅 프롬프트</button>
       </div>
       <div id="pl-out1-card" class="hidden">${outBlock(1)}</div>
     </div>
@@ -7629,8 +7626,8 @@ function plRenderGen() {
         ${D.productionOptions.map(p => `<button onclick="plPick('prod','${p.id}',this);plSaveState()" class="pl-pill-prod px-3 py-1.5 rounded-full text-xs border ${p.id === plSel.prod ? 'bg-botanical-terracotta border-botanical-terracotta text-white font-bold' : 'border-botanical-stone text-botanical-sage'}" title="${p.desc}">${p.name}</button>`).join('')}
       </div>
       <div class="flex gap-2 mt-4">
-        <button onclick="plGenScript('chat')" class="flex-1 py-3 bg-botanical-fg text-white rounded-xl text-sm font-bold hover:opacity-90 transition-all">② 채팅 프롬프트</button>
         <button onclick="plGenScript('code')" class="flex-1 py-3 bg-botanical-terracotta text-white rounded-xl text-sm font-bold hover:opacity-90 transition-all">② 코드 프롬프트 (앤)</button>
+        <button onclick="plGenScript('chat')" class="flex-1 py-3 bg-botanical-fg text-white rounded-xl text-sm font-bold hover:opacity-90 transition-all">② 채팅 프롬프트</button>
       </div>
       <div id="pl-out2-card" class="hidden">${outBlock(2)}</div>
     </div>
@@ -7643,8 +7640,8 @@ function plRenderGen() {
       <label class="block text-xs text-botanical-sage mb-1 mt-2">수정한 대사 붙여넣기 <span class="text-botanical-stone">(②로 뽑아 내가 고친 대본)</span></label>
       <textarea id="pl-polish" rows="6" class="${PL_INPUT_CLS}" style="resize:none;overflow:hidden;min-height:120px" placeholder="여기에 내가 수정한 대사를 통째로 붙여넣으세요" oninput="plAutoGrow(this);plSaveState()"></textarea>
       <div class="flex gap-2 mt-4">
-        <button onclick="plGenPolish('chat')" class="flex-1 py-3 bg-botanical-fg text-white rounded-xl text-sm font-bold hover:opacity-90 transition-all">③ 채팅 프롬프트</button>
         <button onclick="plGenPolish('code')" class="flex-1 py-3 bg-botanical-terracotta text-white rounded-xl text-sm font-bold hover:opacity-90 transition-all">③ 코드 프롬프트 (앤)</button>
+        <button onclick="plGenPolish('chat')" class="flex-1 py-3 bg-botanical-fg text-white rounded-xl text-sm font-bold hover:opacity-90 transition-all">③ 채팅 프롬프트</button>
       </div>
       <div id="pl-out3-card" class="hidden">${outBlock(3)}</div>
     </div>
@@ -7822,14 +7819,12 @@ ${refEx}
 function plGenHook(mode = 'chat') {
   document.getElementById('pl-out1-card').classList.remove('hidden');
   document.getElementById('pl-out1').textContent = plBuildHookPrompt(mode);
-  document.querySelectorAll('.pl-ext-1').forEach(b => b.classList.toggle('hidden', mode === 'code'));
   plSaveState();
   document.getElementById('pl-out1-card').scrollIntoView({ behavior: 'smooth' });
 }
 function plGenScript(mode = 'chat') {
   document.getElementById('pl-out2-card').classList.remove('hidden');
   document.getElementById('pl-out2').textContent = plBuildScriptPrompt(mode);
-  document.querySelectorAll('.pl-ext-2').forEach(b => b.classList.toggle('hidden', mode === 'code'));
   plSaveState();
   document.getElementById('pl-out2-card').scrollIntoView({ behavior: 'smooth' });
 }
@@ -7898,7 +7893,6 @@ function plGenPolish(mode = 'chat') {
   if (!txt) { alert('수정한 대사를 먼저 붙여넣어주세요'); return; }
   document.getElementById('pl-out3-card').classList.remove('hidden');
   document.getElementById('pl-out3').textContent = plBuildPolishPrompt(mode);
-  document.querySelectorAll('.pl-ext-3').forEach(b => b.classList.toggle('hidden', mode === 'code'));
   plSaveState();
   document.getElementById('pl-out3-card').scrollIntoView({ behavior: 'smooth' });
 }
