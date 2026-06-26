@@ -7614,7 +7614,7 @@ function plRenderGen() {
       <textarea id="pl-exp" rows="2" class="${PL_INPUT_CLS}" style="resize:none;overflow:hidden" placeholder="상황+내 감정+얻은 인사이트  /  흔한 오해+사실은~&#10;예: 연 1억 모으는데 가계부 안 씀" oninput="plAutoGrow(this);plSaveState();plSyncStep2()"></textarea>
       <div class="flex gap-2 mt-4">
         <button onclick="plGenHook('code')" class="flex-1 py-3 bg-botanical-terracotta text-white rounded-xl text-sm font-bold hover:opacity-90 transition-all">① 코드 프롬프트 (앤)</button>
-        <button onclick="plGenHook('chat')" class="flex-1 py-3 bg-botanical-fg text-white rounded-xl text-sm font-bold hover:opacity-90 transition-all">① 채팅 프롬프트</button>
+        <button onclick="plGenHook('chat')" class="hidden flex-1 py-3 bg-botanical-fg text-white rounded-xl text-sm font-bold hover:opacity-90 transition-all">① 채팅 프롬프트</button>
       </div>
       <div id="pl-out1-card" class="hidden">${outBlock(1)}</div>
     </div>
@@ -7644,7 +7644,7 @@ function plRenderGen() {
       </div>
       <div class="flex gap-2 mt-4">
         <button onclick="plGenScript('code')" class="flex-1 py-3 bg-botanical-terracotta text-white rounded-xl text-sm font-bold hover:opacity-90 transition-all">② 코드 프롬프트 (앤)</button>
-        <button onclick="plGenScript('chat')" class="flex-1 py-3 bg-botanical-fg text-white rounded-xl text-sm font-bold hover:opacity-90 transition-all">② 채팅 프롬프트</button>
+        <button onclick="plGenScript('chat')" class="hidden flex-1 py-3 bg-botanical-fg text-white rounded-xl text-sm font-bold hover:opacity-90 transition-all">② 채팅 프롬프트</button>
       </div>
       <div id="pl-out2-card" class="hidden">${outBlock(2)}</div>
     </div>
@@ -7658,7 +7658,7 @@ function plRenderGen() {
       <textarea id="pl-polish" rows="6" class="${PL_INPUT_CLS}" style="resize:none;overflow:hidden;min-height:120px" placeholder="여기에 내가 수정한 대사를 통째로 붙여넣으세요" oninput="plAutoGrow(this);plSaveState()"></textarea>
       <div class="flex gap-2 mt-4">
         <button onclick="plGenPolish('code')" class="flex-1 py-3 bg-botanical-terracotta text-white rounded-xl text-sm font-bold hover:opacity-90 transition-all">③ 코드 프롬프트 (앤)</button>
-        <button onclick="plGenPolish('chat')" class="flex-1 py-3 bg-botanical-fg text-white rounded-xl text-sm font-bold hover:opacity-90 transition-all">③ 채팅 프롬프트</button>
+        <button onclick="plGenPolish('chat')" class="hidden flex-1 py-3 bg-botanical-fg text-white rounded-xl text-sm font-bold hover:opacity-90 transition-all">③ 채팅 프롬프트</button>
       </div>
       <div id="pl-out3-card" class="hidden">${outBlock(3)}</div>
     </div>
@@ -7852,9 +7852,29 @@ function plBuildPolishPrompt(mode = 'chat') {
   const pos = document.getElementById('pl-pos').value, tar = document.getElementById('pl-tar').value, msg = document.getElementById('pl-msg').value;
   const topic = (document.getElementById('pl-topic').value || '').trim();
   const script = (document.getElementById('pl-polish').value || '').trim();
-  if (mode === 'code') return `앤, 너는 우리 채널(yudit_insta) 레퍼 수백 개와 '터지는 피드백' 감각을 머릿속에 가진 인플루언서다 — 어항 그 자체. 단순 첨삭이 아니라 그 감각으로 직접 피드백해. (필요하면 레퍼·어항 피드백 패턴·세계관을 참고.)
+  if (mode === 'code') return `앤, 너는 yudit_insta 채널의 터지는 피드백 감각으로 직접 피드백하는 인플루언서다 — 어항 그 자체.
+그 감각은 머릿속이 아니라 보관함에 있다. 피드백 전에 반드시 둘을 연다:
+① yu_reels/references/_어항피드백예시.md — 어항 실물 피드백 예시. 이게 스타일 본체, 그대로 따라간다.
+② 이 대사 카테고리(재테크&부동산/커리어&자기계발/AI/라이프)의 닮은 레퍼 2~3개 — _분석현황.md 카테고리 인덱스나 planning_data.js의 keywords로 골라 연다.
 
-이 대사 피드백해줘 — 짧고 펀치 / 고칠 것만 2~4군데 / 짧되 유용한 알맹이 한 줄씩 / 표로(원본|고친 문장|왜) / ⓢ훅 서브자막 수치로 혹하게 / 공유자료 3개·저장·공유 구분. 계정 진단·팩트체크 머리말 없이 표만.
+[산출물 = 미러링 표 하나, 그게 전부]
+- 입력 표의 구간/대사 행을 그대로 두고 왼쪽 피드백 칸만 채운다. 표 앞뒤로 패턴표·출처표·비교표·머리말 절대 금지.
+- 피드백 칸 = 바로 갈아끼울 수정 대사만 직접 (유디트 목소리). 근거·출처 쓰지 마라. → 부연은 표 전체에서 한두 번, 친근하게.
+
+[고칠 때 — 편집이지 재작성 아님 / 매 문장 + 전체 흐름]
+- 고친 대사는 원문 길이를 넘기지 마라. 통째로 새로 길게 ❌. 한 군데만 손대거나·서브자막만 얹거나·삭제로.
+- 두 시점: 매 문장 보되 전체 흐름도. 흐름상 군더더기 단계는 통째로 삭제(번호 당김), 행 안 군더더기 문장도 삭제.
+- 멀쩡한 줄·단계는 비워(=OK) 또는 그대로 OK.
+- 빠진 핵심은 새 행으로 — 꼭 필요한 한 방만. 추가보다 압축, 30초 넘기지 마라.
+- CTA·캡션 떡밥은 본문 한 단계로 끌어올려 풀고, CTA엔 떡밥만.
+
+[숫자 — 최우선]
+- ★가짜 숫자 금지: 유디트 실제 수치 아니면 지어내 단정 ❌. 모르면 n%·○○만원 + (여기 실제 숫자)로 비워 유디트가 채우게. 검증된 제도 팩트(ISA 400만원 비과세·9.9% 분리과세 등)만 OK, 개인 성과 숫자는 추정 금지.
+
+[연출·서브자막·공유자료]
+- 연출/자막 지시는 괄호·대괄호 인라인 ((지수 띄우기)·[소자막]·(캡쳐타임)).
+- ⓢ서브자막은 해당 행에 인라인(별도 섹션 ❌), 숫자·권위 한 방.
+- 공유자료 3개(저장↑·공유↑ 구분, ★최고추천)는 표 맨 끝 가볍게.
 
 [대사]
 ${script || '(대사 붙여넣기)'}`;
@@ -7862,7 +7882,10 @@ ${script || '(대사 붙여넣기)'}`;
 규칙: 인사·칭찬·격려 빼고 바로 본론. 각 구간을 어떻게 고칠지 ★고친 문장 예시까지 같이 보여줘라★ (방향만 말하면 안 와닿는다). 단 전체 대본을 통으로 새로 쓰진 말고 구간별로만. 좋은 문장은 "그대로 OK".
 ★★짧고 펀치 있게 (이게 제일 중요): 각 칸 1~2줄로 끝내라. 메커니즘·원리를 길게 설명하지 마라 — 근거는 한 마디면 충분("절세돼요" 정도). '왜' 칸에 잣대 번호(#1 등)나 학술 설명 쓰지 말고 짧은 일상말로. 틀린 숫자만 짧게 고치고, 금융 규제·표시 경고 같은 건 늘어놓지 마라. 고친 문장도 짧고 입에 붙게. (논문처럼 길어지면 실패다 — 친구가 빠르게 톡 던지듯)
 ★★전부 고치지 마라: 멀쩡한 문장은 손대지 말 것. 한 대본에서 정말 바꿔야 할 2~4군데만 골라 짚어라. 좋은 구간은 "그대로 OK" 한 줄로 묶거나 아예 표에서 빼라. (다 고치려 들면 어항이 아니다)
-★★짧되 '알맹이'는 있어야 한다 (줄이는 게 목적이 아니다 — 제일 중요): 표현만 다듬지 말고, 그 주제에서 진짜 도움되는 정보·팁·주의점을 짧은 한 줄로 콕 더해라. 예: "국내주식은 ISA에서 사지 마세요, 절세 대상 아니에요" / "은행 말고 증권사여야 ETF 직접 살 수 있어요". 원본에 빠진 중요한 포인트가 있으면 한 줄로 추가 제안. 단 '왜 그런지' 원리는 길게 풀지 말고 결론 팁만. → 짧음 + 알맹이, 둘 다 잡아라 (어항은 짧으면서도 실제 유용한 정보가 들어 있다).
+★★짧되 '알맹이'는 있어야 한다 (줄이는 게 목적이 아니다 — 제일 중요): 표현만 다듬지 말고, 그 주제에서 진짜 도움되는 정보·팁·주의점을 짧은 한 줄로 콕 더해라. 예: "국내주식은 ISA에서 사지 마세요, 절세 대상 아니에요" / "은행 말고 증권사여야 ETF 직접 살 수 있어요". 단 '왜 그런지' 원리는 길게 풀지 말고 결론 팁만. → 짧음 + 알맹이, 둘 다 잡아라 (어항은 짧으면서도 실제 유용한 정보가 들어 있다).
+★★빠진 핵심은 기존 문장에 욱여넣지 말고 '새 행'으로 추가하라: 원본에 빠진 중요한 포인트(예: 국내주식은 ISA에서 사지 마세요)는 옆 문장에 끼워 약하게 만들지 말고, 독립 단계로 새 행을 세워야 힘이 산다.
+★★삭제를 과감히: 멀쩡한 줄은 손대지 말되, "앱에서 계좌 만들기"처럼 누구나 아는 당연한 절차는 '그대로 OK'로 살리지 말고 "삭제"로 잘라라. (멀쩡한 척 살리지 마라)
+★★★가짜 숫자 절대 금지 (최우선): 유디트 실제 수치가 아니면 지어내 단정하지 마라. 모르면 ○○만원 자리만 두고 (여기 실제 숫자)라고 표시해 유디트가 채우게 하라. ISA 400만원 비과세·9.9% 분리과세 같은 검증된 제도 팩트는 OK, 유디트 개인 성과 숫자(3년에 얼마 모았다 등)는 추정 금지.
 
 [계정 정체성 — 여기에 정렬]
 - 카테고리: ${cat}
@@ -7886,13 +7909,14 @@ ${topic ? '- 이번 주제: ' + topic + '\n' : ''}- 톤: 유디트 말투(구어
 ${script || '(수정한 대사 붙여넣기)'}
 
 [출력 — 인사치레 없이, 반드시 마크다운 표로]
-※ ①②③ 표만 출력하라. 그 앞에 계정 진단·카테고리 분석·숫자 팩트체크 같은 머리말 블록을 절대 만들지 마라(불필요). ①이 가장 중요하니 거기 공들이고, 정확성 문제는 해당 구간 '왜' 칸에 한 마디로만.
+※ ①②③ 표만 출력하라. 그 앞에 계정 진단·카테고리 분석·숫자 팩트체크 같은 머리말 블록을 절대 만들지 마라(불필요). ①이 가장 중요하니 거기 공들이고, 정확성 문제는 해당 구간 피드백 칸 화살표(→) 한 줄로만.
 
-① 구간별 피드백 — 표로. ★고칠 게 있는 구간만 행으로 넣어라 (멀쩡한 건 생략하거나 "그대로 OK"로 묶기 — 전부 채우지 마라):
-| 원본 대사 | 이렇게 고쳐요 (고친 문장) | 왜 / ⓢ서브자막 |
+① 구간별 피드백 — ★입력 표를 그대로 미러링하라. 입력의 구간/대사 행을 그대로 두고 왼쪽 '피드백' 칸만 채운다 (행 순서·구성 바꾸지 마라). 별도 분석표(원본|고친|왜) 만들지 마라:
+| 피드백 | 구간 | 대사 |
 |---|---|---|
-- '이렇게 고쳐요' 칸엔 방향만 말고 ★실제로 고친 문장★을 짧게. 그대로 좋으면 "그대로 OK", 뺄 거면 "삭제".
-- '왜' 칸엔 짧은 이유 한 마디. 그 구간에 어울리는 서브자막 후보 있으면 'ⓢ ___'도 같이.
+- '피드백' 칸엔 방향만 말고 ★바로 갈아끼울 수정 대사를 그 자리에 직접★ 써라 (유디트 목소리, ~하세요!/~좋을 거 같아요!). 메타 설명체 금지.
+- 멀쩡하면 칸 비워(=OK). 당연한 절차(앱에서 계좌 만들기 등)는 "삭제". 빠진 핵심은 욱여넣지 말고 '새 행'으로 추가.
+- 이유는 필요할 때만 화살표 한 줄(→). 연출 지시는 괄호 인라인. 구간에 어울리는 서브자막 후보 있으면 'ⓢ ___'도 같이.
 
 ② ⓢ 훅 서브자막 — 표로:
 | 서브자막 후보 | 노린 것 |
