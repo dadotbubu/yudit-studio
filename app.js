@@ -6031,9 +6031,11 @@ function renderPerformance() {
       <div class="bg-white rounded-2xl p-6 shadow-sm">
         <div class="flex items-center justify-between mb-4">
           <h3 class="font-medium">${monthNum}월 팔로워 추이</h3>
-          <div class="flex gap-2">
+          <div class="flex gap-2 items-center">
             <button onclick="switchFollowerView('daily')" id="follower-view-daily" class="follower-view-btn px-3 py-1 rounded-full text-xs ${followerViewMode === 'daily' ? 'bg-botanical-sage text-white' : 'border border-botanical-stone hover:bg-botanical-cream'}">일간</button>
             <button onclick="switchFollowerView('weekly')" id="follower-view-weekly" class="follower-view-btn px-3 py-1 rounded-full text-xs ${followerViewMode === 'weekly' ? 'bg-botanical-sage text-white' : 'border border-botanical-stone hover:bg-botanical-cream'}">주간</button>
+            <span class="w-px h-4 bg-botanical-stone/50 mx-0.5"></span>
+            <button onclick="forceSaveNow()" title="입력한 내용을 서버에 즉시 강제 저장 (숫자 사라짐 방지)" class="px-3 py-1 rounded-full text-xs bg-botanical-terracotta text-white hover:bg-botanical-fg transition-all whitespace-nowrap">💾 강제저장</button>
           </div>
         </div>
 
@@ -6386,6 +6388,18 @@ function saveFollowerCount() {
 
   saveAllData();
   renderPerformance();
+}
+
+// 강제 저장 — 디바운스·충돌검사 무시하고 서버에 즉시 push (팔로워 숫자 사라짐 방지용)
+function forceSaveNow() {
+  try {
+    flushSaveImmediately();
+    lastOwnSaveAt = Date.now();
+    if (typeof showMemoSaveToast === 'function') showMemoSaveToast('서버에 강제 저장됨 ✅');
+    else alert('서버에 강제 저장됨');
+  } catch (e) {
+    alert('강제 저장 실패: ' + e.message);
+  }
 }
 
 // ========== Revenue ==========
