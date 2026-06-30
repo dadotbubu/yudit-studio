@@ -3532,9 +3532,16 @@ function renderContentForm(content) {
             <button onclick="copyDM(${content.id})" class="px-3 py-1 rounded-full text-xs border border-botanical-stone hover:bg-botanical-cream transition-all">DM 복사</button>
           </div>
         </div>
-        <div class="mb-4 flex gap-2">
-          <input id="sharelink-${content.id}" type="text" value="${content.shareLink || ''}" oninput="updateContentField(${content.id}, 'shareLink', this.value)" placeholder="팔로워 공유용 링크" class="flex-1 min-w-0 px-4 py-2 rounded-lg border border-botanical-stone text-sm focus:outline-none focus:border-botanical-sage">
-          <button onclick="openShareLink(${content.id})" class="shrink-0 px-3 py-2 rounded-lg border border-botanical-stone text-sm text-botanical-sage hover:bg-botanical-cream hover:text-botanical-fg transition-all">열기</button>
+        <div class="mb-4 space-y-2">
+          <div class="flex gap-2">
+            <input id="sharelink-${content.id}" type="text" value="${content.shareLink || ''}" oninput="updateContentField(${content.id}, 'shareLink', this.value)" placeholder="팔로워 공유용 링크 1" class="flex-1 min-w-0 px-4 py-2 rounded-lg border border-botanical-stone text-sm focus:outline-none focus:border-botanical-sage">
+            <button onclick="openShareLink(${content.id}, 1)" class="shrink-0 px-3 py-2 rounded-lg border border-botanical-stone text-sm text-botanical-sage hover:bg-botanical-cream hover:text-botanical-fg transition-all">열기</button>
+          </div>
+          <div id="sharelink2-row-${content.id}" class="flex gap-2 ${content.shareLink2 ? '' : 'hidden'}">
+            <input id="sharelink2-${content.id}" type="text" value="${content.shareLink2 || ''}" oninput="updateContentField(${content.id}, 'shareLink2', this.value)" placeholder="팔로워 공유용 링크 2" class="flex-1 min-w-0 px-4 py-2 rounded-lg border border-botanical-stone text-sm focus:outline-none focus:border-botanical-sage">
+            <button onclick="openShareLink(${content.id}, 2)" class="shrink-0 px-3 py-2 rounded-lg border border-botanical-stone text-sm text-botanical-sage hover:bg-botanical-cream hover:text-botanical-fg transition-all">열기</button>
+          </div>
+          <button id="add-sharelink-${content.id}" onclick="addShareLink2(${content.id})" class="${content.shareLink2 ? 'hidden' : ''} w-full text-xs text-botanical-sage hover:text-botanical-fg border border-dashed border-botanical-stone rounded-lg px-3 py-1.5 transition-all">+ 링크 추가 (최대 2개)</button>
         </div>
         <div>
           <label class="text-xs text-botanical-sage mb-2 block">DM 자동 답변</label>
@@ -4274,17 +4281,26 @@ function copyDM(contentId) {
 }
 
 function copyShareLink(contentId) {
-  const el = document.getElementById('sharelink-' + contentId);
-  if (!el || !el.value.trim()) { alert('복사할 링크가 없습니다'); return; }
-  navigator.clipboard.writeText(el.value).then(() => alert('링크 복사됨'));
+  const el1 = document.getElementById('sharelink-' + contentId);
+  const el2 = document.getElementById('sharelink2-' + contentId);
+  const links = [el1?.value?.trim(), el2?.value?.trim()].filter(Boolean);
+  if (!links.length) { alert('복사할 링크가 없습니다'); return; }
+  navigator.clipboard.writeText(links.join('\n')).then(() => alert('링크 복사됨' + (links.length > 1 ? ' (2개)' : '')));
 }
 
-function openShareLink(contentId) {
-  const el = document.getElementById('sharelink-' + contentId);
+function openShareLink(contentId, n) {
+  const el = document.getElementById((n === 2 ? 'sharelink2-' : 'sharelink-') + contentId);
   const url = el?.value?.trim();
   if (!url) { alert('열 링크가 없습니다'); return; }
   const safeUrl = /^https?:\/\//i.test(url) ? url : 'https://' + url;
   window.open(safeUrl, '_system') || window.open(safeUrl, '_blank');
+}
+
+function addShareLink2(contentId) {
+  const row = document.getElementById('sharelink2-row-' + contentId);
+  const btn = document.getElementById('add-sharelink-' + contentId);
+  if (row) row.classList.remove('hidden');
+  if (btn) btn.classList.add('hidden');
 }
 
 function copyMyInstaLink() {
@@ -5043,6 +5059,16 @@ function updateContentField(contentId, field, value) {
   content[field] = value;
   markDirty('contents');
   saveAllData();
+}
+
+// 성과 입력 대기 알림 — 항목별 X로 끄기 (이후 그 콘텐츠는 알림 안 뜸)
+function dismissPerfReminder(contentId) {
+  const content = contentsData.contents.find(c => c.id === contentId);
+  if (!content) return;
+  content.perfReminderDismissed = true;
+  markDirty('contents');
+  saveAllData();
+  if (typeof renderPerformance === 'function') renderPerformance();
 }
 
 function toggleChecklist(contentId, kind, idx, checked) {
@@ -5838,6 +5864,7 @@ function renderPerformance() {
   const nowDate = new Date();
   const needsPerfList = contentsData.contents.filter(c => {
     if (c.status !== '업로드완료') return false;
+    if (c.perfReminderDismissed) return false;
     const d = getUploadDate(c);
     if (!d) return false;
     const uploadDate = new Date(d);
@@ -5910,11 +5937,19 @@ function renderPerformance() {
 
       <!-- 성과 입력 대기 알림 배너 -->
       ${needsPerfList.length > 0 ? `
-      <div class="bg-botanical-terracotta/10 border border-botanical-terracotta/40 rounded-xl px-4 py-3 mb-4 flex items-start gap-2">
-        <span class="text-lg leading-none">🔔</span>
-        <div class="text-sm">
+      <div class="bg-botanical-terracotta/10 border border-botanical-terracotta/40 rounded-xl px-4 py-3 mb-4">
+        <div class="flex items-center gap-2 mb-1">
+          <span class="text-lg leading-none">🔔</span>
           <p class="font-medium text-botanical-terracotta">성과 입력 대기 ${needsPerfList.length}건</p>
-          <p class="text-xs text-botanical-sage mt-0.5">업로드 후 2주 지난 콘텐츠의 성과를 입력해주세요: ${needsPerfList.map(c => c.title || '무제').join(', ')}</p>
+        </div>
+        <p class="text-xs text-botanical-sage mb-2">업로드 후 2주 지난 콘텐츠의 성과를 입력해주세요.</p>
+        <div class="space-y-1">
+          ${needsPerfList.map(c => `
+          <div class="flex items-center justify-between gap-2 bg-white/60 rounded-lg pl-3 pr-1.5 py-1.5">
+            <span onclick="goToContentExpanded(${c.id})" class="text-xs text-botanical-fg cursor-pointer hover:text-botanical-terracotta hover:underline truncate">${c.title || '무제'}</span>
+            <button onclick="dismissPerfReminder(${c.id})" title="이 항목 알림 끄기" class="shrink-0 w-5 h-5 rounded-full text-botanical-sage hover:bg-botanical-terracotta/20 hover:text-botanical-terracotta flex items-center justify-center text-xs leading-none transition-all">✕</button>
+          </div>
+          `).join('')}
         </div>
       </div>
       ` : ''}
