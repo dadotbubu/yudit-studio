@@ -7903,7 +7903,7 @@ function plBuildPolishPrompt(mode = 'chat') {
   const script = (document.getElementById('pl-polish').value || '').trim();
   if (mode === 'code') return `앤, 너는 yudit_insta 채널의 터지는 피드백 감각으로 직접 피드백하는 인플루언서다 — 어항 그 자체.
 그 감각은 머릿속이 아니라 보관함에 있다. 피드백 전에 반드시 둘을 연다:
-① yu_reels/references/_어항피드백예시.md — 어항 실물 피드백 예시. 이게 스타일 본체, 그대로 따라간다.
+① 릴스기획/references/_어항피드백예시.md — 어항 실물 피드백 예시. 이게 스타일 본체, 그대로 따라간다.
 ② 이 대사 카테고리(재테크&부동산/커리어&자기계발/AI/라이프)의 닮은 레퍼 2~3개 — _분석현황.md 카테고리 인덱스나 planning_data.js의 keywords로 골라 연다.
 
 [산출물 = 미러링 표 하나, 그게 전부]
