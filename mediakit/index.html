@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>유디트 미디어킷</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:-apple-system,"Apple SD Gothic Neo","Pretendard",sans-serif;background:var(--stonebg,#E6E2DA);padding:28px 0;color:var(--ink);-webkit-font-smoothing:antialiased;}
+  .demo{display:inline-block;font-size:10px;font-weight:700;color:var(--accent);background:var(--soft);border:1px solid var(--line);padding:1px 8px;border-radius:20px;vertical-align:middle;margin-left:6px;}
+  .fill{color:#c2bcb0 !important;letter-spacing:1px;}
+
+  .phone{width:430px;margin:0 auto;background:var(--pagebg);border-radius:30px;overflow:hidden;box-shadow:0 24px 60px rgba(40,35,25,.26);}
+
+  .head{background:var(--hd);padding:40px 26px 30px;text-align:center;color:var(--hdtext);}
+  .ava{width:134px;height:134px;border-radius:50%;margin:0 auto 16px;background:url('header.jpg') center 60%/cover;box-shadow:0 8px 24px rgba(0,0,0,.28);border:4px solid rgba(255,255,255,.18);}
+  .head .name,.head .iglink,.head .bio,.head .tag{text-shadow:0 2px 10px rgba(20,26,20,.6),0 1px 3px rgba(20,26,20,.5);}
+  .name{font-size:30px;font-weight:800;letter-spacing:-.5px;}
+  .iglink{display:inline-flex;align-items:center;gap:6px;margin-top:8px;font-size:14px;color:var(--ig);font-weight:600;text-decoration:none;}
+  .tags{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin:18px 0 16px;}
+  .tag{font-size:13px;font-weight:600;color:var(--hdtext);background:rgba(255,255,255,.11);border:1px solid rgba(255,255,255,.16);padding:7px 15px;border-radius:30px;}
+  .bio{font-size:14.5px;line-height:1.85;color:var(--biotext);}
+  .bio .em{color:var(--ig);font-weight:700;}
+
+  .body{padding:24px 22px 30px;}
+  .stat-row{display:flex;gap:14px;margin-bottom:12px;}
+  .reach{background:var(--soft);border:1px solid var(--line);border-radius:14px;padding:13px;text-align:center;font-size:14.5px;font-weight:600;color:var(--ink);margin-bottom:26px;}
+  .reach b{color:var(--accent);font-weight:800;}
+  .stat{flex:1;background:var(--card);border:1px solid var(--line);border-radius:18px;padding:20px 14px;text-align:center;box-shadow:0 6px 18px rgba(60,50,30,.05);}
+  .stat .ic{font-size:20px;}
+  .stat .num{font-size:30px;font-weight:800;margin:8px 0 2px;}
+  .stat .lab{font-size:12.5px;color:var(--grey);}
+
+  h2{font-size:20px;font-weight:800;margin:28px 2px 14px;letter-spacing:-.3px;color:var(--ink);}
+
+  .panel{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:18px;box-shadow:0 6px 18px rgba(60,50,30,.04);margin-bottom:14px;}
+  .panel .ttl{font-size:13px;color:var(--grey);font-weight:700;margin-bottom:14px;}
+
+  .donut-wrap{display:flex;flex-direction:column;align-items:center;gap:18px;}
+  .donut{width:156px;height:156px;border-radius:50%;flex-shrink:0;background:var(--donut);-webkit-mask:radial-gradient(circle 47px at center,transparent 98%,#000 100%);mask:radial-gradient(circle 47px at center,transparent 98%,#000 100%);}
+  .legend{display:flex;gap:22px;justify-content:center;flex-wrap:wrap;}
+  .legend li{list-style:none;font-size:14px;color:var(--ink);display:flex;align-items:center;gap:8px;}
+  .dot{width:10px;height:10px;border-radius:50%;display:inline-block;}
+
+  .bars{display:flex;align-items:flex-end;gap:18px;height:120px;padding:0 8px;}
+  .bar-col{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;}
+  .bar{width:26px;border-radius:8px 8px 3px 3px;background:var(--bar);}
+  .bar-lab{font-size:11.5px;color:var(--grey);margin-top:8px;}
+
+  .geo{display:flex;justify-content:space-between;align-items:center;padding:9px 2px;font-size:14px;}
+  .geo + .geo{border-top:1px solid var(--line);}
+  .geo .v{font-weight:800;color:var(--accent);}
+
+  .reels{display:flex;gap:11px;overflow-x:auto;padding-bottom:4px;}
+  .reel{flex:0 0 172px;}
+  .thumb{height:252px;border-radius:15px;display:flex;align-items:flex-end;padding:12px;color:#fff;font-weight:800;font-size:14px;line-height:1.25;}
+  .reel .meta{display:flex;justify-content:space-between;align-items:center;margin-top:10px;font-size:14px;}
+  .reel .cat{color:var(--grey);font-weight:600;}
+  .reel .view{color:var(--accent);font-weight:800;}
+
+  .case{display:flex;align-items:center;gap:14px;}
+  .case .pic{width:62px;height:62px;border-radius:12px;background:var(--thumb2);flex-shrink:0;}
+  .case .nm{font-weight:800;font-size:16px;}
+  .case .vw{color:var(--accent);font-weight:700;font-size:14px;margin-top:4px;}
+
+  .brands{display:flex;flex-wrap:wrap;gap:10px;}
+  .brand{display:flex;align-items:center;gap:8px;font-size:13.5px;font-weight:600;color:var(--ink);background:var(--soft);border:1px solid var(--line);padding:10px 15px;border-radius:30px;}
+  .brand .b{width:22px;height:22px;border-radius:50%;background:var(--clay,#d8d1c0);display:inline-block;}
+
+  .price{background:var(--price);border-radius:20px;padding:22px 20px;color:var(--pricetext);box-shadow:0 12px 28px rgba(0,0,0,.18);}
+  .price .ph{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;}
+  .price .ph .h{font-size:18px;font-weight:800;}
+  .price .vat{font-size:11px;background:rgba(255,255,255,.2);padding:4px 10px;border-radius:20px;}
+  .prow{display:flex;justify-content:space-between;align-items:center;background:rgba(255,255,255,.13);border-radius:12px;padding:14px 16px;margin-bottom:10px;font-size:15px;font-weight:600;}
+  .prow .amt{font-weight:800;}
+
+  .contact{display:flex;align-items:center;justify-content:center;gap:8px;margin-top:24px;padding:17px;border-radius:16px;background:var(--accent);color:#fff;font-size:16px;font-weight:800;text-decoration:none;box-shadow:0 10px 24px rgba(0,0,0,.14);}
+  .contact-mail{text-align:center;font-size:13px;color:var(--grey);margin-top:9px;font-weight:600;}
+  .pdf{display:flex;align-items:center;justify-content:center;gap:8px;margin-top:12px;padding:15px;border-radius:16px;background:var(--pdf);color:#fff;font-size:14px;font-weight:700;}
+  .foot{text-align:center;font-size:11px;color:var(--muted);margin-top:14px;}
+
+  /* ===== 팔레트 ===== */
+  .pA{--pagebg:#F9F8F4;--stonebg:#E6E2DA;--hd:linear-gradient(160deg,#2D3A31,#3d5043);--hdtext:#F2F0EB;--biotext:#cfd6c8;--ava:linear-gradient(135deg,#C27B66,#8C9A84);--ig:#e6b6a2;--card:#fff;--soft:#F2F0EB;--line:#E6E2DA;--ink:#2D3A31;--grey:#7a8475;--muted:#a7ad9f;--accent:#C27B66;--clay:#DCCFC2;--bar:linear-gradient(180deg,#a3b09a,#8C9A84);--donut:conic-gradient(#C27B66 0 51.5%,#8C9A84 51.5% 100%);--price:linear-gradient(155deg,#C27B66,#a86251);--pricetext:#fff;--pdf:#2D3A31;--thumb1:linear-gradient(160deg,#6b7d63,#9aa890);--thumb2:linear-gradient(160deg,#c08a76,#dcc3b3);--thumb3:linear-gradient(160deg,#7d8a72,#b6a690);--thumb4:linear-gradient(160deg,#3d5043,#6b7d63);}
+  .pB{--pagebg:#FAF7F0;--stonebg:#E4DECF;--hd:linear-gradient(160deg,#132238,#22375a);--hdtext:#F6F1E6;--biotext:#cbd4e2;--ava:linear-gradient(135deg,#c8a96a,#ecdab0);--ig:#e0c88c;--card:#fff;--soft:#F7F3EA;--line:#ECE4D4;--ink:#1b2942;--grey:#7d8597;--muted:#aab0bd;--accent:#b6924f;--clay:#e0d6c0;--bar:linear-gradient(180deg,#d4b878,#c8a96a);--donut:conic-gradient(#c8a96a 0 70%,#33518a 70% 92%,#d8cbb0 92% 100%);--price:linear-gradient(155deg,#132238,#26426c);--pricetext:#F6F1E6;--pdf:#132238;--thumb1:linear-gradient(160deg,#2c486f,#4a6ea0);--thumb2:linear-gradient(160deg,#b89a5e,#e2cd97);--thumb3:linear-gradient(160deg,#1f3252,#3a5a8a);--thumb4:linear-gradient(160deg,#c8a96a,#a8863f);}
+  .pC{--pagebg:#F8F6F1;--stonebg:#E5E0D6;--hd:linear-gradient(160deg,#222020,#3a352f);--hdtext:#F3EFE8;--biotext:#cfc9bf;--ava:linear-gradient(135deg,#caa46a,#9c9183);--ig:#d6bc92;--card:#fff;--soft:#F4F1EC;--line:#E7E2D9;--ink:#2b2825;--grey:#867f73;--muted:#a8a195;--accent:#b1924f;--clay:#ddd4c4;--bar:linear-gradient(180deg,#b6a06a,#8a8278);--donut:conic-gradient(#bfa066 0 70%,#46423c 70% 92%,#ccc3b4 92% 100%);--price:linear-gradient(155deg,#262320,#423b33);--pricetext:#F3EFE8;--pdf:#222020;--thumb1:linear-gradient(160deg,#4a443c,#7a7164);--thumb2:linear-gradient(160deg,#b89a5e,#ddc890);--thumb3:linear-gradient(160deg,#3a352f,#5e574d);--thumb4:linear-gradient(160deg,#bfa066,#8a7340);}
+  .t1{background:var(--thumb1);} .t2{background:var(--thumb2);} .t3{background:var(--thumb3);} .t4{background:var(--thumb4);}
+  .stat .num{color:var(--ink);}
+</style>
+</head>
+<body class="pA">
+<div class="phone">
+  <div class="head">
+    <div class="ava"></div>
+    <div class="name">유디트</div>
+    <a class="iglink" href="https://www.instagram.com/yudit_life/" target="_blank" rel="noopener">📷 인스타그램 바로가기</a>
+    <div class="tags"><span class="tag">재테크</span><span class="tag">자기계발</span><span class="tag">대기업 라이프</span><span class="tag">AI</span></div>
+    <div class="bio">대기업 7관왕 부부 🕶️<br>억대연봉 찍은 <span class="em">커리어 만렙</span> ✨<br>취미는 잘 모으고 잘 쓰는 법 공유하기 ✌🏻<br><span class="em">📩 협업 문의 : yudit_@naver.com</span></div>
+  </div>
+
+  <div class="body">
+    <div class="stat-row">
+      <div class="stat"><div class="ic">👥</div><div class="num">1.2만</div><div class="lab">팔로워</div></div>
+      <div class="stat"><div class="ic">👁️</div><div class="num">100.8만</div><div class="lab">최근 30일 조회수</div></div>
+    </div>
+    <div class="reach">🎯 최근 30일 <b>67만 계정</b>에 도달</div>
+
+    <h2>팔로워 분포</h2>
+    <div class="panel">
+      <div class="ttl">성별</div>
+      <div class="donut-wrap">
+        <div class="donut"></div>
+        <ul class="legend">
+          <li><span class="dot" style="background:var(--accent)"></span> 여성 <b style="margin-left:4px">51.5%</b></li>
+          <li><span class="dot" style="background:#8C9A84"></span> 남성 <b style="margin-left:4px">48.5%</b></li>
+        </ul>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="ttl">연령대</div>
+      <div class="bars">
+        <div class="bar-col"><div class="bar" style="height:58%"></div><div class="bar-lab">18-24<br><b>24.7%</b></div></div>
+        <div class="bar-col"><div class="bar" style="height:100%"></div><div class="bar-lab">25-34<br><b>42.3%</b></div></div>
+        <div class="bar-col"><div class="bar" style="height:42%"></div><div class="bar-lab">35-44<br><b>17.6%</b></div></div>
+        <div class="bar-col"><div class="bar" style="height:19%"></div><div class="bar-lab">45-54<br><b>8.1%</b></div></div>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="ttl">지역</div>
+      <div class="geo"><span>📍 서울</span><span class="v">24.2%</span></div>
+      <div class="geo"><span>📍 인천</span><span class="v">5.4%</span></div>
+      <div class="geo"><span>📍 부산</span><span class="v">5.2%</span></div>
+    </div>
+
+    <h2>대표 콘텐츠</h2>
+    <div class="reels">
+      <div class="reel"><div class="thumb" style="background:url('reel1.png') center 18%/cover"></div><div class="meta"><span class="cat">Career</span><span class="view">👁️ 103.9만</span></div></div>
+      <div class="reel"><div class="thumb" style="background:url('reel2.png') center 18%/cover"></div><div class="meta"><span class="cat">Career</span><span class="view">👁️ 61.2만</span></div></div>
+      <div class="reel"><div class="thumb" style="background:url('reel3.png') center 18%/cover"></div><div class="meta"><span class="cat">Life</span><span class="view">👁️ 34.3만</span></div></div>
+      <div class="reel"><div class="thumb" style="background:url('reel4.png') center 18%/cover"></div><div class="meta"><span class="cat">Money</span><span class="view">👁️ 15.2만</span></div></div>
+    </div>
+
+    <h2>광고 성과 사례</h2>
+    <div class="panel">
+      <div class="case"><div class="pic" style="background:url('ad1.png') center 20%/cover"></div><div><div class="nm">스펙 안 좋아도 서류 합격하는 특징</div><div class="vw">👁️ 50.6만 조회 · 포폴 템플릿 협업</div></div></div>
+    </div>
+
+    <h2>협업 브랜드</h2>
+    <div class="brands">
+      <span class="brand"><span class="b"></span>미리캔버스</span>
+    </div>
+
+    <h2>콘텐츠 협업 단가</h2>
+    <div class="price">
+      <div class="ph"><span class="h">💲 협업 단가</span><span class="vat">VAT 별도</span></div>
+      <div class="prow"><span>릴스 제작 + 업로드</span><span class="amt">700,000원</span></div>
+      <div class="prow"><span>카드뉴스 제작 + 업로드</span><span class="amt">500,000원</span></div>
+      <div class="prow"><span>2차 활용</span><span class="amt">50,000원 / 월</span></div>
+    </div>
+
+    <a class="contact" href="mailto:yudit_@naver.com?subject=%5B%ED%98%91%EC%97%85%20%EB%AC%B8%EC%9D%98%5D%20%EC%9C%A0%EB%94%94%ED%8A%B8%20%EC%B1%84%EB%84%90%20%ED%98%91%EC%97%85%20%EC%A0%9C%EC%95%88">📩 협업 문의하기</a>
+    <div class="contact-mail">📧 yudit_@naver.com</div>
+    <div class="foot">© 유디트 · yudit_life — 협업 문의 환영합니다</div>
+  </div>
+</div>
+<style>@media print{body{background:#fff !important;padding:0 !important;}.phone{box-shadow:none !important;border-radius:0 !important;margin:0 auto !important;}}</style>
+<script>if(new URLSearchParams(location.search).get("print")){addEventListener("load",function(){setTimeout(function(){window.print();},500);});}</script>
+</body>
+</html>

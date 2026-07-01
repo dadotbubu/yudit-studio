@@ -5904,6 +5904,7 @@ function renderPerformance() {
     <div class="flex gap-6 mb-6 border-b border-botanical-stone/30">
       <button onclick="switchPerfTab('detail')" id="perf-tab-detail" class="perf-tab-btn pb-3 text-sm font-medium border-b-2 ${perfSubTab === 'detail' ? 'border-botanical-fg text-botanical-fg' : 'border-transparent text-botanical-sage hover:text-botanical-fg'}">월 상세</button>
       <button onclick="switchPerfTab('compare')" id="perf-tab-compare" class="perf-tab-btn pb-3 text-sm font-medium border-b-2 ${perfSubTab === 'compare' ? 'border-botanical-fg text-botanical-fg' : 'border-transparent text-botanical-sage hover:text-botanical-fg'}">월간 비교</button>
+      <button onclick="switchPerfTab('mediakit')" id="perf-tab-mediakit" class="perf-tab-btn pb-3 text-sm font-medium border-b-2 ${perfSubTab === 'mediakit' ? 'border-botanical-fg text-botanical-fg' : 'border-transparent text-botanical-sage hover:text-botanical-fg'}">미디어킷</button>
     </div>
 
     <div id="perf-detail" class="perf-section ${perfSubTab === 'detail' ? '' : 'hidden'}">
@@ -6034,8 +6035,6 @@ function renderPerformance() {
           <div class="flex gap-2 items-center">
             <button onclick="switchFollowerView('daily')" id="follower-view-daily" class="follower-view-btn px-3 py-1 rounded-full text-xs ${followerViewMode === 'daily' ? 'bg-botanical-sage text-white' : 'border border-botanical-stone hover:bg-botanical-cream'}">일간</button>
             <button onclick="switchFollowerView('weekly')" id="follower-view-weekly" class="follower-view-btn px-3 py-1 rounded-full text-xs ${followerViewMode === 'weekly' ? 'bg-botanical-sage text-white' : 'border border-botanical-stone hover:bg-botanical-cream'}">주간</button>
-            <span class="w-px h-4 bg-botanical-stone/50 mx-0.5"></span>
-            <button onclick="forceSaveNow()" title="입력한 내용을 서버에 즉시 강제 저장 (숫자 사라짐 방지)" class="px-3 py-1 rounded-full text-xs bg-botanical-terracotta text-white hover:bg-botanical-fg transition-all whitespace-nowrap">💾 강제저장</button>
           </div>
         </div>
 
@@ -6288,7 +6287,52 @@ function renderPerformance() {
         </div>
       </div>
     </div>
+
+    <!-- Media Kit Sub-tab -->
+    <div id="perf-mediakit" class="perf-section ${perfSubTab === 'mediakit' ? '' : 'hidden'}">
+      <div class="bg-white rounded-2xl p-6 shadow-sm">
+        <h3 class="font-medium mb-1">미디어킷</h3>
+        <p class="text-sm text-botanical-sage mb-5">브랜드 협업 제안용 페이지예요. 링크로 보내거나 PDF로 첨부하세요. 내용 수정은 앤이랑 대화로 언제든 가능해요.</p>
+        <div class="grid md:grid-cols-2 gap-4">
+          <div class="border border-botanical-stone rounded-xl p-5 bg-botanical-cream/30">
+            <div class="flex items-center gap-2 mb-3 font-medium">🇰🇷 한국어 버전</div>
+            <div class="flex flex-wrap gap-2">
+              <a href="mediakit/index.html" target="_blank" class="px-4 py-2 rounded-lg text-sm font-medium border border-botanical-sage text-botanical-fg hover:bg-botanical-cream transition-all">👁️ 미리보기</a>
+              <button onclick="copyMediakitLink('ko')" class="px-4 py-2 rounded-lg text-sm font-medium border-2 border-botanical-terracotta text-botanical-terracotta hover:bg-botanical-cream transition-all">🔗 링크 복사</button>
+              <button onclick="downloadMediakitPdf('ko')" class="px-4 py-2 rounded-lg text-sm font-medium bg-botanical-fg text-white hover:opacity-90 transition-all">⬇️ PDF 다운로드</button>
+            </div>
+          </div>
+          <div class="border border-botanical-stone rounded-xl p-5 bg-botanical-cream/30">
+            <div class="flex items-center gap-2 mb-3 font-medium">🇺🇸 영어 버전 <span class="text-xs text-botanical-sage font-normal">(페이지 내용만 영어)</span></div>
+            <div class="flex flex-wrap gap-2">
+              <a href="mediakit/en.html" target="_blank" class="px-4 py-2 rounded-lg text-sm font-medium border border-botanical-sage text-botanical-fg hover:bg-botanical-cream transition-all">👁️ 미리보기</a>
+              <button onclick="copyMediakitLink('en')" class="px-4 py-2 rounded-lg text-sm font-medium border-2 border-botanical-terracotta text-botanical-terracotta hover:bg-botanical-cream transition-all">🔗 링크 복사</button>
+              <button onclick="downloadMediakitPdf('en')" class="px-4 py-2 rounded-lg text-sm font-medium bg-botanical-fg text-white hover:opacity-90 transition-all">⬇️ PDF 다운로드</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
   `;
+}
+
+// ===== 미디어킷 링크/PDF =====
+function mediakitUrl(lang) {
+  const base = location.origin + location.pathname.replace(/[^/]*$/, '');
+  return base + (lang === 'en' ? 'mediakit/en.html' : 'mediakit/index.html');
+}
+function copyMediakitLink(lang) {
+  const url = mediakitUrl(lang);
+  const ok = () => { if (typeof showMemoSaveToast === 'function') showMemoSaveToast('링크 복사됨 ✅'); else alert('링크 복사됨:\n' + url); };
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(url).then(ok).catch(() => prompt('아래 링크를 복사하세요', url));
+  } else {
+    prompt('아래 링크를 복사하세요', url);
+  }
+}
+function downloadMediakitPdf(lang) {
+  // 새 탭에서 열면서 인쇄 대화상자 자동 오픈 → 'PDF로 저장' 선택
+  window.open(mediakitUrl(lang) + '?print=1', '_blank');
 }
 
 function changePerfMonth(month) {
@@ -6386,6 +6430,7 @@ function saveFollowerCount() {
   // Clear input
   document.getElementById('follower-count').value = '';
 
+  markDirty('performance');   // ★ 성과 변경 표시 — 없으면 다른 테이블이 dirty일 때 팔로워가 저장에서 누락되어 사라짐
   saveAllData();
   renderPerformance();
 }
