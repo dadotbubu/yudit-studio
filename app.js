@@ -6317,9 +6317,11 @@ function renderPerformance() {
 }
 
 // ===== 미디어킷 링크/PDF =====
+// 브랜드 공유용 공개 주소 (Netlify — dadotbubu 노출 안 됨)
 function mediakitUrl(lang) {
-  const base = location.origin + location.pathname.replace(/[^/]*$/, '');
-  return base + (lang === 'en' ? 'mediakit/en.html' : 'mediakit/index.html');
+  return lang === 'en'
+    ? 'https://yudit-mediakit.netlify.app/en.html'
+    : 'https://yudit-mediakit.netlify.app/';
 }
 function copyMediakitLink(lang) {
   const url = mediakitUrl(lang);
