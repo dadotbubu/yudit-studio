@@ -8214,9 +8214,7 @@ function plBuildPolishPrompt(mode = 'chat') {
 - 연출/자막 지시는 괄호·대괄호 인라인 ((지수 띄우기)·[소자막]·(캡쳐타임)).
 - ⓢ서브자막은 해당 구간 블록에 인라인(별도 섹션 ❌), 숫자·권위 한 방.
 - 공유자료 3개(저장↑·공유↑ 구분, ★최고추천)는 맨 끝에 한 줄씩 가볍게 (표 ❌).
-
-[보관함 등록 — 피드백 완료 후 필수]
-- 완성한 피드백 전문을 스튜디오 보관함에 저장해라: Supabase studio_data의 planning_feedbacks 키, items 배열에 {id:'fb_'+타임스탬프, date:'YYYY-MM-DD', topic:'주제 한 줄', body:'피드백 전문'} append (기존 items 읽어와서 병합 후 upsert — yudit_insta/CLAUDE.md '피드백 보관함 등록' 참고). 유디트가 기획탭 > 레퍼 보관함 > 피드백에서 꺼내본다.
+- 참고: 스튜디오 기획탭 > 레퍼 보관함 > 어항예시 탭에 어항 실물 피드백 3개(ISA·마일리지·통장5개)가 이 형식 그대로 들어 있다. _어항피드백예시.md와 함께 손맛 참고용.
 
 [대사]
 ${script || '(대사 붙여넣기)'}`;
@@ -8408,7 +8406,7 @@ function plRenderLib() {
         <button onclick="plSetLibView('all',this)" class="pl-view-btn px-3 py-1 rounded-full text-xs font-medium bg-white text-botanical-fg shadow-sm" data-v="all">전체</button>
         <button onclick="plSetLibView('hook',this)" class="pl-view-btn px-3 py-1 rounded-full text-xs font-medium text-botanical-sage" data-v="hook">훅</button>
         <button onclick="plSetLibView('ref',this)" class="pl-view-btn px-3 py-1 rounded-full text-xs font-medium text-botanical-sage" data-v="ref">레퍼</button>
-        <button onclick="plSetLibView('fb',this)" class="pl-view-btn px-3 py-1 rounded-full text-xs font-medium text-botanical-sage" data-v="fb">피드백</button>
+        <button onclick="plSetLibView('fb',this)" class="pl-view-btn px-3 py-1 rounded-full text-xs font-medium text-botanical-sage" data-v="fb">어항예시</button>
       </div>
       <div class="flex flex-wrap gap-1.5 mb-3">
         <input type="text" id="pl-lib-q" class="flex-1 min-w-[130px] px-3 py-2 border border-botanical-stone rounded-lg text-sm bg-white" placeholder="키워드 검색" oninput="plLibList()">
@@ -8466,7 +8464,7 @@ function plLibList() {
     <div class="py-3 cursor-pointer hover:bg-botanical-cream/40 transition-all" onclick="plOpenDetail('${e.type}','${e.no}')">
       <div class="flex items-center gap-1 mb-0.5">
         ${e.type === 'hook' ? tag(e.hNo + ' · 훅만', 'text-botanical-terracotta font-bold')
-          : e.type === 'fb' ? tag('피드백' + (e.date ? ' · ' + e.date : ''), 'text-botanical-fg font-bold')
+          : e.type === 'fb' ? tag('어항예시', 'text-botanical-fg font-bold')
           : tag(e.cat) + (e.own ? tag('★유디트', 'text-botanical-terracotta font-bold') : '') + (e.sub ? tag('자막만') : '')}
         ${e.type === 'ref'
           ? (e.cover ? `<span class="text-xs text-botanical-sage truncate min-w-0">표지 · ${e.cover}</span>` : '')
@@ -8490,7 +8488,7 @@ function plOpenDetail(type, no) {
         <button onclick="plDeleteFeedback('${f.id}')" class="px-3 py-1 rounded-full text-xs border border-botanical-stone text-botanical-sage hover:text-red-500 hover:border-red-300">삭제</button>
       </div>
       <h3 class="font-medium text-base mt-3">${f.topic || '(제목 없음)'}</h3>
-      <div class="mt-1"><span class="inline-block px-2 py-0.5 rounded-full bg-botanical-cream border border-botanical-stone text-[10px] text-botanical-fg font-bold">대사 피드백${f.date ? ' · ' + f.date : ''}</span></div>
+      <div class="mt-1"><span class="inline-block px-2 py-0.5 rounded-full bg-botanical-cream border border-botanical-stone text-[10px] text-botanical-fg font-bold">어항 예시 (참고용)</span></div>
       ${sect('피드백 전문', f.body || '(내용 없음)')}`;
     return;
   }
