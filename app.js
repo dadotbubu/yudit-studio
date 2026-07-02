@@ -396,6 +396,57 @@ async function getRemoteLatestUpdatedAt() {
   } catch (e) { return null; }
 }
 
+// 팔로워 일간 기록 병합 — 원격 데이터로 통째 교체하면 한쪽에만 있는 날짜가 유실되므로
+// 날짜 단위로 합침 (팔로워 기록은 삭제 기능이 없어 union이 항상 안전)
+// 반환: { data: 병합된 performance, changed: 로컬에만 있던 날짜가 있었는지 }
+function mergeFollowerHistory(localPerf, remotePerf) {
+  if (!remotePerf) return { data: localPerf, changed: false };
+  const localDaily = localPerf?.follower?.history?.daily;
+  if (!Array.isArray(localDaily) || localDaily.length === 0) return { data: remotePerf, changed: false };
+
+  const merged = remotePerf; // 원격을 기본으로 (팔로워 외 성과 데이터는 원격 우선)
+  if (!merged.follower) merged.follower = { current: 0, history: { daily: [], monthly: [] } };
+  if (!merged.follower.history) merged.follower.history = { daily: [], monthly: [] };
+  if (!Array.isArray(merged.follower.history.daily)) merged.follower.history.daily = [];
+  if (!Array.isArray(merged.follower.history.monthly)) merged.follower.history.monthly = [];
+
+  const byDate = new Map(merged.follower.history.daily.map(e => [e.date, e]));
+  let changed = false;
+  localDaily.forEach(e => {
+    if (!e?.date) return;
+    const r = byDate.get(e.date);
+    if (!r) {
+      byDate.set(e.date, e); // 원격에 없는 날짜 → 보존
+      changed = true;
+    } else if (e.at && (!r.at || e.at > r.at) && e.count !== r.count) {
+      byDate.set(e.date, e); // 같은 날짜면 더 최근에 입력된 값 우선
+      changed = true;
+    }
+  });
+  if (!changed) return { data: merged, changed: false };
+
+  // 병합된 daily 기준으로 change / 월별 증가 / 현재 팔로워 재계산
+  const daily = [...byDate.values()].sort((a, b) => a.date.localeCompare(b.date));
+  daily.forEach((e, i) => { if (i > 0) e.change = e.count - daily[i - 1].count; });
+  merged.follower.history.daily = daily;
+  merged.follower.current = daily[daily.length - 1].count;
+
+  const monthChanges = {};
+  daily.forEach(e => {
+    const m = e.date.slice(0, 7);
+    monthChanges[m] = (monthChanges[m] || 0) + (e.change || 0);
+  });
+  Object.entries(monthChanges).forEach(([m, change]) => {
+    const idx = merged.follower.history.monthly.findIndex(x => x.month === m);
+    if (idx >= 0) merged.follower.history.monthly[idx].change = change;
+    else merged.follower.history.monthly.push({ month: m, change });
+    if (!merged.monthly) merged.monthly = {};
+    if (!merged.monthly[m]) merged.monthly[m] = {};
+    merged.monthly[m].followerGain = change;
+  });
+  return { data: merged, changed: true };
+}
+
 // 공통 동기화 함수 (중복 코드 제거)
 async function syncFromRemote(options = {}) {
   const { showToast = true, checkNewer = true, force = false } = options;
@@ -418,7 +469,18 @@ async function syncFromRemote(options = {}) {
 
     if (remote.calendar) calendarData = remote.calendar;
     if (remote.contents) contentsData = remote.contents;
-    if (remote.performance) performanceData = remote.performance;
+    if (remote.performance) {
+      // 팔로워 기록은 통째 교체 대신 날짜별 병합 (덮어쓰기 유실 방지 안전망)
+      const { data: mergedPerf, changed } = mergeFollowerHistory(performanceData, remote.performance);
+      performanceData = mergedPerf;
+      if (changed) {
+        localStorage.setItem('yudit_performance', JSON.stringify(performanceData));
+        markDirty('performance');
+        // isSyncing 해제 후 저장되도록 지연 호출 → 서버도 병합 결과를 갖게 됨
+        setTimeout(() => saveAllData(), 1500);
+        console.log('🔀 팔로워 기록 병합: 로컬에만 있던 날짜를 보존했어요');
+      }
+    }
     if (remote.revenue) revenueData = remote.revenue;
     if (remote.memos) {
       memosData = remote.memos;
@@ -586,8 +648,10 @@ async function loadData() {
     plansData = JSON.parse(localStorage.getItem('yudit_plans') || '{}');
     console.log('localStorage 캐시로 즉시 시작');
     initApp();
-    // 2단계: 백그라운드에서 Supabase 동기화
-    syncFromRemote({ showToast: false, checkNewer: true, force: false }).then(() => {
+    // 2단계: 지난 세션 미전송분 먼저 올린 뒤, 백그라운드에서 Supabase 동기화
+    resendPendingDirty().then(() =>
+      syncFromRemote({ showToast: false, checkNewer: true, force: false })
+    ).then(() => {
       console.log('백그라운드 Supabase 동기화 완료');
     });
     return;
@@ -756,22 +820,27 @@ let saveTimer = null;
 
 // 페이지 언로드 / 백그라운드 시 대기 중인 저장을 즉시 보냄 (iOS Safari 데이터 유실 방지)
 // fetch keepalive: 페이지가 닫혀도 브라우저가 요청 끝까지 보냄
+// ★ dirty 테이블만 전송 — 수정 안 한 테이블까지 보내면 옛 데이터를 든 기기가
+//   다른 기기의 최신 저장을 덮어써서 팔로워 기록 등이 유실됨 (핑퐁 버그)
 function flushSaveImmediately() {
+  const hadPendingSave = !!saveTimer; // 디바운스 저장이 대기 중이었는지 (markDirty 없이 saveAllData만 부른 경로 대비)
   if (saveTimer) {
     clearTimeout(saveTimer);
     saveTimer = null;
   }
-  const payloads = [
-    ['calendar', calendarData],
-    ['contents', contentsData],
-    ['performance', performanceData],
-    ['revenue', revenueData],
-    ['memos', memosData],
-    ['plans', plansData]
-  ];
-  payloads.forEach(([key, data]) => {
+  // 보낼 것: dirty 테이블. dirty가 비었는데 전체 저장이 대기 중이었다면 전체.
+  // 둘 다 아니면(그냥 열어만 본 탭) 아무것도 안 보냄 — 이게 핵심.
+  const keys = dirtyTables.size > 0 ? [...dirtyTables]
+    : (hadPendingSave ? Object.keys(dataMap) : []);
+  if (keys.length === 0) return;
+  // 전송 시각을 하나로 통일 — 다음 접속 때 "서버 updated_at >= flushAt이면 전송 성공"으로 판정
+  const flushAt = new Date().toISOString();
+  keys.forEach(key => {
+    const data = dataMap[key]();
     if (!data) return;
     try {
+      // localStorage 백업 먼저 (재전송 대비 — dirty인데 아직 saveAllData가 안 돈 경우 대비)
+      localStorage.setItem('yudit_' + key, JSON.stringify(data));
       fetch(`${SUPABASE_URL}/rest/v1/${SUPABASE_TABLE}`, {
         method: 'POST',
         headers: {
@@ -780,11 +849,44 @@ function flushSaveImmediately() {
           'Content-Type': 'application/json',
           'Prefer': 'resolution=merge-duplicates,return=minimal'
         },
-        body: JSON.stringify({ key, data, updated_at: new Date().toISOString() }),
+        body: JSON.stringify({ key, data, updated_at: flushAt }),
         keepalive: true
       });
     } catch (e) { /* keepalive 실패해도 페이지는 이미 닫힘 */ }
   });
+  // keepalive는 성공 보장이 없음 (특히 payload 합계 64KB 초과분은 조용히 실패)
+  // → 다음 접속 때 재전송할 수 있도록 기록 (localStorage에 최신 데이터가 백업돼 있음)
+  try {
+    localStorage.setItem('yudit_pendingDirty', JSON.stringify({ keys, at: flushAt }));
+  } catch (e) { /* 저장 실패 무시 */ }
+}
+
+// 지난 세션에서 keepalive 전송이 실패했을 수 있는 변경분 재전송
+// 서버 updated_at이 flush 시각보다 오래됐을 때만 = 전송 실패였을 때만 올림
+// (서버가 더 새거면 다른 기기가 그 뒤에 저장한 것이므로 절대 덮어쓰지 않음)
+async function resendPendingDirty() {
+  const raw = localStorage.getItem('yudit_pendingDirty');
+  if (!raw) return;
+  localStorage.removeItem('yudit_pendingDirty');
+  try {
+    const { keys, at } = JSON.parse(raw);
+    if (!keys?.length || !at) return;
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/${SUPABASE_TABLE}?select=key,updated_at&key=in.(${keys.join(',')})`, {
+      headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
+    });
+    if (!res.ok) return;
+    const rows = await res.json();
+    const remoteAt = {};
+    rows.forEach(r => { if (!remoteAt[r.key] || r.updated_at > remoteAt[r.key]) remoteAt[r.key] = r.updated_at; });
+    const atMs = new Date(at).getTime();
+    for (const key of keys) {
+      if (remoteAt[key] && new Date(remoteAt[key]).getTime() >= atMs) continue; // 전송 성공했거나 더 새 데이터 있음
+      const cached = localStorage.getItem('yudit_' + key);
+      if (!cached) continue;
+      await upsertToSupabase(key, JSON.parse(cached));
+      console.log(`🔁 지난 세션 미전송분 재전송: ${key}`);
+    }
+  } catch (e) { console.warn('미전송분 재전송 실패 (무시):', e); }
 }
 
 document.addEventListener('visibilitychange', async () => {
@@ -888,6 +990,7 @@ function saveAllData() {
       const saveTargets = dirtyTables.size > 0 ? [...dirtyTables] : Object.keys(dataMap);
       await Promise.all(saveTargets.map(key => upsertToSupabase(key, dataMap[key]())));
       dirtyTables.clear();
+      localStorage.removeItem('yudit_pendingDirty'); // 정상 저장 완료 → 재전송 예약 해제
 
       lastLoadedAt = new Date().toISOString();
       lastOwnSaveAt = Date.now();
@@ -6514,12 +6617,14 @@ function saveFollowerCount() {
   const prevEntry = sortedDaily.filter(d => d.date < date).pop();
   const change = prevEntry ? count - prevEntry.count : 0;
 
+  // at: 입력 시각 — 기기 간 병합 때 같은 날짜면 더 최근 입력이 이김
+  const entry = { date, count, change, at: new Date().toISOString() };
   if (existingIdx >= 0) {
     // Update existing entry
-    performanceData.follower.history.daily[existingIdx] = { date, count, change };
+    performanceData.follower.history.daily[existingIdx] = entry;
   } else {
     // Add new entry
-    performanceData.follower.history.daily.push({ date, count, change });
+    performanceData.follower.history.daily.push(entry);
   }
 
   // Update current follower count
@@ -6553,6 +6658,7 @@ function saveFollowerCount() {
 // 강제 저장 — 디바운스·충돌검사 무시하고 서버에 즉시 push (팔로워 숫자 사라짐 방지용)
 function forceSaveNow() {
   try {
+    markDirty('performance'); // flush는 dirty 테이블만 보내므로 성과 데이터를 명시적으로 포함
     flushSaveImmediately();
     lastOwnSaveAt = Date.now();
     if (typeof showMemoSaveToast === 'function') showMemoSaveToast('서버에 강제 저장됨 ✅');
