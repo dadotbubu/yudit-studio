@@ -6312,6 +6312,7 @@ function renderPerformance() {
           </div>
         </div>
       </div>
+      <div id="mk-editor" class="mt-4"></div>
     </div>
   `;
 }
@@ -6335,6 +6336,118 @@ function copyMediakitLink(lang) {
 function downloadMediakitPdf(lang) {
   // 새 탭에서 열면서 인쇄 대화상자 자동 오픈 → 'PDF로 저장' 선택
   window.open(mediakitUrl(lang) + '?print=1', '_blank');
+}
+
+// ===================== 미디어킷 편집기 =====================
+function mkKoNum(n){ n=Number(n)||0; if(n>=100000000){var e=Math.floor(n/10000000)/10;return (e%1===0?e:e.toFixed(1))+'억';} var m=Math.floor(n/1000)/10; return (m%1===0?m:m.toFixed(1))+'만'; }
+function mkEnNum(n){ n=Number(n)||0; if(n>=1000000){return (n/1000000).toFixed(2).replace(/\.?0+$/,'')+'M';} if(n>=1000){return Math.floor(n/1000)+'K';} return String(n); }
+function mkPrev(inp, id){ var el=document.getElementById(id); if(el) el.innerHTML='🇰🇷 '+mkKoNum(inp.value)+' · 🇺🇸 '+mkEnNum(inp.value); }
+function mkAttr(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;'); }
+function mkImgSrc(v){ if(!v) return ''; return v.indexOf('data:')===0 ? v : 'mediakit/'+v; }
+
+function mkGet(path){ var o=window._mkEdit, p=path.split('.'); for(var i=0;i<p.length;i++){ var k=/^\d+$/.test(p[i])?+p[i]:p[i]; if(o==null) return undefined; o=o[k]; } return o; }
+function mkSet(path, val, isNum){ var o=window._mkEdit, p=path.split('.'); for(var i=0;i<p.length-1;i++){ var k=/^\d+$/.test(p[i])?+p[i]:p[i]; o=o[k]; } var last=/^\d+$/.test(p[p.length-1])?+p[p.length-1]:p[p.length-1]; o[last]= isNum ? (val===''?0:Number(val)) : val; }
+function mkSetLines(path, val){ mkSet(path, String(val).split('\n').map(function(s){return s;}).filter(function(s,i,a){return true;})); }
+function mkSetCsv(path, val){ mkSet(path, String(val).split(',').map(function(s){return s.trim();}).filter(Boolean)); }
+function mkClear(path){ mkSet(path, path.indexOf('images.headerBg')>=0 ? null : ''); renderMediakitEditor(); }
+
+function mkResize(file, maxW, cb){ var rd=new FileReader(); rd.onload=function(){ var img=new Image(); img.onload=function(){ var sc=Math.min(1, maxW/img.width); var w=Math.round(img.width*sc), h=Math.round(img.height*sc); var c=document.createElement('canvas'); c.width=w; c.height=h; c.getContext('2d').drawImage(img,0,0,w,h); cb(c.toDataURL('image/jpeg',0.82)); }; img.src=rd.result; }; rd.readAsDataURL(file); }
+function mkUpload(path, maxW){ var inp=document.createElement('input'); inp.type='file'; inp.accept='image/*'; inp.onchange=function(){ var f=inp.files&&inp.files[0]; if(!f) return; mkResize(f, maxW||900, function(url){ mkSet(path, url); renderMediakitEditor(); }); }; inp.click(); }
+
+function mkAddTop(){ window._mkEdit.topContent.push({cat:'Career', views:100000, img:''}); renderMediakitEditor(); }
+function mkDelTop(i){ window._mkEdit.topContent.splice(i,1); renderMediakitEditor(); }
+function mkAddAd(){ if(!window._mkEdit.adCases) window._mkEdit.adCases=[]; window._mkEdit.adCases.push({views:100000, img:'', ko:{title:'',desc:''}, en:{title:'',desc:''}}); renderMediakitEditor(); }
+function mkDelAd(i){ window._mkEdit.adCases.splice(i,1); renderMediakitEditor(); }
+function mkAddBrand(){ if(!window._mkEdit.brands) window._mkEdit.brands=[]; window._mkEdit.brands.push({ko:'',en:''}); renderMediakitEditor(); }
+function mkDelBrand(i){ window._mkEdit.brands.splice(i,1); renderMediakitEditor(); }
+
+function mkFetch(){ return fetch(SUPABASE_URL+'/rest/v1/'+SUPABASE_TABLE+'?key=eq.mediakit&select=data,updated_at&order=updated_at.desc',{headers:{apikey:SUPABASE_KEY,Authorization:'Bearer '+SUPABASE_KEY}}).then(function(r){return r.ok?r.json():[];}).then(function(rows){return rows[0]?rows[0].data:{};}).catch(function(){return {};}); }
+
+async function renderMediakitEditor(reload){
+  var root=document.getElementById('mk-editor'); if(!root) return;
+  if(reload || !window._mkEdit){ root.innerHTML='<p class="text-sm text-botanical-sage p-4">불러오는 중…</p>'; window._mkEdit = await mkFetch(); mkEnsure(window._mkEdit); }
+  root.innerHTML = mkFormHtml(window._mkEdit);
+}
+// 누락 필드 기본 채움
+function mkEnsure(d){
+  d.name=d.name||{ko:'유디트',en:'Yudit'}; d.email=d.email||'yudit_@naver.com'; d.ig=d.ig||'https://www.instagram.com/yudit_life/';
+  d.images=d.images||{headerBg:null,avatar:'header.jpg'};
+  d.tags=d.tags||{ko:[],en:[]}; d.bio=d.bio||{ko:['','',''],en:['','','']};
+  d.stats=d.stats||{views30d:0,reach30d:0}; d.gender=d.gender||{female:50,male:50};
+  d.age=d.age||[]; d.regions=d.regions||[]; d.topContent=d.topContent||[];
+  if(!d.adCases){ d.adCases = d.adCase ? [d.adCase] : []; }
+  d.brands=d.brands||[]; d.rates=d.rates||{noteKo:'3.3% 공제',noteEn:'USD',ko:[],en:[]};
+}
+
+function mkFormHtml(d){
+  var I='class="w-full border border-botanical-stone rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-botanical-sage"';
+  var LB='class="block text-xs font-medium text-botanical-sage mb-1 mt-3"';
+  function sec(title, inner, open){ return '<details '+(open?'open':'')+' class="bg-white rounded-2xl shadow-sm mb-3 px-5 py-4"><summary class="font-medium cursor-pointer select-none">'+title+'</summary><div class="pt-2">'+inner+'</div></details>'; }
+  function imgField(label, path, cur, note){ var src=mkImgSrc(cur); var thumb=src?'<div style="width:56px;height:56px;border-radius:10px;background:url(\''+src+'\') center/cover;border:1px solid #E6E2DA;flex:0 0 auto"></div>':'<div style="width:56px;height:56px;border-radius:10px;background:#F2F0EB;display:flex;align-items:center;justify-content:center;color:#b3afa4;font-size:10px;flex:0 0 auto">없음</div>'; return '<label '+LB+'>'+label+(note?' <span class="text-botanical-sage font-normal">'+note+'</span>':'')+'</label><div class="flex items-center gap-2">'+thumb+'<button onclick="mkUpload(\''+path+'\')" class="px-3 py-1.5 rounded-lg text-sm border border-botanical-sage text-botanical-fg">🖼️ '+(cur?'변경':'올리기')+'</button>'+(cur?'<button onclick="mkClear(\''+path+'\')" class="text-xs text-botanical-sage underline">제거</button>':'')+'</div>'; }
+
+  // 이미지
+  var imgSec = imgField('헤더 배경 (네모)', 'images.headerBg', d.images.headerBg, '· 안 올리면 세이지 색') + imgField('프로필 사진 (동그라미)', 'images.avatar', d.images.avatar);
+
+  // 핵심 지표
+  var stat =
+    '<label '+LB+'>최근 30일 조회수</label><input type="number" '+I+' value="'+(d.stats.views30d||'')+'" oninput="mkPrev(this,\'mkpv-views\')" onchange="mkSet(\'stats.views30d\',this.value,true)"><div class="text-xs text-botanical-sage mt-1" id="mkpv-views">🇰🇷 '+mkKoNum(d.stats.views30d)+' · 🇺🇸 '+mkEnNum(d.stats.views30d)+'</div>' +
+    '<label '+LB+'>도달 계정</label><input type="number" '+I+' value="'+(d.stats.reach30d||'')+'" oninput="mkPrev(this,\'mkpv-reach\')" onchange="mkSet(\'stats.reach30d\',this.value,true)"><div class="text-xs text-botanical-sage mt-1" id="mkpv-reach">🇰🇷 '+mkKoNum(d.stats.reach30d)+' · 🇺🇸 '+mkEnNum(d.stats.reach30d)+'</div>' +
+    '<p class="text-xs text-botanical-sage mt-3">※ 팔로워는 성과 데이터에서 자동으로 들어가요 (여기서 안 넣어도 돼요)</p>';
+
+  // 소개
+  var intro =
+    '<label '+LB+'>소개글 (3줄) 🇰🇷</label><textarea '+I+' style="height:78px" onchange="mkSetLines(\'bio.ko\',this.value)">'+mkAttr((d.bio.ko||[]).join('\n'))+'</textarea>' +
+    '<label '+LB+'>소개글 🇺🇸 <span class="font-normal">· 강조는 |막대|로 감싸기</span></label><textarea '+I+' style="height:78px" onchange="mkSetLines(\'bio.en\',this.value)">'+mkAttr((d.bio.en||[]).join('\n'))+'</textarea>' +
+    '<div class="grid grid-cols-2 gap-3"><div><label '+LB+'>태그 🇰🇷 <span class="font-normal">쉼표로</span></label><input '+I+' value="'+mkAttr((d.tags.ko||[]).join(', '))+'" onchange="mkSetCsv(\'tags.ko\',this.value)"></div><div><label '+LB+'>태그 🇺🇸</label><input '+I+' value="'+mkAttr((d.tags.en||[]).join(', '))+'" onchange="mkSetCsv(\'tags.en\',this.value)"></div></div>' +
+    '<label '+LB+'>협업 문의 이메일</label><input '+I+' value="'+mkAttr(d.email)+'" onchange="mkSet(\'email\',this.value)">';
+
+  // 분포
+  var dist =
+    '<label '+LB+'>여성 %</label><input type="number" step="0.1" '+I+' value="'+d.gender.female+'" onchange="mkSet(\'gender.female\',this.value,true);mkSet(\'gender.male\',(100-Number(this.value)).toFixed(1),true)"><p class="text-xs text-botanical-sage mt-1">남성은 자동 (100-여성)</p>' +
+    '<label '+LB+'>연령대 %</label>' + d.age.map(function(a,i){ return '<div class="flex items-center gap-2 mb-1"><span class="text-sm w-16">'+mkAttr(a.label)+'</span><input type="number" step="0.1" '+I+' value="'+a.pct+'" onchange="mkSet(\'age.'+i+'.pct\',this.value,true)"></div>'; }).join('') +
+    '<label '+LB+'>지역 (도시명 한/영 + %)</label>' + d.regions.map(function(r,i){ return '<div class="grid grid-cols-3 gap-2 mb-1"><input '+I+' value="'+mkAttr(r.ko)+'" placeholder="서울" onchange="mkSet(\'regions.'+i+'.ko\',this.value)"><input '+I+' value="'+mkAttr(r.en)+'" placeholder="Seoul" onchange="mkSet(\'regions.'+i+'.en\',this.value)"><input type="number" step="0.1" '+I+' value="'+r.pct+'" onchange="mkSet(\'regions.'+i+'.pct\',this.value,true)"></div>'; }).join('');
+
+  // 대표 콘텐츠
+  var top = d.topContent.map(function(c,i){ var src=mkImgSrc(c.img); var thumb=src?'background:url(\''+src+'\') center/cover':'background:#F2F0EB';
+    return '<div class="border border-botanical-stone rounded-xl p-3 mb-2"><div class="flex items-center gap-3"><div style="width:48px;height:64px;border-radius:8px;'+thumb+';flex:0 0 auto"></div><div class="flex-1"><div class="flex gap-2"><input '+I+' value="'+mkAttr(c.cat)+'" placeholder="Career" onchange="mkSet(\'topContent.'+i+'.cat\',this.value)"><input type="number" '+I+' value="'+(c.views||'')+'" placeholder="조회수" oninput="mkPrev(this,\'mkpv-top'+i+'\')" onchange="mkSet(\'topContent.'+i+'.views\',this.value,true)"></div><div class="text-xs text-botanical-sage mt-1" id="mkpv-top'+i+'">🇰🇷 '+mkKoNum(c.views)+' · 🇺🇸 '+mkEnNum(c.views)+'</div></div></div><div class="flex items-center gap-2 mt-2"><button onclick="mkUpload(\'topContent.'+i+'.img\',700)" class="px-3 py-1 rounded-lg text-xs border border-botanical-sage text-botanical-fg">🖼️ 썸네일 '+(c.img?'변경':'올리기')+'</button><button onclick="mkDelTop('+i+')" class="text-xs text-botanical-terracotta underline ml-auto">삭제</button></div></div>'; }).join('') +
+    '<button onclick="mkAddTop()" class="mt-1 px-3 py-2 rounded-lg text-sm border border-botanical-sage text-botanical-fg">＋ 릴스 추가</button>';
+
+  // 광고 성과
+  var ads = (d.adCases||[]).map(function(a,i){ var src=mkImgSrc(a.img); var thumb=src?'background:url(\''+src+'\') center/cover':'background:#F2F0EB';
+    return '<div class="border border-botanical-stone rounded-xl p-3 mb-2"><div class="flex gap-3"><div style="width:48px;height:64px;border-radius:8px;'+thumb+';flex:0 0 auto"></div><div class="flex-1"><div class="grid grid-cols-2 gap-2"><input '+I+' value="'+mkAttr(a.ko&&a.ko.title)+'" placeholder="제목(한)" onchange="mkSet(\'adCases.'+i+'.ko.title\',this.value)"><input '+I+' value="'+mkAttr(a.en&&a.en.title)+'" placeholder="Title(en)" onchange="mkSet(\'adCases.'+i+'.en.title\',this.value)"><input '+I+' value="'+mkAttr(a.ko&&a.ko.desc)+'" placeholder="설명(한)" onchange="mkSet(\'adCases.'+i+'.ko.desc\',this.value)"><input '+I+' value="'+mkAttr(a.en&&a.en.desc)+'" placeholder="desc(en)" onchange="mkSet(\'adCases.'+i+'.en.desc\',this.value)"></div><input type="number" '+I+' style="margin-top:8px" value="'+(a.views||'')+'" placeholder="조회수" oninput="mkPrev(this,\'mkpv-ad'+i+'\')" onchange="mkSet(\'adCases.'+i+'.views\',this.value,true)"><div class="text-xs text-botanical-sage mt-1" id="mkpv-ad'+i+'">🇰🇷 '+mkKoNum(a.views)+' · 🇺🇸 '+mkEnNum(a.views)+'</div></div></div><div class="flex items-center gap-2 mt-2"><button onclick="mkUpload(\'adCases.'+i+'.img\',700)" class="px-3 py-1 rounded-lg text-xs border border-botanical-sage text-botanical-fg">🖼️ 이미지 '+(a.img?'변경':'올리기')+'</button><button onclick="mkDelAd('+i+')" class="text-xs text-botanical-terracotta underline ml-auto">삭제</button></div></div>'; }).join('') +
+    '<p class="text-xs text-botanical-sage mb-2">비어있으면 미디어킷에서 자동 숨김돼요</p><button onclick="mkAddAd()" class="px-3 py-2 rounded-lg text-sm border border-botanical-sage text-botanical-fg">＋ 광고 사례 추가</button>';
+
+  // 협업 브랜드
+  var brands = (d.brands||[]).map(function(b,i){ return '<div class="grid grid-cols-2 gap-2 mb-1"><input '+I+' value="'+mkAttr(b.ko||'')+'" placeholder="브랜드(한)" onchange="mkSet(\'brands.'+i+'.ko\',this.value)"><div class="flex gap-2"><input '+I+' value="'+mkAttr(b.en||'')+'" placeholder="Brand(en)" onchange="mkSet(\'brands.'+i+'.en\',this.value)"><button onclick="mkDelBrand('+i+')" class="text-xs text-botanical-terracotta underline">삭제</button></div></div>'; }).join('') +
+    '<p class="text-xs text-botanical-sage mb-2">비어있으면 미디어킷에서 자동 숨김돼요</p><button onclick="mkAddBrand()" class="px-3 py-2 rounded-lg text-sm border border-botanical-sage text-botanical-fg">＋ 브랜드 추가</button>';
+
+  // 단가
+  function rateRows(lang){ var arr=d.rates[lang]||[]; return arr.map(function(r,i){ return '<div class="grid grid-cols-2 gap-2 mb-1"><input '+I+' value="'+mkAttr(r.label)+'" onchange="mkSet(\'rates.'+lang+'.'+i+'.label\',this.value)"><input '+I+' value="'+mkAttr(r.amount)+'" onchange="mkSet(\'rates.'+lang+'.'+i+'.amount\',this.value)"></div>'; }).join(''); }
+  var rate =
+    '<label '+LB+'>🇰🇷 단가 (항목 / 금액)</label>'+rateRows('ko') +
+    '<label '+LB+'>배지 문구 🇰🇷</label><input '+I+' value="'+mkAttr(d.rates.noteKo)+'" onchange="mkSet(\'rates.noteKo\',this.value)">' +
+    '<label '+LB+'>🇺🇸 단가</label>'+rateRows('en') +
+    '<label '+LB+'>배지 문구 🇺🇸</label><input '+I+' value="'+mkAttr(d.rates.noteEn)+'" onchange="mkSet(\'rates.noteEn\',this.value)">';
+
+  return '<div class="mb-2 text-sm text-botanical-sage">✏️ 아래 값을 바꾸고 저장하면 미디어킷에 바로 반영돼요 (재배포 필요 없음). 숫자는 한 번만 넣으면 한/영 자동이에요.</div>' +
+    sec('📊 핵심 지표', stat, true) +
+    sec('✍️ 소개', intro, true) +
+    sec('🖼️ 이미지 (헤더배경·프로필)', imgSec, false) +
+    sec('👥 팔로워 분포', dist, false) +
+    sec('🎬 대표 콘텐츠', top, false) +
+    sec('📣 광고 성과 사례', ads, false) +
+    sec('🏷️ 협업 브랜드', brands, false) +
+    sec('💰 협업 단가', rate, false) +
+    '<div class="flex justify-end sticky bottom-3 mt-3"><button onclick="saveMediakit()" class="bg-botanical-fg text-white font-semibold rounded-xl px-7 py-3 shadow-lg">💾 저장</button></div>';
+}
+
+async function saveMediakit(){
+  try{
+    if(typeof updateSaveStatus==='function') updateSaveStatus('saving');
+    await upsertToSupabase('mediakit', window._mkEdit);
+    if(typeof updateSaveStatus==='function') updateSaveStatus('saved');
+    if(typeof showMemoSaveToast==='function') showMemoSaveToast('미디어킷 저장됨 ✅ (링크는 자동 최신)'); else alert('저장됐어요');
+  }catch(e){ alert('저장 실패: '+e.message); if(typeof updateSaveStatus==='function') updateSaveStatus('error'); }
 }
 
 function changePerfMonth(month) {
@@ -6382,6 +6495,7 @@ function switchPerfTab(tab) {
 
   document.querySelectorAll('.perf-section').forEach(s => s.classList.add('hidden'));
   document.getElementById('perf-' + tab).classList.remove('hidden');
+  if (tab === 'mediakit') renderMediakitEditor(true);
 }
 
 function saveFollowerCount() {

@@ -15,6 +15,7 @@
     name: { ko: '유디트', en: 'Yudit' },
     ig: 'https://www.instagram.com/yudit_life/',
     email: 'yudit_@naver.com',
+    images: { headerBg: null, avatar: 'header.jpg' }, // headerBg 없으면 세이지 색
     tags: {
       ko: ['재테크', '자기계발', '대기업 라이프', 'AI'],
       en: ['Finance', 'Self-growth', 'Couple Life', 'AI']
@@ -136,13 +137,16 @@
         '<div class="meta"><span class="cat">' + esc(c.cat) + '</span><span class="view">👁️ ' + fmtNum(c.views) + '</span></div></div>';
     }).join('');
 
-    // 광고 성과 (비면 숨김)
+    // 광고 성과 (여러 개 · 비면 숨김)
+    var adList = (d.adCases || (d.adCase ? [d.adCase] : [])).filter(function (a) { return a && a[L] && a[L].title; });
     var adHtml = '';
-    if (d.adCase && (d.adCase[L] && d.adCase[L].title)) {
-      var ac = d.adCase[L];
-      adHtml = '<h2>' + T.adcase + '</h2><div class="panel"><div class="case">' +
-        '<div class="pic" style="background:url(\'' + esc(d.adCase.img) + '\') center 20%/cover"></div>' +
-        '<div><div class="nm">' + esc(ac.title) + '</div><div class="vw">👁️ ' + fmtNum(d.adCase.views) + ' ' + T.viewsWord + ' · ' + esc(ac.desc) + '</div></div></div></div>';
+    if (adList.length) {
+      adHtml = '<h2>' + T.adcase + '</h2>' + adList.map(function (a) {
+        var ac = a[L];
+        return '<div class="panel"><div class="case">' +
+          '<div class="pic" style="background:url(\'' + esc(a.img) + '\') center 20%/cover"></div>' +
+          '<div><div class="nm">' + esc(ac.title) + '</div><div class="vw">👁️ ' + fmtNum(a.views) + ' ' + T.viewsWord + ' · ' + esc(ac.desc) + '</div></div></div></div>';
+      }).join('');
     }
 
     // 협업 브랜드 (비면 숨김)
@@ -161,8 +165,9 @@
 
     var mailHref = 'mailto:' + email + '?subject=' + encodeURIComponent(L === 'en' ? '[Collab] Yudit channel' : '[협업 문의] 유디트 채널 협업 제안');
 
+    var avatarUrl = (d.images && d.images.avatar) || 'header.jpg';
     var head =
-      '<div class="ava"></div>' +
+      '<div class="ava" style="background:url(\'' + avatarUrl + '\') center 60%/cover"></div>' +
       '<div class="name">' + esc(name) + '</div>' +
       '<a class="iglink" href="' + esc(d.ig || DEFAULT.ig) + '" target="_blank" rel="noopener">' + T.ig + '</a>' +
       '<div class="tags">' + tagHtml + '</div>' +
@@ -191,8 +196,11 @@
       '<div class="contact-mail">📧 ' + esc(email) + '</div>' +
       '<div class="foot">' + T.foot + '</div>';
 
+    var headBgStyle = (d.images && d.images.headerBg)
+      ? ' style="background:linear-gradient(180deg,rgba(30,40,34,.12),rgba(38,50,43,.55)),url(\'' + d.images.headerBg + '\') center/cover"'
+      : '';
     var phone = document.querySelector('.phone');
-    if (phone) phone.innerHTML = '<div class="head">' + head + '</div><div class="body">' + body + '</div>';
+    if (phone) phone.innerHTML = '<div class="head"' + headBgStyle + '>' + head + '</div><div class="body">' + body + '</div>';
   }
 
   // ===== 로드 =====
