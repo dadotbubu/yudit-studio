@@ -90,6 +90,16 @@
 - 산출물: yu_reels/references/ (분석본), _분석현황.md
 - 레퍼 추가 분석 → refs 재태깅(골격/앵글/변수) → planning_data.js 재생성 → `git add -f` 커밋·푸시
 
+## 미디어킷 (2026-07-02 완성)
+- **공개 링크**: `yudit-mediakit.netlify.app` (한) / `.../en.html` (영) — Netlify Drop 배포, dadotbubu 미노출
+- **동적 렌더**: `mediakit/mediakit-data.js`가 Supabase `mediakit`+`performance` 읽어 실시간 렌더 → **재배포 불필요**
+  - 팔로워 = 성과 데이터 자동 / 숫자 raw 저장 → 한(1.2만)/영(12K) 자동 포맷
+  - 비어있는 섹션(협업 브랜드 등) 자동 숨김 / PDF = `?print=1` 인쇄 방식(항상 최신)
+- **편집**: 스튜디오 성과 탭 → 미디어킷 서브탭. 지표·소개(한/영)·이미지(헤더배경/프로필/썸네일/광고, base64 업로드)·분포·대표콘텐츠·광고(복수)·브랜드·단가 전부 편집 → 저장(Supabase upsert)
+- **단가**: 한 릴스70만/카드뉴스50만/2차 월5만(3.3% 공제) · 영 $650/$450/$50mo(USD)
+- ⚠️ 파일 재배포는 디자인·엔진 코드 변경 시만: 폴더를 데스크탑에 복사 → Netlify 기존 사이트 Deploys에 드래그
+- 관련 버그픽스: `saveFollowerCount`에 `markDirty('performance')` 추가 (팔로워 유실 근본 원인), 강제저장 버튼 제거
+
 ## 별도 트랙 (대기)
 - **추출 대본 품질** (whisper SRT·분석본) — 생성기와 별개. 유디트 첫 불만이었던 항목, 따로 개선.
 - **모바일 반응형 백로그** — 대기 목록

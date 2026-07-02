@@ -6291,8 +6291,7 @@ function renderPerformance() {
     <!-- Media Kit Sub-tab -->
     <div id="perf-mediakit" class="perf-section ${perfSubTab === 'mediakit' ? '' : 'hidden'}">
       <div class="bg-white rounded-2xl p-6 shadow-sm">
-        <h3 class="font-medium mb-1">미디어킷</h3>
-        <p class="text-sm text-botanical-sage mb-5">브랜드 협업 제안용 페이지예요. 링크로 보내거나 PDF로 첨부하세요. 내용 수정은 앤이랑 대화로 언제든 가능해요.</p>
+        <h3 class="font-medium mb-4">미디어킷</h3>
         <div class="grid md:grid-cols-2 gap-4">
           <div class="border border-botanical-stone rounded-xl p-5 bg-botanical-cream/30">
             <div class="flex items-center gap-2 mb-3 font-medium">🇰🇷 한국어 버전</div>
@@ -6429,7 +6428,7 @@ function mkFormHtml(d){
     '<label '+LB+'>🇺🇸 단가</label>'+rateRows('en') +
     '<label '+LB+'>배지 문구 🇺🇸</label><input '+I+' value="'+mkAttr(d.rates.noteEn)+'" onchange="mkSet(\'rates.noteEn\',this.value)">';
 
-  return '<div class="mb-2 text-sm text-botanical-sage">✏️ 아래 값을 바꾸고 저장하면 미디어킷에 바로 반영돼요 (재배포 필요 없음). 숫자는 한 번만 넣으면 한/영 자동이에요.</div>' +
+  return '<h3 class="font-medium mb-3 mt-2">미디어킷 업데이트</h3>' +
     sec('📊 핵심 지표', stat, true) +
     sec('✍️ 소개', intro, true) +
     sec('🖼️ 이미지 (헤더배경·프로필)', imgSec, false) +
