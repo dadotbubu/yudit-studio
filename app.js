@@ -6398,18 +6398,18 @@ function renderPerformance() {
         <div class="grid md:grid-cols-2 gap-4">
           <div class="border border-botanical-stone rounded-xl p-5 bg-botanical-cream/30">
             <div class="flex items-center gap-2 mb-3 font-medium">🇰🇷 한국어 버전</div>
-            <div class="flex flex-wrap gap-2">
-              <a href="mediakit/index.html" target="_blank" class="px-4 py-2 rounded-lg text-sm font-medium border border-botanical-sage text-botanical-fg hover:bg-botanical-cream transition-all">👁️ 미리보기</a>
-              <button onclick="copyMediakitLink('ko')" class="px-4 py-2 rounded-lg text-sm font-medium border-2 border-botanical-terracotta text-botanical-terracotta hover:bg-botanical-cream transition-all">🔗 링크 복사</button>
-              <button onclick="downloadMediakitPdf('ko')" class="px-4 py-2 rounded-lg text-sm font-medium bg-botanical-fg text-white hover:opacity-90 transition-all">⬇️ PDF 다운로드</button>
+            <div class="flex flex-col gap-2 md:flex-row md:flex-wrap">
+              <a href="mediakit/index.html" target="_blank" class="w-full md:w-auto text-center px-4 py-2 rounded-lg text-sm font-medium border border-botanical-sage text-botanical-fg hover:bg-botanical-cream transition-all">👁️ 미리보기</a>
+              <button onclick="copyMediakitLink('ko')" class="w-full md:w-auto px-4 py-2 rounded-lg text-sm font-medium border-2 border-botanical-terracotta text-botanical-terracotta hover:bg-botanical-cream transition-all">🔗 링크 복사</button>
+              <button onclick="downloadMediakitPdf('ko')" class="w-full md:w-auto px-4 py-2 rounded-lg text-sm font-medium bg-botanical-fg text-white hover:opacity-90 transition-all">⬇️ PDF 다운로드</button>
             </div>
           </div>
           <div class="border border-botanical-stone rounded-xl p-5 bg-botanical-cream/30">
             <div class="flex items-center gap-2 mb-3 font-medium">🇺🇸 영어 버전 <span class="text-xs text-botanical-sage font-normal">(페이지 내용만 영어)</span></div>
-            <div class="flex flex-wrap gap-2">
-              <a href="mediakit/en.html" target="_blank" class="px-4 py-2 rounded-lg text-sm font-medium border border-botanical-sage text-botanical-fg hover:bg-botanical-cream transition-all">👁️ 미리보기</a>
-              <button onclick="copyMediakitLink('en')" class="px-4 py-2 rounded-lg text-sm font-medium border-2 border-botanical-terracotta text-botanical-terracotta hover:bg-botanical-cream transition-all">🔗 링크 복사</button>
-              <button onclick="downloadMediakitPdf('en')" class="px-4 py-2 rounded-lg text-sm font-medium bg-botanical-fg text-white hover:opacity-90 transition-all">⬇️ PDF 다운로드</button>
+            <div class="flex flex-col gap-2 md:flex-row md:flex-wrap">
+              <a href="mediakit/en.html" target="_blank" class="w-full md:w-auto text-center px-4 py-2 rounded-lg text-sm font-medium border border-botanical-sage text-botanical-fg hover:bg-botanical-cream transition-all">👁️ 미리보기</a>
+              <button onclick="copyMediakitLink('en')" class="w-full md:w-auto px-4 py-2 rounded-lg text-sm font-medium border-2 border-botanical-terracotta text-botanical-terracotta hover:bg-botanical-cream transition-all">🔗 링크 복사</button>
+              <button onclick="downloadMediakitPdf('en')" class="w-full md:w-auto px-4 py-2 rounded-lg text-sm font-medium bg-botanical-fg text-white hover:opacity-90 transition-all">⬇️ PDF 다운로드</button>
             </div>
           </div>
         </div>
@@ -7769,6 +7769,19 @@ async function plLoadCustomHooks() {
   } catch (e) { plCustomHooks = []; }
 }
 
+// 대사 피드백 보관함 (Supabase 키: planning_feedbacks) — 앤이 등록, 스튜디오에서 열람
+let plFeedbacks = null;
+async function plLoadFeedbacks(force = false) {
+  if (plFeedbacks !== null && !force) return;
+  try {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/${SUPABASE_TABLE}?key=eq.planning_feedbacks&select=data&order=updated_at.desc&limit=1`, {
+      headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
+    });
+    const rows = res.ok ? await res.json() : [];
+    plFeedbacks = rows[0]?.data?.items || [];
+  } catch (e) { plFeedbacks = plFeedbacks || []; }
+}
+
 function renderPlanning() {
   // 데이터 파일이 아직 안 불려왔으면 (네트워크 실패 등) 재시도 안내 — 앱 전체엔 영향 없음
   if (typeof PLANNING_DATA === 'undefined') {
@@ -7797,7 +7810,7 @@ function renderPlanning() {
   plRenderGen();
   plRenderIdeas();
   plRenderKw();
-  plLoadCustomHooks().then(() => plRenderLib());
+  Promise.all([plLoadCustomHooks(), plLoadFeedbacks()]).then(() => plRenderLib());
   plSwitchSection(plSel.section);
 }
 
@@ -7809,6 +7822,8 @@ function plSwitchSection(sec) {
     if (s === sec) { btn.classList.add('bg-white', 'text-botanical-fg', 'shadow-sm'); btn.classList.remove('text-botanical-sage'); }
     else { btn.classList.remove('bg-white', 'text-botanical-fg', 'shadow-sm'); btn.classList.add('text-botanical-sage'); }
   });
+  // 보관함 열 때마다 피드백 최신본 새로 로드 (앤이 등록한 게 바로 보이게)
+  if (sec === 'lib') plLoadFeedbacks(true).then(() => { if (plSel.section === 'lib') plRenderLib(); });
 }
 
 // ---------- 아이디어 (플래너에서 이동) ----------
@@ -8086,7 +8101,7 @@ function plBuildScriptPrompt(mode = 'chat') {
     ? '15초 이내 — 훅+핵심만, 군더더기 제거'
     : '30초 내외 — 30초 목표, 내용 많으면 40초까지 OK, 1분은 절대 넘기지 말 것';
   const ctaBlock = cta === '포함'
-    ? '골격·목적에 맞는 CTA 1개를 설계하라. ★"○○이라고 댓글 남기면 보내드릴게요" 식 특정 단어·키워드 댓글 유도 절대 금지 — 인스타 자동화 블럭 이슈로 채널 금지 규칙 (레퍼에 있어도 따라하지 마라). 댓글을 열려면 아무 말이나 달 수 있게. 정보 완결형은 저장 유도. 1차 행동은 단 하나만.'
+    ? '골격·목적에 맞는 CTA 1개를 설계하라. ★"자소서라고 댓글 남기면 보내드릴게요" 식 특정 단어·키워드 지정 절대 금지 — 인스타 자동화 블럭 이슈로 채널 금지 규칙 (레퍼에 있어도 따라하지 마라). 댓글→자료 CTA는 반드시 "아무 댓글 남기면 자료 드릴게요" 형태로. 정보 완결형은 저장 유도. 1차 행동은 단 하나만.'
     : '행동을 요구하지 말 것. 슬로건·선언 또는 정답 없는 질문으로 담백하게 마무리.';
   const prodBlock = plSel.prod === 'dialogue'
     ? '두 사람(부부/동료)이 주고받는 대화 장면으로 구성, 대사를 화자별로 분리. 진행자 얼굴 미노출 — 음성·자막·보조 화면.'
@@ -8183,7 +8198,7 @@ function plBuildPolishPrompt(mode = 'chat') {
 
 [CTA — ★특정 단어 댓글 유도 절대 금지]
 - "○○이라고 댓글 남기면 보내드릴게요/DM 드릴게요" 식 특정 단어·키워드 댓글 유도는 인스타 자동화 블럭 이슈로 우리 채널에서 금지다. 예시 파일이나 레퍼에 있어도 절대 제안하지 마라.
-- CTA는 저장 유도, 공유 명분(남편·친구한테 공유), 또는 아무 말이나 달 수 있게 여는 질문으로만.
+- 댓글→자료 CTA 자체는 OK, 단 반드시 "아무 댓글 남기면 자료 드릴게요" 형태로 (단어 지정 없이). 저장 유도·공유 명분·열린 질문도 좋다.
 
 [고칠 때 — 편집이지 재작성 아님 / 매 문장 + 전체 흐름]
 - 고친 대사는 원문 길이를 넘기지 마라. 통째로 새로 길게 ❌. 한 군데만 손대거나·서브자막만 얹거나·삭제로.
@@ -8200,6 +8215,9 @@ function plBuildPolishPrompt(mode = 'chat') {
 - ⓢ서브자막은 해당 구간 블록에 인라인(별도 섹션 ❌), 숫자·권위 한 방.
 - 공유자료 3개(저장↑·공유↑ 구분, ★최고추천)는 맨 끝에 한 줄씩 가볍게 (표 ❌).
 
+[보관함 등록 — 피드백 완료 후 필수]
+- 완성한 피드백 전문을 스튜디오 보관함에 저장해라: Supabase studio_data의 planning_feedbacks 키, items 배열에 {id:'fb_'+타임스탬프, date:'YYYY-MM-DD', topic:'주제 한 줄', body:'피드백 전문'} append (기존 items 읽어와서 병합 후 upsert — yudit_insta/CLAUDE.md '피드백 보관함 등록' 참고). 유디트가 기획탭 > 레퍼 보관함 > 피드백에서 꺼내본다.
+
 [대사]
 ${script || '(대사 붙여넣기)'}`;
   return `너는 터지는 인스타그램 릴스를 수백 개 분석·기획해 본 릴스 기획자다. 아래 [대사]에 구간별로 피드백을 준다.
@@ -8210,7 +8228,7 @@ ${script || '(대사 붙여넣기)'}`;
 ★★빠진 핵심은 기존 문장에 욱여넣지 말고 '새 행'으로 추가하라: 원본에 빠진 중요한 포인트(예: 국내주식은 ISA에서 사지 마세요)는 옆 문장에 끼워 약하게 만들지 말고, 독립 단계로 새 행을 세워야 힘이 산다.
 ★★삭제를 과감히: 멀쩡한 줄은 손대지 말되, "앱에서 계좌 만들기"처럼 누구나 아는 당연한 절차는 '그대로 OK'로 살리지 말고 "삭제"로 잘라라. (멀쩡한 척 살리지 마라)
 ★★★가짜 숫자 절대 금지 (최우선): 유디트 실제 수치가 아니면 지어내 단정하지 마라. 모르면 ○○만원 자리만 두고 (여기 실제 숫자)라고 표시해 유디트가 채우게 하라. ISA 400만원 비과세·9.9% 분리과세 같은 검증된 제도 팩트는 OK, 유디트 개인 성과 숫자(3년에 얼마 모았다 등)는 추정 금지.
-★★★특정 단어 댓글 유도 CTA 절대 금지: "○○이라고 댓글 남기면 보내드릴게요/DM 드릴게요" 식 특정 단어·키워드 댓글 유도는 인스타 자동화 블럭 이슈로 이 채널에서 금지다. 레퍼런스에 있어도 제안하지 마라. CTA는 저장 유도·공유 명분(남편/친구한테 공유)·아무 말이나 달 수 있는 열린 질문으로만.
+★★★CTA에서 특정 단어 댓글 유도 절대 금지: "자소서라고 댓글 남기면 보내드릴게요" 식 특정 단어·키워드 지정은 인스타 자동화 블럭 이슈로 이 채널에서 금지다. 레퍼런스에 있어도 제안하지 마라. 댓글→자료 CTA 자체는 OK — 반드시 "아무 댓글 남기면 자료 드릴게요" 형태(단어 지정 없이)로. 저장 유도·공유 명분(남편/친구한테 공유)·열린 질문도 좋다.
 
 [계정 정체성 — 여기에 정렬]
 - 카테고리: ${cat}
@@ -8369,14 +8387,16 @@ function plLibEntries() {
   const skName = id => (D.skeletons.find(s => s.id === id) || {}).name || '';
   const refs = D.refs.map(r => ({ type: 'ref', no: r.no, hook: r.hook, cover: r.cover, cat: r.category, len: r.length, fmt: r.format, skel: r.skeleton, skelName: skName(r.skeleton), kw: r.keywords, own: r.own, sub: r.sub, script: r.script }));
   const hooks = D.hookBank.concat(plCustomHooks || []).map((h, i) => ({ type: 'hook', no: h.id, hNo: 'H' + (i + 1), hook: h.hook, cat: '', len: '', fmt: '', kw: [], pattern: h.pattern || '', template: h.template || '' }));
-  return hooks.concat(refs);
+  const fbs = (plFeedbacks || []).slice().sort((a, b) => (b.date || '').localeCompare(a.date || ''))
+    .map(f => ({ type: 'fb', no: f.id, hook: f.topic || '(제목 없음)', cat: '', len: '', fmt: '', kw: [], date: f.date || '', script: f.body || '' }));
+  return fbs.concat(hooks).concat(refs);
 }
 function plRenderLib() {
   const D = PLANNING_DATA;
   document.getElementById('pl-sec-lib').innerHTML = `
     <div class="bg-white rounded-2xl p-5 shadow-sm mb-4" id="pl-lib-list">
       <div class="flex items-center justify-between mb-3">
-        <h3 class="font-medium text-sm">레퍼 보관함 <span class="text-botanical-sage font-normal">(${D.refs.length + D.hookBank.length + (plCustomHooks || []).length})</span></h3>
+        <h3 class="font-medium text-sm">레퍼 보관함 <span class="text-botanical-sage font-normal">(${D.refs.length + D.hookBank.length + (plCustomHooks || []).length + (plFeedbacks || []).length})</span></h3>
         <button onclick="plShowAddHook()" class="px-3 py-1.5 rounded-full text-xs border border-botanical-terracotta text-botanical-terracotta font-bold">+ 훅 추가</button>
       </div>
       <div id="pl-addhook-row" class="hidden mb-3 flex gap-1.5">
@@ -8388,6 +8408,7 @@ function plRenderLib() {
         <button onclick="plSetLibView('all',this)" class="pl-view-btn px-3 py-1 rounded-full text-xs font-medium bg-white text-botanical-fg shadow-sm" data-v="all">전체</button>
         <button onclick="plSetLibView('hook',this)" class="pl-view-btn px-3 py-1 rounded-full text-xs font-medium text-botanical-sage" data-v="hook">훅</button>
         <button onclick="plSetLibView('ref',this)" class="pl-view-btn px-3 py-1 rounded-full text-xs font-medium text-botanical-sage" data-v="ref">레퍼</button>
+        <button onclick="plSetLibView('fb',this)" class="pl-view-btn px-3 py-1 rounded-full text-xs font-medium text-botanical-sage" data-v="fb">피드백</button>
       </div>
       <div class="flex flex-wrap gap-1.5 mb-3">
         <input type="text" id="pl-lib-q" class="flex-1 min-w-[130px] px-3 py-2 border border-botanical-stone rounded-lg text-sm bg-white" placeholder="키워드 검색" oninput="plLibList()">
@@ -8413,8 +8434,8 @@ function plSetLibView(v, btn) {
     if (b.dataset.v === v) { b.classList.add('bg-white', 'text-botanical-fg', 'shadow-sm'); b.classList.remove('text-botanical-sage'); }
     else { b.classList.remove('bg-white', 'text-botanical-fg', 'shadow-sm'); b.classList.add('text-botanical-sage'); }
   });
-  // 훅 뷰에서는 포맷·카테고리 필터 숨김 (훅에는 해당 없음)
-  const hide = v === 'hook';
+  // 훅·피드백 뷰에서는 포맷·카테고리 필터 숨김 (해당 없음)
+  const hide = v === 'hook' || v === 'fb';
   document.getElementById('pl-lib-skel').classList.toggle('hidden', hide);
   document.getElementById('pl-lib-cat').classList.toggle('hidden', hide);
   plLibList();
@@ -8434,16 +8455,19 @@ function plLibList() {
   let list = plLibEntries();
   if (view === 'hook') list = list.filter(e => e.type === 'hook');
   else if (view === 'ref') list = list.filter(e => e.type === 'ref');
-  if (view !== 'hook') {
-    if (skel) list = list.filter(e => e.type === 'hook' ? false : e.skel === skel);
-    if (cat) list = list.filter(e => e.type === 'hook' || e.cat === cat);
+  else if (view === 'fb') list = list.filter(e => e.type === 'fb');
+  if (view !== 'hook' && view !== 'fb') {
+    if (skel) list = list.filter(e => e.type === 'ref' ? e.skel === skel : false);
+    if (cat) list = list.filter(e => e.type !== 'ref' || e.cat === cat);
   }
   if (q) list = list.filter(e => e.hook.includes(q) || (e.kw || []).some(k => k.includes(q)) || (e.script || '').includes(q));
   const tag = (txt, cls) => `<span class="inline-block px-2 py-0.5 rounded-full bg-botanical-cream border border-botanical-stone text-[10px] ${cls || 'text-botanical-sage'} mr-1">${txt}</span>`;
   document.getElementById('pl-lib-items').innerHTML = list.map(e => `
     <div class="py-3 cursor-pointer hover:bg-botanical-cream/40 transition-all" onclick="plOpenDetail('${e.type}','${e.no}')">
       <div class="flex items-center gap-1 mb-0.5">
-        ${e.type === 'hook' ? tag(e.hNo + ' · 훅만', 'text-botanical-terracotta font-bold') : tag(e.cat) + (e.own ? tag('★유디트', 'text-botanical-terracotta font-bold') : '') + (e.sub ? tag('자막만') : '')}
+        ${e.type === 'hook' ? tag(e.hNo + ' · 훅만', 'text-botanical-terracotta font-bold')
+          : e.type === 'fb' ? tag('피드백' + (e.date ? ' · ' + e.date : ''), 'text-botanical-fg font-bold')
+          : tag(e.cat) + (e.own ? tag('★유디트', 'text-botanical-terracotta font-bold') : '') + (e.sub ? tag('자막만') : '')}
         ${e.type === 'ref'
           ? (e.cover ? `<span class="text-xs text-botanical-sage truncate min-w-0">표지 · ${e.cover}</span>` : '')
           : `<span class="text-sm leading-snug truncate min-w-0">${e.hook}</span>`}
@@ -8457,6 +8481,19 @@ function plOpenDetail(type, no) {
   document.getElementById('pl-lib-list').classList.add('hidden');
   el.classList.remove('hidden');
   const sect = (title, body) => body ? `<div class="mt-4"><p class="text-[11px] font-bold text-botanical-sage tracking-wide mb-1.5">${title}</p><div class="text-sm leading-relaxed whitespace-pre-wrap bg-botanical-cream/50 rounded-xl p-3">${body}</div></div>` : '';
+  if (type === 'fb') {
+    const f = (plFeedbacks || []).find(x => String(x.id) === String(no));
+    if (!f) { plCloseDetail(); return; }
+    el.innerHTML = `
+      <div class="flex items-center justify-between">
+        <span class="text-xs text-botanical-terracotta cursor-pointer" onclick="plCloseDetail()">← 목록으로</span>
+        <button onclick="plDeleteFeedback('${f.id}')" class="px-3 py-1 rounded-full text-xs border border-botanical-stone text-botanical-sage hover:text-red-500 hover:border-red-300">삭제</button>
+      </div>
+      <h3 class="font-medium text-base mt-3">${f.topic || '(제목 없음)'}</h3>
+      <div class="mt-1"><span class="inline-block px-2 py-0.5 rounded-full bg-botanical-cream border border-botanical-stone text-[10px] text-botanical-fg font-bold">대사 피드백${f.date ? ' · ' + f.date : ''}</span></div>
+      ${sect('피드백 전문', f.body || '(내용 없음)')}`;
+    return;
+  }
   if (type === 'hook') {
     const all = PLANNING_DATA.hookBank.concat(plCustomHooks || []);
     const idx = all.findIndex(x => String(x.id) === String(no));
@@ -8494,6 +8531,16 @@ function plShowAddHook() {
   document.getElementById('pl-addhook-row').classList.remove('hidden');
   document.getElementById('pl-addhook-input').focus();
 }
+// 피드백 삭제 (보관함 상세에서)
+async function plDeleteFeedback(id) {
+  if (!confirm('이 피드백을 삭제할까요?')) return;
+  plFeedbacks = (plFeedbacks || []).filter(f => String(f.id) !== String(id));
+  try { await upsertToSupabase('planning_feedbacks', { items: plFeedbacks }); plToast('피드백 삭제됨'); }
+  catch (e) { plToast('삭제 실패 — 네트워크 확인'); }
+  plCloseDetail();
+  plLibList();
+}
+
 async function plSaveHook() {
   const input = document.getElementById('pl-addhook-input');
   const hook = (input.value || '').trim();
