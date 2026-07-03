@@ -436,15 +436,19 @@ function mergeFollowerHistory(localPerf, remotePerf) {
     const m = e.date.slice(0, 7);
     monthChanges[m] = (monthChanges[m] || 0) + (e.change || 0);
   });
-  Object.entries(monthChanges).forEach(([m, change]) => {
-    const idx = merged.follower.history.monthly.findIndex(x => x.month === m);
-    if (idx >= 0) merged.follower.history.monthly[idx].change = change;
-    else merged.follower.history.monthly.push({ month: m, change });
-    if (!merged.monthly) merged.monthly = {};
-    if (!merged.monthly[m]) merged.monthly[m] = {};
-    merged.monthly[m].followerGain = change;
-  });
+  Object.entries(monthChanges).forEach(([m, change]) => setMonthlyFollowerChange(merged, m, change));
   return { data: merged, changed: true };
+}
+
+// 특정 월의 팔로워 증가분을 history.monthly와 monthly[m].followerGain 양쪽에 반영
+function setMonthlyFollowerChange(perf, month, change) {
+  const monthly = perf.follower.history.monthly;
+  const idx = monthly.findIndex(m => m.month === month);
+  if (idx >= 0) monthly[idx].change = change;
+  else monthly.push({ month, change });
+  if (!perf.monthly) perf.monthly = {};
+  if (!perf.monthly[month]) perf.monthly[month] = {};
+  perf.monthly[month].followerGain = change;
 }
 
 // 공통 동기화 함수 (중복 코드 제거)
@@ -6586,15 +6590,18 @@ function switchFollowerView(mode) {
   }
 }
 
+// 하위 탭 활성 스타일 토글 — 성과·기획 공통 (템플릿 활성 클래스와 동일하게 유지, 드리프트 방지)
+function setSubTabActive(btn, on) {
+  if (!btn) return;
+  const active = ['border-botanical-terracotta', 'text-botanical-terracotta', 'font-bold'];
+  const idle = ['border-transparent', 'text-botanical-sage', 'font-medium'];
+  btn.classList.add(...(on ? active : idle));
+  btn.classList.remove(...(on ? idle : active));
+}
+
 function switchPerfTab(tab) {
   perfSubTab = tab;
-  document.querySelectorAll('.perf-tab-btn').forEach(btn => {
-    btn.classList.remove('text-botanical-fg', 'border-botanical-fg');
-    btn.classList.add('text-botanical-sage', 'border-transparent');
-  });
-  document.getElementById('perf-tab-' + tab).classList.remove('text-botanical-sage', 'border-transparent');
-  document.getElementById('perf-tab-' + tab).classList.add('text-botanical-fg', 'border-botanical-fg');
-
+  document.querySelectorAll('.perf-tab-btn').forEach(btn => setSubTabActive(btn, btn.id === 'perf-tab-' + tab));
   document.querySelectorAll('.perf-section').forEach(s => s.classList.add('hidden'));
   document.getElementById('perf-' + tab).classList.remove('hidden');
   if (tab === 'mediakit') renderMediakitEditor(true);
@@ -6635,17 +6642,7 @@ function saveFollowerCount() {
   const monthEntries = performanceData.follower.history.daily.filter(d => d.date.startsWith(monthKey));
   const monthChange = monthEntries.reduce((sum, d) => sum + d.change, 0);
 
-  const monthlyIdx = performanceData.follower.history.monthly.findIndex(m => m.month === monthKey);
-  if (monthlyIdx >= 0) {
-    performanceData.follower.history.monthly[monthlyIdx].change = monthChange;
-  } else {
-    performanceData.follower.history.monthly.push({ month: monthKey, change: monthChange });
-  }
-
-  // 월간 카드에서 쓰는 followerGain 동기화
-  if (!performanceData.monthly) performanceData.monthly = {};
-  if (!performanceData.monthly[monthKey]) performanceData.monthly[monthKey] = {};
-  performanceData.monthly[monthKey].followerGain = monthChange;
+  setMonthlyFollowerChange(performanceData, monthKey, monthChange);
 
   // Clear input
   document.getElementById('follower-count').value = '';
@@ -7758,28 +7755,26 @@ let plCustomHooks = null; // Supabase에서 로드 (planning_hooks)
 const PL_DRAFT_LS = 'yudit_planning_draft'; // localStorage 키 (기기별 자동저장)
 const PL_DRAFT_CLOUD = 'planning_draft';    // Supabase 키 (기기 연동 임시저장)
 
+// Supabase에서 key 하나의 최신 data를 로드 (planning 계열 공통 GET)
+async function fetchCloudData(key) {
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/${SUPABASE_TABLE}?key=eq.${key}&select=data&order=updated_at.desc&limit=1`, {
+    headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
+  });
+  return res.ok ? (await res.json())[0]?.data : null;
+}
+
 async function plLoadCustomHooks() {
   if (plCustomHooks !== null) return;
-  try {
-    const res = await fetch(`${SUPABASE_URL}/rest/v1/${SUPABASE_TABLE}?key=eq.planning_hooks&select=data&order=updated_at.desc&limit=1`, {
-      headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
-    });
-    const rows = res.ok ? await res.json() : [];
-    plCustomHooks = rows[0]?.data?.hooks || [];
-  } catch (e) { plCustomHooks = []; }
+  try { plCustomHooks = (await fetchCloudData('planning_hooks'))?.hooks || []; }
+  catch (e) { plCustomHooks = []; }
 }
 
 // 대사 피드백 보관함 (Supabase 키: planning_feedbacks) — 앤이 등록, 스튜디오에서 열람
 let plFeedbacks = null;
 async function plLoadFeedbacks(force = false) {
   if (plFeedbacks !== null && !force) return;
-  try {
-    const res = await fetch(`${SUPABASE_URL}/rest/v1/${SUPABASE_TABLE}?key=eq.planning_feedbacks&select=data&order=updated_at.desc&limit=1`, {
-      headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
-    });
-    const rows = res.ok ? await res.json() : [];
-    plFeedbacks = rows[0]?.data?.items || [];
-  } catch (e) { plFeedbacks = plFeedbacks || []; }
+  try { plFeedbacks = (await fetchCloudData('planning_feedbacks'))?.items || []; }
+  catch (e) { plFeedbacks = plFeedbacks || []; }
 }
 
 function renderPlanning() {
@@ -7818,17 +7813,10 @@ function plSwitchSection(sec) {
   plSel.section = sec;
   ['gen', 'idea', 'lib', 'kw'].forEach(s => {
     document.getElementById('pl-sec-' + s).classList.toggle('hidden', s !== sec);
-    const btn = document.getElementById('pl-nav-' + s);
-    if (s === sec) {
-      btn.classList.add('border-botanical-terracotta', 'text-botanical-terracotta', 'font-bold');
-      btn.classList.remove('border-transparent', 'text-botanical-sage', 'font-medium');
-    } else {
-      btn.classList.add('border-transparent', 'text-botanical-sage', 'font-medium');
-      btn.classList.remove('border-botanical-terracotta', 'text-botanical-terracotta', 'font-bold');
-    }
+    setSubTabActive(document.getElementById('pl-nav-' + s), s === sec);
   });
-  // 보관함 열 때마다 피드백 최신본 새로 로드 (앤이 등록한 게 바로 보이게)
-  if (sec === 'lib') plLoadFeedbacks(true).then(() => { if (plSel.section === 'lib') plRenderLib(); });
+  // 보관함 열 때 피드백 로드 (캐시 있으면 즉시, 없을 때만 fetch — 참고 예시라 자주 안 바뀜)
+  if (sec === 'lib') plLoadFeedbacks().then(() => { if (plSel.section === 'lib') plRenderLib(); });
 }
 
 // ---------- 아이디어 (플래너에서 이동) ----------
@@ -8312,11 +8300,7 @@ async function plCloudSave() {
 }
 async function plCloudLoad() {
   try {
-    const res = await fetch(`${SUPABASE_URL}/rest/v1/${SUPABASE_TABLE}?key=eq.${PL_DRAFT_CLOUD}&select=data&order=updated_at.desc&limit=1`, {
-      headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
-    });
-    const rows = res.ok ? await res.json() : [];
-    const st = rows[0] && rows[0].data;
+    const st = await fetchCloudData(PL_DRAFT_CLOUD);
     if (!st) { plToast('기기 연동 저장본이 없어요'); return; }
     if (!confirm('기기 연동 저장본을 불러올까요? 지금 작성 중인 내용은 덮어써져요.')) return;
     localStorage.setItem(PL_DRAFT_LS, JSON.stringify(st));
@@ -8456,11 +8440,9 @@ function plLibList() {
   const cat = document.getElementById('pl-lib-cat').value;
   const view = plSel.libView || 'all';
   let list = plLibEntries();
-  if (view === 'hook') list = list.filter(e => e.type === 'hook');
-  else if (view === 'ref') list = list.filter(e => e.type === 'ref');
-  else if (view === 'fb') list = list.filter(e => e.type === 'fb');
-  if (view !== 'hook' && view !== 'fb') {
-    if (skel) list = list.filter(e => e.type === 'ref' ? e.skel === skel : false);
+  if (view !== 'all') list = list.filter(e => e.type === view); // view 값이 곧 entry.type (hook/ref/fb)
+  if (view === 'all' || view === 'ref') {
+    if (skel) list = list.filter(e => e.type === 'ref' && e.skel === skel);
     if (cat) list = list.filter(e => e.type !== 'ref' || e.cat === cat);
   }
   if (q) list = list.filter(e => e.hook.includes(q) || (e.kw || []).some(k => k.includes(q)) || (e.script || '').includes(q));
