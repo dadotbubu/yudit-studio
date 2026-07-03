@@ -8489,9 +8489,9 @@ function plFeedbackBodyHtml(body) {
       if (!m) { rows += `<div class="px-3 py-1.5 text-sm text-botanical-fg leading-relaxed">${line}</div>`; return; }
       const label = m[1], val = m[2] || '—';
       if (label === '원본 대사') {
-        rows += `<div class="px-3 py-2 text-sm leading-relaxed"><span class="text-[10px] font-bold text-botanical-sage mr-1.5">원본</span><span class="text-botanical-sage">${val}</span></div>`;
+        rows += `<div class="px-3 py-2 text-sm leading-relaxed"><span class="inline-block text-[10px] font-bold text-botanical-sage border border-botanical-stone rounded px-1.5 py-0.5 mr-1.5">원본</span><span class="text-botanical-sage">${val}</span></div>`;
       } else if (label === '수정 대사') {
-        rows += `<div class="px-3 py-2 text-sm leading-relaxed" style="background:#E5EBE0"><span class="text-[10px] font-bold text-botanical-terracotta mr-1.5">수정</span><span class="font-medium text-botanical-fg">${val}</span></div>`;
+        rows += `<div class="px-3 py-2.5 text-sm leading-relaxed" style="background:#B9C9AC;border-left:4px solid #C27B66"><span class="inline-block text-[10px] font-bold text-white rounded px-1.5 py-0.5 mr-1.5" style="background:#C27B66">수정</span><span class="font-semibold text-botanical-fg">${val}</span></div>`;
       } else {
         rows += `<div class="px-3 py-1.5 text-xs text-botanical-sage border-t border-dashed border-botanical-stone">${val}</div>`;
       }
