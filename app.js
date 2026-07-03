@@ -6004,10 +6004,10 @@ function renderPerformance() {
     .reduce((sum, d) => sum + d.change, 0);
 
   document.getElementById('performance-content').innerHTML = `
-    <div class="flex gap-6 mb-6 border-b border-botanical-stone/30">
-      <button onclick="switchPerfTab('detail')" id="perf-tab-detail" class="perf-tab-btn pb-3 text-sm font-medium border-b-2 ${perfSubTab === 'detail' ? 'border-botanical-fg text-botanical-fg' : 'border-transparent text-botanical-sage hover:text-botanical-fg'}">월 상세</button>
-      <button onclick="switchPerfTab('compare')" id="perf-tab-compare" class="perf-tab-btn pb-3 text-sm font-medium border-b-2 ${perfSubTab === 'compare' ? 'border-botanical-fg text-botanical-fg' : 'border-transparent text-botanical-sage hover:text-botanical-fg'}">월간 비교</button>
-      <button onclick="switchPerfTab('mediakit')" id="perf-tab-mediakit" class="perf-tab-btn pb-3 text-sm font-medium border-b-2 ${perfSubTab === 'mediakit' ? 'border-botanical-fg text-botanical-fg' : 'border-transparent text-botanical-sage hover:text-botanical-fg'}">미디어킷</button>
+    <div class="flex gap-5 mb-6 border-b border-botanical-stone/40">
+      <button onclick="switchPerfTab('detail')" id="perf-tab-detail" class="perf-tab-btn pb-2 text-[13px] border-b-2 -mb-px ${perfSubTab === 'detail' ? 'border-botanical-terracotta text-botanical-terracotta font-bold' : 'border-transparent text-botanical-sage font-medium hover:text-botanical-fg'}">월 상세</button>
+      <button onclick="switchPerfTab('compare')" id="perf-tab-compare" class="perf-tab-btn pb-2 text-[13px] border-b-2 -mb-px ${perfSubTab === 'compare' ? 'border-botanical-terracotta text-botanical-terracotta font-bold' : 'border-transparent text-botanical-sage font-medium hover:text-botanical-fg'}">월간 비교</button>
+      <button onclick="switchPerfTab('mediakit')" id="perf-tab-mediakit" class="perf-tab-btn pb-2 text-[13px] border-b-2 -mb-px ${perfSubTab === 'mediakit' ? 'border-botanical-terracotta text-botanical-terracotta font-bold' : 'border-transparent text-botanical-sage font-medium hover:text-botanical-fg'}">미디어킷</button>
     </div>
 
     <div id="perf-detail" class="perf-section ${perfSubTab === 'detail' ? '' : 'hidden'}">
@@ -7795,11 +7795,11 @@ function renderPlanning() {
   const D = PLANNING_DATA;
   document.getElementById('planning-content').innerHTML = `
     <div class="mb-4">
-      <div class="flex gap-1 bg-botanical-stone p-1 rounded-full w-fit">
-        <button onclick="plSwitchSection('gen')" id="pl-nav-gen" class="px-3 md:px-4 py-1.5 rounded-full text-xs font-medium">생성기</button>
-        <button onclick="plSwitchSection('idea')" id="pl-nav-idea" class="px-3 md:px-4 py-1.5 rounded-full text-xs font-medium">아이디어</button>
-        <button onclick="plSwitchSection('lib')" id="pl-nav-lib" class="px-3 md:px-4 py-1.5 rounded-full text-xs font-medium">레퍼 보관함</button>
-        <button onclick="plSwitchSection('kw')" id="pl-nav-kw" class="px-3 md:px-4 py-1.5 rounded-full text-xs font-medium">검색어</button>
+      <div class="flex gap-5 border-b border-botanical-stone/40">
+        <button onclick="plSwitchSection('gen')" id="pl-nav-gen" class="pl-navbtn pb-2 text-[13px] border-b-2 -mb-px border-transparent text-botanical-sage font-medium hover:text-botanical-fg">생성기</button>
+        <button onclick="plSwitchSection('idea')" id="pl-nav-idea" class="pl-navbtn pb-2 text-[13px] border-b-2 -mb-px border-transparent text-botanical-sage font-medium hover:text-botanical-fg">아이디어</button>
+        <button onclick="plSwitchSection('lib')" id="pl-nav-lib" class="pl-navbtn pb-2 text-[13px] border-b-2 -mb-px border-transparent text-botanical-sage font-medium hover:text-botanical-fg">레퍼 보관함</button>
+        <button onclick="plSwitchSection('kw')" id="pl-nav-kw" class="pl-navbtn pb-2 text-[13px] border-b-2 -mb-px border-transparent text-botanical-sage font-medium hover:text-botanical-fg">검색어</button>
       </div>
     </div>
     <div id="pl-sec-gen"></div>
@@ -7819,8 +7819,13 @@ function plSwitchSection(sec) {
   ['gen', 'idea', 'lib', 'kw'].forEach(s => {
     document.getElementById('pl-sec-' + s).classList.toggle('hidden', s !== sec);
     const btn = document.getElementById('pl-nav-' + s);
-    if (s === sec) { btn.classList.add('bg-white', 'text-botanical-fg', 'shadow-sm'); btn.classList.remove('text-botanical-sage'); }
-    else { btn.classList.remove('bg-white', 'text-botanical-fg', 'shadow-sm'); btn.classList.add('text-botanical-sage'); }
+    if (s === sec) {
+      btn.classList.add('border-botanical-terracotta', 'text-botanical-terracotta', 'font-bold');
+      btn.classList.remove('border-transparent', 'text-botanical-sage', 'font-medium');
+    } else {
+      btn.classList.add('border-transparent', 'text-botanical-sage', 'font-medium');
+      btn.classList.remove('border-botanical-terracotta', 'text-botanical-terracotta', 'font-bold');
+    }
   });
   // 보관함 열 때마다 피드백 최신본 새로 로드 (앤이 등록한 게 바로 보이게)
   if (sec === 'lib') plLoadFeedbacks(true).then(() => { if (plSel.section === 'lib') plRenderLib(); });
