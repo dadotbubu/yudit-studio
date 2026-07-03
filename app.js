@@ -8214,7 +8214,7 @@ function plBuildPolishPrompt(mode = 'chat') {
 - 연출/자막 지시는 괄호·대괄호 인라인 ((지수 띄우기)·[소자막]·(캡쳐타임)).
 - ⓢ서브자막은 해당 구간 블록에 인라인(별도 섹션 ❌), 숫자·권위 한 방.
 - 공유자료 3개(저장↑·공유↑ 구분, ★최고추천)는 맨 끝에 한 줄씩 가볍게 (표 ❌).
-- 참고: 스튜디오 기획탭 > 레퍼 보관함 > 어항예시 탭에 어항 실물 피드백 3개(ISA·마일리지·통장5개)가 이 형식 그대로 들어 있다. _어항피드백예시.md와 함께 손맛 참고용.
+- 참고: 스튜디오 기획탭 > 레퍼 보관함 > 피드백 탭에 어항 실물 피드백 3개(ISA·마일리지·통장5개)가 이 형식 그대로 들어 있다. _어항피드백예시.md와 함께 손맛 참고용.
 
 [대사]
 ${script || '(대사 붙여넣기)'}`;
@@ -8406,7 +8406,7 @@ function plRenderLib() {
         <button onclick="plSetLibView('all',this)" class="pl-view-btn px-3 py-1 rounded-full text-xs font-medium bg-white text-botanical-fg shadow-sm" data-v="all">전체</button>
         <button onclick="plSetLibView('hook',this)" class="pl-view-btn px-3 py-1 rounded-full text-xs font-medium text-botanical-sage" data-v="hook">훅</button>
         <button onclick="plSetLibView('ref',this)" class="pl-view-btn px-3 py-1 rounded-full text-xs font-medium text-botanical-sage" data-v="ref">레퍼</button>
-        <button onclick="plSetLibView('fb',this)" class="pl-view-btn px-3 py-1 rounded-full text-xs font-medium text-botanical-sage" data-v="fb">어항예시</button>
+        <button onclick="plSetLibView('fb',this)" class="pl-view-btn px-3 py-1 rounded-full text-xs font-medium text-botanical-sage" data-v="fb">피드백</button>
       </div>
       <div class="flex flex-wrap gap-1.5 mb-3">
         <input type="text" id="pl-lib-q" class="flex-1 min-w-[130px] px-3 py-2 border border-botanical-stone rounded-lg text-sm bg-white" placeholder="키워드 검색" oninput="plLibList()">
@@ -8459,12 +8459,12 @@ function plLibList() {
     if (cat) list = list.filter(e => e.type !== 'ref' || e.cat === cat);
   }
   if (q) list = list.filter(e => e.hook.includes(q) || (e.kw || []).some(k => k.includes(q)) || (e.script || '').includes(q));
-  const tag = (txt, cls) => `<span class="inline-block px-2 py-0.5 rounded-full bg-botanical-cream border border-botanical-stone text-[10px] ${cls || 'text-botanical-sage'} mr-1">${txt}</span>`;
+  const tag = (txt, cls) => `<span class="inline-block whitespace-nowrap shrink-0 px-2 py-0.5 rounded-full bg-botanical-cream border border-botanical-stone text-[10px] ${cls || 'text-botanical-sage'} mr-1">${txt}</span>`;
   document.getElementById('pl-lib-items').innerHTML = list.map(e => `
     <div class="py-3 cursor-pointer hover:bg-botanical-cream/40 transition-all" onclick="plOpenDetail('${e.type}','${e.no}')">
       <div class="flex items-center gap-1 mb-0.5">
-        ${e.type === 'hook' ? tag(e.hNo + ' · 훅만', 'text-botanical-terracotta font-bold')
-          : e.type === 'fb' ? tag('어항예시', 'text-botanical-fg font-bold')
+        ${e.type === 'hook' ? tag('훅만', 'text-botanical-terracotta font-bold')
+          : e.type === 'fb' ? tag('피드백', 'text-botanical-fg font-bold')
           : tag(e.cat) + (e.own ? tag('★유디트', 'text-botanical-terracotta font-bold') : '') + (e.sub ? tag('자막만') : '')}
         ${e.type === 'ref'
           ? (e.cover ? `<span class="text-xs text-botanical-sage truncate min-w-0">표지 · ${e.cover}</span>` : '')
@@ -8473,6 +8473,34 @@ function plLibList() {
       ${e.type === 'ref' ? `<div class="text-sm leading-snug truncate">훅 · ${e.hook}</div>` : ''}
     </div>`).join('') || '<div class="py-8 text-center text-sm text-botanical-sage">검색 결과 없음</div>';
 }
+// 피드백 본문을 구간별 카드로 렌더 — 원본(연한 줄) / 수정(진한 배경 줄) / 이유(작은 줄)
+function plFeedbackBodyHtml(body) {
+  const blocks = (body || '').split(/\n\s*\n/).map(b => b.trim()).filter(Boolean);
+  let html = '';
+  blocks.forEach(block => {
+    if (block.startsWith('[어항 예시]')) return; // 제목은 위 h3에 이미 있음
+    if (block.startsWith('[포인트]')) {
+      html += `<div class="mt-3 text-xs text-botanical-sage bg-botanical-cream rounded-lg p-3 leading-relaxed">👉 ${block.replace('[포인트]', '').trim()}</div>`;
+      return;
+    }
+    let rows = '';
+    block.split('\n').forEach(line => {
+      const m = line.match(/^(원본 대사|수정 대사|수정 이유)\s*:\s*(.*)$/);
+      if (!m) { rows += `<div class="px-3 py-1.5 text-sm text-botanical-fg leading-relaxed">${line}</div>`; return; }
+      const label = m[1], val = m[2] || '—';
+      if (label === '원본 대사') {
+        rows += `<div class="px-3 py-2 text-sm leading-relaxed"><span class="text-[10px] font-bold text-botanical-sage mr-1.5">원본</span><span class="text-botanical-sage">${val}</span></div>`;
+      } else if (label === '수정 대사') {
+        rows += `<div class="px-3 py-2 text-sm leading-relaxed" style="background:#E5EBE0"><span class="text-[10px] font-bold text-botanical-terracotta mr-1.5">수정</span><span class="font-medium text-botanical-fg">${val}</span></div>`;
+      } else {
+        rows += `<div class="px-3 py-1.5 text-xs text-botanical-sage border-t border-dashed border-botanical-stone">${val}</div>`;
+      }
+    });
+    html += `<div class="rounded-xl border border-botanical-stone overflow-hidden mb-2.5">${rows}</div>`;
+  });
+  return html || '<div class="text-sm text-botanical-sage">(내용 없음)</div>';
+}
+
 function plOpenDetail(type, no) {
   const D = PLANNING_DATA;
   const el = document.getElementById('pl-lib-detail');
@@ -8489,7 +8517,7 @@ function plOpenDetail(type, no) {
       </div>
       <h3 class="font-medium text-base mt-3">${f.topic || '(제목 없음)'}</h3>
       <div class="mt-1"><span class="inline-block px-2 py-0.5 rounded-full bg-botanical-cream border border-botanical-stone text-[10px] text-botanical-fg font-bold">어항 예시 (참고용)</span></div>
-      ${sect('피드백 전문', f.body || '(내용 없음)')}`;
+      <div class="mt-4">${plFeedbackBodyHtml(f.body)}</div>`;
     return;
   }
   if (type === 'hook') {
@@ -8499,7 +8527,7 @@ function plOpenDetail(type, no) {
     el.innerHTML = `
       <span class="text-xs text-botanical-terracotta cursor-pointer" onclick="plCloseDetail()">← 목록으로</span>
       <h3 class="font-medium text-base mt-3">${h.hook}</h3>
-      <div class="mt-1"><span class="inline-block px-2 py-0.5 rounded-full bg-botanical-cream border border-botanical-stone text-[10px] text-botanical-terracotta font-bold">H${idx + 1} · 훅만 (대본 없음)</span></div>
+      <div class="mt-1"><span class="inline-block px-2 py-0.5 rounded-full bg-botanical-cream border border-botanical-stone text-[10px] text-botanical-terracotta font-bold">훅만 (대본 없음)</span></div>
       ${sect('훅 응용 템플릿', h.template)}
       ${sect('훅 패턴', h.pattern)}
       ${(!h.template && !h.pattern) ? '<p class="text-xs text-botanical-sage mt-4">아직 태깅 전이에요 — 앤한테 「훅 태깅해줘」 하면 패턴·템플릿이 채워져요</p>' : ''}`;
