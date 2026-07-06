@@ -3534,6 +3534,7 @@ function renderContentForm(content) {
                 const isFinal = (content.script?.finalVersion ?? 0) === currentVer;
                 return `<button onclick="setFinalVersion(${content.id}, ${currentVer})" title="현재 V${currentVer+1}을 최종으로 지정 (목록·캘린더에 이 버전 제목 표시)" class="px-3 py-1 rounded-full text-xs transition-all ${isFinal ? 'bg-amber-400 text-white' : 'border border-botanical-stone text-botanical-sage hover:bg-amber-50 hover:text-amber-600'}">${isFinal ? '✓ 최종' : '최종'}</button>`;
               })()}
+              <button onclick="gotoFeedbackFromScript(${content.id})" title="이 대본으로 기획 ③ 대사 피드백 받기 (대사 자동 입력)" class="px-3 py-1 rounded-full text-xs border border-botanical-terracotta text-botanical-terracotta font-medium hover:bg-botanical-terracotta hover:text-white transition-all">피드백 이동 →</button>
             </div>
             <div class="flex gap-2 flex-wrap md:justify-end">
               <button onclick="copyScript(${content.id}, 'dialogue')" class="px-3 py-1 rounded-full text-xs border border-botanical-stone hover:bg-botanical-cream transition-all">대사 복사</button>
@@ -4213,6 +4214,28 @@ function copyScriptForFeedback(contentId) {
   navigator.clipboard.writeText(text).then(() => {
     alert('구간+대사 복사됨 — 기획 ③ 피드백에 붙여넣으세요');
   }).catch(() => alert('복사 실패'));
+}
+
+// 콘텐츠 대본 → 기획 ③ 대사 피드백으로 이동 + 현재 구간+대사 자동 입력
+function gotoFeedbackFromScript(contentId) {
+  const content = contentsData.contents.find(c => c.id === contentId);
+  const ver = content?.script?.currentVersion ?? 0;
+  const rows = content?.script?.versions?.[ver]?.rows || [];
+  const text = rows
+    .filter(r => (r.dialogue || '').trim())
+    .map(r => `[${r.section || ''}] ${r.dialogue.trim()}`)
+    .join('\n');
+  if (!text) { alert('피드백 받을 대사가 없어요. 먼저 대본을 작성해주세요.'); return; }
+  switchTab('planning');            // 기획 탭
+  plSwitchSection('gen');           // 생성기 섹션
+  const ta = document.getElementById('pl-polish');  // ③ 대사 피드백 입력칸
+  if (ta) { ta.value = text; plAutoGrow(ta); }
+  if (typeof plSaveState === 'function') plSaveState();
+  // ③ 영역으로 스크롤
+  setTimeout(() => {
+    (document.getElementById('pl-polish') || document.getElementById('pl-out3-card'))
+      ?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }, 120);
 }
 
 // 대사 셀 메뉴 토글
