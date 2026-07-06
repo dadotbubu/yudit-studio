@@ -4201,15 +4201,19 @@ function copyScriptAll(contentId) {
 }
 
 // 구간+대사만 (기획 ③ 피드백 붙여넣기용 — 어항처럼 칸칸이 피드백되게)
-function copyScriptForFeedback(contentId) {
+// 콘텐츠 현재 버전 대본 → "[구간] 대사" 텍스트 (복사·③피드백 프리필 공통 포맷)
+function buildFeedbackText(contentId) {
   const content = contentsData.contents.find(c => c.id === contentId);
   const ver = content?.script?.currentVersion ?? 0;
-  const rows = content?.script?.versions?.[ver]?.rows;
-  if (!rows || rows.length === 0) { alert('복사할 내용이 없습니다'); return; }
-  const text = rows
+  const rows = content?.script?.versions?.[ver]?.rows || [];
+  return rows
     .filter(r => (r.dialogue || '').trim())
     .map(r => `[${r.section || ''}] ${r.dialogue.trim()}`)
     .join('\n');
+}
+
+function copyScriptForFeedback(contentId) {
+  const text = buildFeedbackText(contentId);
   if (!text) { alert('복사할 대사가 없습니다'); return; }
   navigator.clipboard.writeText(text).then(() => {
     alert('구간+대사 복사됨 — 기획 ③ 피드백에 붙여넣으세요');
@@ -4218,23 +4222,16 @@ function copyScriptForFeedback(contentId) {
 
 // 콘텐츠 대본 → 기획 ③ 대사 피드백으로 이동 + 현재 구간+대사 자동 입력
 function gotoFeedbackFromScript(contentId) {
-  const content = contentsData.contents.find(c => c.id === contentId);
-  const ver = content?.script?.currentVersion ?? 0;
-  const rows = content?.script?.versions?.[ver]?.rows || [];
-  const text = rows
-    .filter(r => (r.dialogue || '').trim())
-    .map(r => `[${r.section || ''}] ${r.dialogue.trim()}`)
-    .join('\n');
+  const text = buildFeedbackText(contentId);
   if (!text) { alert('피드백 받을 대사가 없어요. 먼저 대본을 작성해주세요.'); return; }
   switchTab('planning');            // 기획 탭
   plSwitchSection('gen');           // 생성기 섹션
   const ta = document.getElementById('pl-polish');  // ③ 대사 피드백 입력칸
   if (ta) { ta.value = text; plAutoGrow(ta); }
   if (typeof plSaveState === 'function') plSaveState();
-  // ③ 영역으로 스크롤
+  // ③ 영역으로 스크롤 (탭 전환 렌더 후)
   setTimeout(() => {
-    (document.getElementById('pl-polish') || document.getElementById('pl-out3-card'))
-      ?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    (ta || document.getElementById('pl-out3-card'))?.scrollIntoView({ behavior: 'smooth', block: 'center' });
   }, 120);
 }
 
