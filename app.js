@@ -3537,8 +3537,8 @@ function renderContentForm(content) {
               <button onclick="gotoFeedbackFromScript(${content.id})" title="이 대본으로 기획 ③ 대사 피드백 받기 (대사 자동 입력)" class="px-3 py-1 rounded-full text-xs border border-botanical-terracotta text-botanical-terracotta font-medium hover:bg-botanical-terracotta hover:text-white transition-all">피드백 이동 →</button>
             </div>
             <div class="flex gap-2 flex-wrap md:justify-end">
+              <button onclick="copyScriptForFeedback(${content.id})" class="px-3 py-1 rounded-full text-xs border border-botanical-stone hover:bg-botanical-cream transition-all">구간+대사 복사</button>
               <button onclick="copyScript(${content.id}, 'dialogue')" class="px-3 py-1 rounded-full text-xs border border-botanical-stone hover:bg-botanical-cream transition-all">대사 복사</button>
-              <button onclick="copyScriptForFeedback(${content.id})" class="px-3 py-1 rounded-full text-xs border border-botanical-terracotta text-botanical-terracotta font-bold hover:bg-botanical-terracotta hover:text-white transition-all">구간+대사 (피드백용)</button>
               <button onclick="copyScript(${content.id}, 'subtitle')" class="px-3 py-1 rounded-full text-xs border border-botanical-stone hover:bg-botanical-cream transition-all">자막 복사</button>
               <button onclick="copyScriptAll(${content.id})" class="px-3 py-1 rounded-full text-xs border border-botanical-sage bg-botanical-sage/10 text-botanical-sage hover:bg-botanical-sage hover:text-white transition-all">전체 복사</button>
             </div>
