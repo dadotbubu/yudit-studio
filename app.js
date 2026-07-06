@@ -7268,7 +7268,9 @@ function showMemoSaveToast(msg = '저장 완료') {
   if (!toast) {
     toast = document.createElement('div');
     toast.id = 'memo-save-toast';
-    toast.className = 'fixed bottom-6 left-1/2 -translate-x-1/2 z-[60] px-4 py-2 rounded-full bg-botanical-fg text-white text-sm shadow-lg transition-opacity';
+    // pointer-events-none 필수: 토스트가 하단 중앙에 상주하며 opacity:0으로 숨겨져도
+    // 클릭을 가로채, 모바일(하단시트) 모달의 추가/저장 버튼 중앙이 안 눌리던 버그 방지
+    toast.className = 'fixed bottom-6 left-1/2 -translate-x-1/2 z-[60] pointer-events-none px-4 py-2 rounded-full bg-botanical-fg text-white text-sm shadow-lg transition-opacity';
     document.body.appendChild(toast);
   }
   toast.textContent = msg;
