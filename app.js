@@ -6691,6 +6691,120 @@ function changeRevenueMonth(monthStr) {
   renderRevenue();
 }
 
+// ===== 활동 채널 (수익 탭 서브탭) =====
+let revSubTab = 'status'; // 'status' | 'channels' — 리렌더 후에도 보존
+
+const ACTIVITY_CHANNELS = [
+  {
+    group: '플랫폼 활동비',
+    desc: '릴스 재업로드로 활동비·포인트',
+    sites: [
+      { id: 'naver_clip', name: '네이버 클립 크리에이터', url: 'https://mkt.naver.com/p1/clip-creators-x2' },
+      { id: 'kakao_short', name: '카카오 숏폼 스튜디오', url: 'https://shortform-studio.kakao.com/' },
+      { id: 'ohou_creator', name: '오늘의집 크리에이터', url: 'https://contents.ohou.se/reward' },
+      { id: 'youtube_shorts', name: '유튜브 쇼츠', url: 'https://studio.youtube.com/' },
+      { id: 'tiktok', name: '틱톡', url: 'https://www.tiktok.com/' },
+      { id: 'naver_feedmaker', name: '네이버 블로그 피드메이커', url: '' },
+    ]
+  },
+  {
+    group: 'CPA 제휴',
+    desc: '내 링크로 팔리면 수수료',
+    sites: [
+      { id: 'coupang_partners', name: '쿠팡 파트너스', url: 'https://partners.coupang.com/' },
+      { id: 'ohou_curator', name: '오늘의집 큐레이터', url: 'https://ohou.se/curator/' },
+      { id: 'cm29_curator', name: '29cm 큐레이터', url: 'https://curator.29cm.co.kr/' },
+      { id: 'kurly_curator', name: '마켓컬리 큐레이터', url: 'https://lounge.kurly.com/curator-program/welcome' },
+      { id: 'naver_brandconnect', name: '네이버 브랜드커넥트', url: 'https://brandconnect.naver.com/' },
+    ]
+  },
+  {
+    group: '체험단·서포터즈',
+    desc: '협찬 매칭 (인바운드)',
+    sites: [
+      { id: 'revu', name: '레뷰', url: 'https://www.revu.net/' },
+      { id: 'tagby', name: '태그바이', url: 'https://tagby.io/' },
+      { id: 'linktube', name: '링크튜브', url: 'https://linktube.me/' },
+      { id: 'popomon', name: '포포몬', url: 'https://popomon.com/' },
+      { id: 'uconnec', name: '유커넥', url: 'https://uconnec.com/' },
+      { id: 'homesmo', name: '홈스모 카페', url: 'https://cafe.naver.com/appealme' },
+    ]
+  },
+  {
+    group: '광고 (브랜디드)',
+    desc: '미디어킷 기반 유가 협업',
+    sites: [
+      { id: 'my_mediakit', name: '내 미디어킷 열기', url: 'https://yudit-mediakit.netlify.app/' },
+    ]
+  },
+];
+
+function channelJoinedMap() {
+  return (revenueData && revenueData.channels && revenueData.channels.joined) || {};
+}
+
+function channelProgressText() {
+  const joined = channelJoinedMap();
+  const total = ACTIVITY_CHANNELS.reduce((s, g) => s + g.sites.length, 0);
+  const done = ACTIVITY_CHANNELS.reduce((s, g) => s + g.sites.filter(x => joined[x.id]).length, 0);
+  return `가입 ${done} / ${total}`;
+}
+
+function renderRevChannels() {
+  const joined = channelJoinedMap();
+  const groups = ACTIVITY_CHANNELS.map(g => `
+    <div class="bg-white rounded-2xl p-5 shadow-sm mb-4">
+      <div class="flex items-baseline justify-between mb-2">
+        <h4 class="text-base font-semibold">${g.group}</h4>
+        <span class="text-xs text-botanical-sage">${g.desc}</span>
+      </div>
+      <div class="divide-y divide-botanical-stone/40">
+        ${g.sites.map(s => {
+          const on = !!joined[s.id];
+          const label = s.url
+            ? `<a href="${s.url}" target="_blank" rel="noopener" class="flex-1 flex items-center justify-between group">
+                 <span class="text-sm ${on ? 'text-botanical-sage' : 'text-botanical-fg'} group-hover:text-botanical-terracotta">${s.name}</span>
+                 <span class="text-botanical-sage text-xs group-hover:text-botanical-terracotta">↗</span>
+               </a>`
+            : `<span class="flex-1 text-sm ${on ? 'text-botanical-sage' : 'text-botanical-fg'}">${s.name} <span class="text-[10px] text-botanical-clay">(링크 준비중)</span></span>`;
+          return `
+            <div class="flex items-center gap-3 py-2.5">
+              <input type="checkbox" id="chk-${s.id}" ${on ? 'checked' : ''} onchange="toggleChannelJoined('${s.id}', this.checked)" style="accent-color:#C27B66;" class="w-4 h-4 shrink-0 cursor-pointer">
+              ${label}
+              ${on ? '<span class="text-[10px] px-1.5 py-0.5 rounded-full bg-botanical-cream text-botanical-sage shrink-0">가입</span>' : ''}
+            </div>`;
+        }).join('')}
+      </div>
+    </div>
+  `).join('');
+
+  return `
+    <div class="flex items-center justify-between mb-4">
+      <p class="text-xs text-botanical-sage">가입한 곳은 체크 · 이름을 누르면 새 탭으로 열려요</p>
+      <span id="rev-channels-progress" class="text-xs font-medium text-botanical-terracotta">${channelProgressText()}</span>
+    </div>
+    ${groups}
+  `;
+}
+
+function toggleChannelJoined(id, checked) {
+  if (!revenueData.channels) revenueData.channels = { joined: {} };
+  if (!revenueData.channels.joined) revenueData.channels.joined = {};
+  revenueData.channels.joined[id] = checked;
+  markDirty('revenue');
+  saveAllData();
+  const prog = document.getElementById('rev-channels-progress');
+  if (prog) prog.textContent = channelProgressText();
+}
+
+function switchRevTab(tab) {
+  revSubTab = tab;
+  document.querySelectorAll('.rev-tab-btn').forEach(btn => setSubTabActive(btn, btn.id === 'rev-tab-' + tab));
+  document.querySelectorAll('.rev-section').forEach(s => s.classList.add('hidden'));
+  const sec = document.getElementById('rev-' + tab);
+  if (sec) sec.classList.remove('hidden');
+}
+
 function renderRevenue() {
   const monthlyData = revenueData.monthly || [];
   const revenues = monthlyData.map(m => (m.ad || 0) + (m.sales || 0) + (m.sponsor || 0));
@@ -6719,6 +6833,12 @@ function renderRevenue() {
   const totalYear = adYear + salesYear + sponsorYear;
 
   document.getElementById('revenue-content').innerHTML = `
+    <div class="flex gap-5 mb-6 border-b border-botanical-stone/40">
+      <button onclick="switchRevTab('status')" id="rev-tab-status" class="rev-tab-btn pb-2 text-[13px] border-b-2 -mb-px ${revSubTab === 'status' ? 'border-botanical-terracotta text-botanical-terracotta font-bold' : 'border-transparent text-botanical-sage font-medium hover:text-botanical-fg'}">수익 현황</button>
+      <button onclick="switchRevTab('channels')" id="rev-tab-channels" class="rev-tab-btn pb-2 text-[13px] border-b-2 -mb-px ${revSubTab === 'channels' ? 'border-botanical-terracotta text-botanical-terracotta font-bold' : 'border-transparent text-botanical-sage font-medium hover:text-botanical-fg'}">활동 채널</button>
+    </div>
+
+    <div id="rev-status" class="rev-section ${revSubTab === 'status' ? '' : 'hidden'}">
     <!-- 월 선택기 -->
     <div class="flex items-center gap-3 mb-6">
       ${renderMonthSelect('revenue-month-select', revenueSelectedMonth, 'changeRevenueMonth')}
@@ -6809,6 +6929,11 @@ function renderRevenue() {
         ${renderRevenueList('판매', revenueData.items.sales, 'botanical-sage')}
         ${renderRevenueList('협찬', revenueData.items.sponsor, 'botanical-clay')}
       </div>
+    </div>
+    </div>
+
+    <div id="rev-channels" class="rev-section ${revSubTab === 'channels' ? '' : 'hidden'}">
+      ${renderRevChannels()}
     </div>
   `;
 }
