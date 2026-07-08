@@ -6673,51 +6673,51 @@ const ACTIVITY_CHANNELS = [
     group: '지식 상품 판매',
     desc: '전자책·강의·유료 구독 (내 상품)',
     sites: [
-      { id: 'kmong', name: '크몽', url: 'https://kmong.com/' },
-      { id: 'class101', name: '클래스101', url: 'https://class101.net/' },
-      { id: 'taling', name: '탈잉', url: 'https://taling.me/' },
-      { id: 'smartstore', name: '네이버 스마트스토어', url: 'https://sell.smartstore.naver.com/' },
-      { id: 'naver_premium', name: '네이버 프리미엄콘텐츠', url: 'https://contents.premium.naver.com/' },
+      { id: 'kmong', name: '크몽', url: 'https://kmong.com/', note: '전자책·프롬프트 PDF를 등록해 판매. 내 자소서·AI 프롬프트 올리기 딱 좋음. 무료 배포로 리뷰 쌓고 유료 전환.' },
+      { id: 'class101', name: '클래스101', url: 'https://class101.net/', note: '강의·전자책·멤버십 통합 판매. 자기계발/커리어 클래스 만들면 구독형 수익 가능.' },
+      { id: 'taling', name: '탈잉', url: 'https://taling.me/', note: '1:1·소규모 클래스 중개. 자소서 첨삭·면접 코칭처럼 시간당 판매하기 좋음.' },
+      { id: 'smartstore', name: '네이버 스마트스토어', url: 'https://sell.smartstore.naver.com/', note: '내 전자책·템플릿을 직접 상품 등록. 수수료 낮고 네이버 검색 노출됨.' },
+      { id: 'naver_premium', name: '네이버 프리미엄콘텐츠', url: 'https://contents.premium.naver.com/', note: '재테크·커리어 글을 유료 구독으로. 정보성 계정에 딱. 블로그 이웃을 유료 독자로 전환.' },
     ]
   },
   {
     group: '플랫폼 활동비',
     desc: '릴스 재업로드로 활동비·포인트',
     sites: [
-      { id: 'naver_clip', name: '네이버 클립 크리에이터', url: 'https://mkt.naver.com/p1/clip-creators-x2' },
-      { id: 'kakao_short', name: '카카오 숏폼 스튜디오', url: 'https://shortform-studio.kakao.com/' },
-      { id: 'ohou_creator', name: '오늘의집 크리에이터', url: 'https://contents.ohou.se/reward' },
-      { id: 'youtube_shorts', name: '유튜브 쇼츠', url: 'https://studio.youtube.com/' },
-      { id: 'tiktok', name: '틱톡', url: 'https://www.tiktok.com/' },
+      { id: 'naver_clip', name: '네이버 클립 크리에이터', url: 'https://mkt.naver.com/p1/clip-creators-x2', note: '선발 신청 후 지정 해시태그 영상 3건+게시물 1건 올리면 활동비. 릴스 그대로 재업로드 OK.' },
+      { id: 'kakao_short', name: '카카오 숏폼 스튜디오', url: 'https://shortform-studio.kakao.com/', note: '공개모집 심사 통과 후 100일 미션 완료 시 구간별 리워드. 릴스 미러링 가능.' },
+      { id: 'ohou_creator', name: '오늘의집 크리에이터', url: 'https://contents.ohou.se/reward', note: '팔로워 100+·최근 30일 10건 업로드 조건. 앱에 올린 콘텐츠 영감지수로 매달 포인트.' },
+      { id: 'youtube_shorts', name: '유튜브 쇼츠', url: 'https://studio.youtube.com/', note: '릴스를 쇼츠로 그대로 올리기. 가입 필요 없음. 조회수 쌓이면 수익화+계정 발견 채널 확대.' },
+      { id: 'tiktok', name: '틱톡', url: 'https://www.tiktok.com/', note: '릴스 미러링 채널. 가입 없이 도달 늘리기용. 워터마크 없는 원본으로 올리기.' },
     ]
   },
   {
     group: 'CPA 제휴',
     desc: '내 링크로 팔리면 수수료',
     sites: [
-      { id: 'coupang_partners', name: '쿠팡 파트너스', url: 'https://partners.coupang.com/' },
-      { id: 'ohou_curator', name: '오늘의집 큐레이터', url: 'https://ohou.se/curator/' },
-      { id: 'cm29_curator', name: '29cm 큐레이터', url: 'https://curator.29cm.co.kr/' },
-      { id: 'kurly_curator', name: '마켓컬리 큐레이터', url: 'https://lounge.kurly.com/curator-program/welcome' },
-      { id: 'naver_brandconnect', name: '네이버 브랜드커넥트', url: 'https://brandconnect.naver.com/' },
-      { id: 'myrealtrip_partner', name: '마이리얼트립 파트너', url: 'https://partner.myrealtrip.com/welcome' },
-      { id: 'adpick', name: '애드픽', url: 'https://adpick.co.kr/' },
-      { id: 'tenping', name: '텐핑', url: 'https://tenping.kr/' },
-      { id: 'linkprice', name: '링크프라이스', url: 'https://www.linkprice.com/' },
+      { id: 'coupang_partners', name: '쿠팡 파트너스', url: 'https://partners.coupang.com/', note: '내 링크로 구매 발생 시 수수료. 쇼핑·리뷰 콘텐츠에 링크 삽입. 단가는 낮은 편.' },
+      { id: 'ohou_curator', name: '오늘의집 큐레이터', url: 'https://ohou.se/curator/', note: '인테리어·가전 상품 큐레이션 링크로 수수료. 집꾸미기·삼성가전 콘텐츠와 핏.' },
+      { id: 'cm29_curator', name: '29cm 큐레이터', url: 'https://curator.29cm.co.kr/', note: '패션·라이프 감도 높은 상품 큐레이션. 명품·쇼핑 라이프 콘텐츠와 어울림.' },
+      { id: 'kurly_curator', name: '마켓컬리 큐레이터', url: 'https://lounge.kurly.com/curator-program/welcome', note: '식품·생활 큐레이션 링크 수수료. 부부 일상 콘텐츠에 자연스럽게.' },
+      { id: 'naver_brandconnect', name: '네이버 브랜드커넥트', url: 'https://brandconnect.naver.com/', note: '네이버 공식 인플루언서-브랜드 매칭. 블로그 연동하면 협업 제안 받기 좋음.' },
+      { id: 'myrealtrip_partner', name: '마이리얼트립 파트너', url: 'https://partner.myrealtrip.com/welcome', note: '여행 상품 링크로 수수료. 여행 일정 공유 콘텐츠에 삽입.' },
+      { id: 'adpick', name: '애드픽', url: 'https://adpick.co.kr/', note: '앱설치·금융 CPA 고단가. 카드발급·앱가입 건당 수수료 큼. 재테크 콘텐츠와 강력한 핏.' },
+      { id: 'tenping', name: '텐핑', url: 'https://tenping.kr/', note: '금융·보험·앱 제휴 링크. 클릭·전환당 수익. 재테크 정보 콘텐츠에 링크만 붙이면 됨.' },
+      { id: 'linkprice', name: '링크프라이스', url: 'https://www.linkprice.com/', note: '국내 대형 어필리에이트. 다양한 브랜드 링크 발급. 인스타·블로그에 홍보 링크.' },
     ]
   },
   {
     group: '체험단·서포터즈',
     desc: '협찬 매칭 (인바운드)',
     sites: [
-      { id: 'revu', name: '레뷰', url: 'https://www.revu.net/' },
-      { id: 'tagby', name: '태그바이', url: 'https://tagby.io/' },
-      { id: 'linktube', name: '링크튜브', url: 'https://linktube.me/' },
-      { id: 'popomon', name: '포포몬', url: 'https://popomon.com/' },
-      { id: 'uconnec', name: '유커넥', url: 'https://uconnec.com/' },
-      { id: 'homesmo', name: '홈스모 카페', url: 'https://cafe.naver.com/appealme' },
-      { id: 'dinnerqueen', name: '디너의여왕', url: 'https://dinnerqueen.net/' },
-      { id: 'gangnam_matjip', name: '강남맛집 체험단', url: 'https://xn--939au0g4vj8sq.net/' },
+      { id: 'revu', name: '레뷰', url: 'https://www.revu.net/', note: '국내 최대 체험단. 가입 후 캠페인 지원. 제품 협찬으로 후기 쌓고 유상 제안 유도.' },
+      { id: 'tagby', name: '태그바이', url: 'https://tagby.io/', note: '팔로워 1~10만 마이크로 중심. 유디트 구간에 딱. 캠페인 지원형이라 인바운드 자동화.' },
+      { id: 'linktube', name: '링크튜브', url: 'https://linktube.me/', note: '인플루언서 협찬 매칭. 프로필 등록해두면 조건 맞는 캠페인 매칭.' },
+      { id: 'popomon', name: '포포몬', url: 'https://popomon.com/', note: '무료 협찬 매칭 플랫폼. 초반 후기 포트폴리오 쌓기용.' },
+      { id: 'uconnec', name: '유커넥', url: 'https://uconnec.com/', note: '인플루언서 마케팅 플랫폼. 브랜드 캠페인 지원.' },
+      { id: 'homesmo', name: '홈스모 카페', url: 'https://cafe.naver.com/appealme', note: '체험단 게시판 있는 네이버 카페. 올라오는 체험단 직접 체크. 리빙 커뮤니티 모집 많음.' },
+      { id: 'dinnerqueen', name: '디너의여왕', url: 'https://dinnerqueen.net/', note: '푸드·맛집 체험단 1위. 외식·카페 콘텐츠 있을 때 지원.' },
+      { id: 'gangnam_matjip', name: '강남맛집 체험단', url: 'https://xn--939au0g4vj8sq.net/', note: '블로그·인스타 맛집 체험단. 맛집 후기 콘텐츠로 활용.' },
     ]
   },
   {
@@ -6745,21 +6745,51 @@ function channelProgressText() {
   return `가입 ${done} / ${ids.length}`;
 }
 
+function channelNoteText(s) {
+  const memos = (revenueData && revenueData.channels && revenueData.channels.memos) || {};
+  return memos[s.id] || '';
+}
+
+function esc(t) {
+  return String(t == null ? '' : t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
 function channelRow(s, joined, isCustom) {
   const on = !!joined[s.id];
-  const label = s.url
-    ? `<a href="${s.url}" target="_blank" rel="noopener" class="flex-1 flex items-center justify-between group min-w-0">
-         <span class="text-sm truncate ${on ? 'text-botanical-sage' : 'text-botanical-fg'} group-hover:text-botanical-terracotta">${s.name}</span>
-         <span class="text-botanical-sage text-xs group-hover:text-botanical-terracotta shrink-0 ml-1">↗</span>
-       </a>`
-    : `<span class="flex-1 text-sm ${on ? 'text-botanical-sage' : 'text-botanical-fg'}">${s.name} <span class="text-[10px] text-botanical-clay">(링크 준비중)</span></span>`;
+  const nameEl = s.url
+    ? `<a href="${s.url}" target="_blank" rel="noopener" class="text-sm truncate ${on ? 'text-botanical-sage' : 'text-botanical-fg'} hover:text-botanical-terracotta">${s.name} <span class="text-[10px]">↗</span></a>`
+    : `<span class="text-sm ${on ? 'text-botanical-sage' : 'text-botanical-fg'}">${s.name} <span class="text-[10px] text-botanical-clay">(링크 준비중)</span></span>`;
+  const memo = channelNoteText(s);
+  const detailId = 'detail-' + s.id;
   return `
-    <div class="flex items-center gap-3 py-2.5">
-      <input type="checkbox" id="chk-${s.id}" ${on ? 'checked' : ''} onchange="toggleChannelJoined('${s.id}', this.checked)" style="accent-color:#C27B66;" class="w-4 h-4 shrink-0 cursor-pointer">
-      ${label}
-      ${on ? '<span class="text-[10px] px-1.5 py-0.5 rounded-full bg-botanical-cream text-botanical-sage shrink-0">가입</span>' : ''}
-      ${isCustom ? `<button onclick="deleteCustomChannel('${s.id}')" class="text-botanical-clay text-base leading-none shrink-0 hover:text-botanical-terracotta" title="삭제">×</button>` : ''}
+    <div class="py-2.5">
+      <div class="flex items-center gap-3">
+        <input type="checkbox" id="chk-${s.id}" ${on ? 'checked' : ''} onchange="toggleChannelJoined('${s.id}', this.checked)" style="accent-color:#C27B66;" class="w-4 h-4 shrink-0 cursor-pointer">
+        <div class="flex-1 min-w-0 flex items-center gap-2">${nameEl}${memo ? '<span class="w-1.5 h-1.5 rounded-full bg-botanical-terracotta shrink-0" title="메모 있음"></span>' : ''}</div>
+        ${on ? '<span class="text-[10px] px-1.5 py-0.5 rounded-full bg-botanical-cream text-botanical-sage shrink-0">가입</span>' : ''}
+        <button onclick="toggleChannelDetail('${detailId}')" class="text-botanical-sage text-xs shrink-0 hover:text-botanical-terracotta w-5 h-5 rounded-full border border-botanical-stone" title="설명·메모">?</button>
+        ${isCustom ? `<button onclick="deleteCustomChannel('${s.id}')" class="text-botanical-clay text-base leading-none shrink-0 hover:text-botanical-terracotta" title="삭제">×</button>` : ''}
+      </div>
+      <div id="${detailId}" class="hidden mt-2 ml-7 pl-3 border-l-2 border-botanical-stone/60">
+        ${s.note ? `<p class="text-xs text-botanical-sage leading-relaxed mb-2">${esc(s.note)}</p>` : ''}
+        <textarea id="memo-${s.id}" onchange="saveChannelMemo('${s.id}', this.value)" placeholder="내 메모 (예: 3/8 가입함, 첫 캠페인 지원)" rows="2" class="w-full text-xs px-2 py-1.5 rounded-lg border border-botanical-stone focus:outline-none resize-none">${esc(memo)}</textarea>
+      </div>
     </div>`;
+}
+
+function toggleChannelDetail(id) {
+  const el = document.getElementById(id);
+  if (el) el.classList.toggle('hidden');
+}
+
+function saveChannelMemo(id, value) {
+  if (!revenueData.channels) revenueData.channels = { joined: {} };
+  if (!revenueData.channels.memos) revenueData.channels.memos = {};
+  const v = (value || '').trim();
+  if (v) revenueData.channels.memos[id] = v;
+  else delete revenueData.channels.memos[id];
+  markDirty('revenue');
+  saveAllData();
 }
 
 function renderRevChannels() {
