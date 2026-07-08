@@ -6670,6 +6670,17 @@ let revSubTab = 'status'; // 'status' | 'channels' — 리렌더 후에도 보�
 
 const ACTIVITY_CHANNELS = [
   {
+    group: '지식 상품 판매',
+    desc: '전자책·강의·유료 구독 (내 상품)',
+    sites: [
+      { id: 'kmong', name: '크몽', url: 'https://kmong.com/' },
+      { id: 'class101', name: '클래스101', url: 'https://class101.net/' },
+      { id: 'taling', name: '탈잉', url: 'https://taling.me/' },
+      { id: 'smartstore', name: '네이버 스마트스토어', url: 'https://sell.smartstore.naver.com/' },
+      { id: 'naver_premium', name: '네이버 프리미엄콘텐츠', url: 'https://contents.premium.naver.com/' },
+    ]
+  },
+  {
     group: '플랫폼 활동비',
     desc: '릴스 재업로드로 활동비·포인트',
     sites: [
@@ -6690,6 +6701,9 @@ const ACTIVITY_CHANNELS = [
       { id: 'kurly_curator', name: '마켓컬리 큐레이터', url: 'https://lounge.kurly.com/curator-program/welcome' },
       { id: 'naver_brandconnect', name: '네이버 브랜드커넥트', url: 'https://brandconnect.naver.com/' },
       { id: 'myrealtrip_partner', name: '마이리얼트립 파트너', url: 'https://partner.myrealtrip.com/welcome' },
+      { id: 'adpick', name: '애드픽', url: 'https://adpick.co.kr/' },
+      { id: 'tenping', name: '텐핑', url: 'https://tenping.kr/' },
+      { id: 'linkprice', name: '링크프라이스', url: 'https://www.linkprice.com/' },
     ]
   },
   {
