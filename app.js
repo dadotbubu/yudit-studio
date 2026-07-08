@@ -6710,14 +6710,14 @@ const ACTIVITY_CHANNELS = [
     group: '체험단·서포터즈',
     desc: '협찬 매칭 (인바운드)',
     sites: [
+      { id: 'dinnerqueen', name: '디너의여왕', url: 'https://dinnerqueen.net/', note: '푸드·맛집 체험단 1위. 외식·카페 콘텐츠 있을 때 지원.' },
+      { id: 'gangnam_matjip', name: '강남맛집', url: 'https://xn--939au0g4vj8sq.net/', note: '블로그·인스타 맛집 체험단. 맛집 후기 콘텐츠로 활용.' },
       { id: 'revu', name: '레뷰', url: 'https://www.revu.net/', note: '국내 최대 체험단. 가입 후 캠페인 지원. 제품 협찬으로 후기 쌓고 유상 제안 유도.' },
       { id: 'tagby', name: '태그바이', url: 'https://tagby.io/', note: '팔로워 1~10만 마이크로 중심. 유디트 구간에 딱. 캠페인 지원형이라 인바운드 자동화.' },
       { id: 'linktube', name: '링크튜브', url: 'https://linktube.me/', note: '인플루언서 협찬 매칭. 프로필 등록해두면 조건 맞는 캠페인 매칭.' },
       { id: 'popomon', name: '포포몬', url: 'https://popomon.com/', note: '무료 협찬 매칭 플랫폼. 초반 후기 포트폴리오 쌓기용.' },
-      { id: 'uconnec', name: '유커넥', url: 'https://uconnec.com/', note: '인플루언서 마케팅 플랫폼. 브랜드 캠페인 지원.' },
       { id: 'homesmo', name: '홈스모 카페', url: 'https://cafe.naver.com/appealme', note: '체험단 게시판 있는 네이버 카페. 올라오는 체험단 직접 체크. 리빙 커뮤니티 모집 많음.' },
-      { id: 'dinnerqueen', name: '디너의여왕', url: 'https://dinnerqueen.net/', note: '푸드·맛집 체험단 1위. 외식·카페 콘텐츠 있을 때 지원.' },
-      { id: 'gangnam_matjip', name: '강남맛집 체험단', url: 'https://xn--939au0g4vj8sq.net/', note: '블로그·인스타 맛집 체험단. 맛집 후기 콘텐츠로 활용.' },
+      { id: 'coupang_experience', name: '쿠팡 체험단', url: 'https://www.coupang.com/', note: '별도 신청 URL 없이 쿠팡이 초대하는 방식. 마이쿠팡→이벤트·체험단, 알림(혜택·체험단) 켜두면 초대 옴. SNS 활동 없이도 협찬 가능.' },
     ]
   },
 ];
