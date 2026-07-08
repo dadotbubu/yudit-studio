@@ -6710,14 +6710,22 @@ const ACTIVITY_CHANNELS = [
     group: '체험단·서포터즈',
     desc: '협찬 매칭 (인바운드)',
     sites: [
-      { id: 'dinnerqueen', name: '디너의여왕', url: 'https://dinnerqueen.net/', note: '푸드·맛집 체험단 1위. 외식·카페 콘텐츠 있을 때 지원.' },
-      { id: 'gangnam_matjip', name: '강남맛집', url: 'https://xn--939au0g4vj8sq.net/', note: '블로그·인스타 맛집 체험단. 맛집 후기 콘텐츠로 활용.' },
-      { id: 'revu', name: '레뷰', url: 'https://www.revu.net/', note: '국내 최대 체험단. 가입 후 캠페인 지원. 제품 협찬으로 후기 쌓고 유상 제안 유도.' },
+      { id: 'dinnerqueen', name: '디너의여왕', url: 'https://dinnerqueen.net/', cat: '맛집', note: '푸드·맛집 체험단 1위. 초보 블로그도 선정 가능성 높음. 외식·카페 콘텐츠 있을 때 지원.' },
+      { id: 'gangnam_matjip', name: '강남맛집', url: 'https://xn--939au0g4vj8sq.net/', cat: '맛집', note: '이미 유명한 맛집 체험단. 종류 다양하고 진입장벽 낮음.' },
+      { id: 'revu', name: '레뷰', url: 'https://www.revu.net/', note: '국내 최대 체험단. 화장품·식품·생활·디지털·유아동+지역 맛집·숙박까지. 레뷰 셀렉트로 원고료도.' },
       { id: 'tagby', name: '태그바이', url: 'https://tagby.io/', note: '팔로워 1~10만 마이크로 중심. 유디트 구간에 딱. 캠페인 지원형이라 인바운드 자동화.' },
-      { id: 'linktube', name: '링크튜브', url: 'https://linktube.me/', note: '인플루언서 협찬 매칭. 프로필 등록해두면 조건 맞는 캠페인 매칭.' },
-      { id: 'popomon', name: '포포몬', url: 'https://popomon.com/', note: '무료 협찬 매칭 플랫폼. 초반 후기 포트폴리오 쌓기용.' },
-      { id: 'homesmo', name: '홈스모 카페', url: 'https://cafe.naver.com/appealme', note: '체험단 게시판 있는 네이버 카페. 올라오는 체험단 직접 체크. 리빙 커뮤니티 모집 많음.' },
+      { id: 'linktube', name: '링크튜브', url: 'https://linktube.me/', note: '광고주 5천+. 안전결제(업로드 후 지급). 무료 협찬+원고료 지원형 둘 다.' },
+      { id: 'popomon', name: '포포몬', url: 'https://popomon.com/', note: '무료 협찬 매칭 1위. 수수료 없음. 캠페인+1:1 제안. 초반 후기 포트폴리오 쌓기용.' },
+      { id: 'homesmo', name: '홈스모 카페', url: 'https://cafe.naver.com/appealme', cat: '리빙', note: '체험단 게시판 있는 네이버 카페. 올라오는 체험단 직접 체크. 리빙 커뮤니티 모집 많음.' },
       { id: 'coupang_experience', name: '쿠팡 체험단', url: 'https://www.coupang.com/', note: '별도 신청 URL 없이 쿠팡이 초대하는 방식. 마이쿠팡→이벤트·체험단, 알림(혜택·체험단) 켜두면 초대 옴. SNS 활동 없이도 협찬 가능.' },
+      { id: 'reuview', name: '르뷰', url: 'https://rewview.co.kr/', cat: '뷰티', note: '고퀄 화장품·뷰티디바이스 체험 전문.' },
+      { id: 'reviewplace', name: '리뷰플레이스', url: 'https://reviewplace.co.kr/', note: '화장품·식품·생활·디지털·유아동+지역 맛집·뷰티·숙박 종합.' },
+      { id: 'stylec', name: '스타일씨', url: 'https://www.stylec.co.kr/', note: '50만 인플루언서 체험단. 당첨 쉬운 편. 상품 공유 시 판매·클릭당 캐시도.' },
+      { id: 'njobler', name: '엔잡러', url: '', note: '다이소·노브랜드·메가커피 등 대형 브랜드 캠페인. 아직 유명하지 않아 경쟁률 매우 낮음(추천).' },
+      { id: 'gugudas', name: '구구다스', url: 'https://99das.com/amz/main/index.do', note: '인스타보다 블로그 제품 많은 편. 구매평 체험단 브랜드 괜찮음.' },
+      { id: 'seoulouba', name: '서울오빠', url: 'https://www.seoulouba.co.kr/', note: '협찬 업체 퀄 좋음. 단 진행 기한이 넉넉하지 않음.' },
+      { id: 'fineadple', name: '파인앳플', url: 'https://www.fineadple.com/m/', note: '체험단 종류가 다양하진 않지만 경쟁률이 높지 않음.' },
+      { id: 'reviewnote', name: '리뷰노트', url: 'https://www.reviewnote.co.kr/', note: '매우 인기 있는 협찬 사이트. 인기 분야는 경쟁률 높을 수 있음.' },
     ]
   },
 ];
@@ -6728,6 +6736,34 @@ function channelJoinedMap() {
 
 function customChannels() {
   return (revenueData && revenueData.channels && revenueData.channels.custom) || [];
+}
+
+// 그룹 내 사이트를 저장된 순서대로 반환 (빌트인+커스텀 합침)
+function orderedSites(g) {
+  const all = (g.sites || []).concat(customChannels().filter(c => c.group === g.group));
+  const ord = ((revenueData && revenueData.channels && revenueData.channels.order) || {})[g.group] || [];
+  const byId = {};
+  all.forEach(s => { byId[s.id] = s; });
+  const result = [];
+  ord.forEach(id => { if (byId[id]) { result.push(byId[id]); delete byId[id]; } });
+  all.forEach(s => { if (byId[s.id]) result.push(s); });
+  return result;
+}
+
+function moveChannel(groupName, id, dir) {
+  const g = ACTIVITY_CHANNELS.find(x => x.group === groupName);
+  if (!g) return;
+  const ids = orderedSites(g).map(s => s.id);
+  const i = ids.indexOf(id);
+  const j = i + dir;
+  if (i < 0 || j < 0 || j >= ids.length) return;
+  const tmp = ids[i]; ids[i] = ids[j]; ids[j] = tmp;
+  if (!revenueData.channels) revenueData.channels = {};
+  if (!revenueData.channels.order) revenueData.channels.order = {};
+  revenueData.channels.order[groupName] = ids;
+  markDirty('revenue');
+  saveAllData();
+  refreshRevChannels();
 }
 
 function channelProgressText() {
@@ -6748,19 +6784,24 @@ function esc(t) {
   return String(t == null ? '' : t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
-function channelRow(s, joined, isCustom) {
+function channelRow(s, joined, isCustom, groupName, idx, total) {
   const on = !!joined[s.id];
+  const catTag = s.cat ? `<span class="text-[10px] px-1.5 py-0.5 rounded-full bg-botanical-cream text-botanical-clay shrink-0">${esc(s.cat)}</span>` : '';
   const nameEl = s.url
     ? `<a href="${s.url}" target="_blank" rel="noopener" class="text-sm truncate ${on ? 'text-botanical-sage' : 'text-botanical-fg'} hover:text-botanical-terracotta">${s.name} <span class="text-[10px]">↗</span></a>`
     : `<span class="text-sm ${on ? 'text-botanical-sage' : 'text-botanical-fg'}">${s.name} <span class="text-[10px] text-botanical-clay">(링크 준비중)</span></span>`;
   const memo = channelNoteText(s);
   const detailId = 'detail-' + s.id;
+  const upDis = idx === 0 ? 'opacity-20 pointer-events-none' : '';
+  const downDis = idx === total - 1 ? 'opacity-20 pointer-events-none' : '';
   return `
     <div class="py-2.5">
-      <div class="flex items-center gap-3">
+      <div class="flex items-center gap-2">
         <input type="checkbox" id="chk-${s.id}" ${on ? 'checked' : ''} onchange="toggleChannelJoined('${s.id}', this.checked)" style="accent-color:#C27B66;" class="w-4 h-4 shrink-0 cursor-pointer">
-        <div class="flex-1 min-w-0 flex items-center gap-2">${nameEl}${memo ? '<span class="w-1.5 h-1.5 rounded-full bg-botanical-terracotta shrink-0" title="메모 있음"></span>' : ''}</div>
+        <div class="flex-1 min-w-0 flex items-center gap-2">${nameEl}${catTag}${memo ? '<span class="w-1.5 h-1.5 rounded-full bg-botanical-terracotta shrink-0" title="메모 있음"></span>' : ''}</div>
         ${on ? '<span class="text-[10px] px-1.5 py-0.5 rounded-full bg-botanical-cream text-botanical-sage shrink-0">가입</span>' : ''}
+        <button onclick="moveChannel('${esc(groupName)}','${s.id}',-1)" class="text-botanical-sage text-xs shrink-0 hover:text-botanical-terracotta w-5 h-5 ${upDis}" title="위로">▲</button>
+        <button onclick="moveChannel('${esc(groupName)}','${s.id}',1)" class="text-botanical-sage text-xs shrink-0 hover:text-botanical-terracotta w-5 h-5 ${downDis}" title="아래로">▼</button>
         <button onclick="toggleChannelDetail('${detailId}')" class="text-botanical-sage text-xs shrink-0 hover:text-botanical-terracotta w-5 h-5 rounded-full border border-botanical-stone" title="설명·메모">?</button>
         ${isCustom ? `<button onclick="deleteCustomChannel('${s.id}')" class="text-botanical-clay text-base leading-none shrink-0 hover:text-botanical-terracotta" title="삭제">×</button>` : ''}
       </div>
@@ -6794,8 +6835,9 @@ function renderRevChannels() {
     if (g.special === 'mediakit') {
       inner = `<button onclick="switchRevTab('mediakit')" class="text-sm text-botanical-terracotta font-medium hover:underline">미디어킷 관리 →</button>`;
     } else {
-      const rows = (g.sites || []).map(s => channelRow(s, joined, false))
-        .concat(custom.filter(c => c.group === g.group).map(s => channelRow(s, joined, true)));
+      const customIds = new Set(custom.map(c => c.id));
+      const ordered = orderedSites(g);
+      const rows = ordered.map((s, i) => channelRow(s, joined, customIds.has(s.id), g.group, i, ordered.length));
       inner = `<div class="divide-y divide-botanical-stone/40">${rows.join('')}</div>`;
     }
     return `
