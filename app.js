@@ -6031,7 +6031,6 @@ function renderPerformance() {
     <div class="flex gap-5 mb-6 border-b border-botanical-stone/40">
       <button onclick="switchPerfTab('detail')" id="perf-tab-detail" class="perf-tab-btn pb-2 text-[13px] border-b-2 -mb-px ${perfSubTab === 'detail' ? 'border-botanical-terracotta text-botanical-terracotta font-bold' : 'border-transparent text-botanical-sage font-medium hover:text-botanical-fg'}">월 상세</button>
       <button onclick="switchPerfTab('compare')" id="perf-tab-compare" class="perf-tab-btn pb-2 text-[13px] border-b-2 -mb-px ${perfSubTab === 'compare' ? 'border-botanical-terracotta text-botanical-terracotta font-bold' : 'border-transparent text-botanical-sage font-medium hover:text-botanical-fg'}">월간 비교</button>
-      <button onclick="switchPerfTab('mediakit')" id="perf-tab-mediakit" class="perf-tab-btn pb-2 text-[13px] border-b-2 -mb-px ${perfSubTab === 'mediakit' ? 'border-botanical-terracotta text-botanical-terracotta font-bold' : 'border-transparent text-botanical-sage font-medium hover:text-botanical-fg'}">미디어킷</button>
     </div>
 
     <div id="perf-detail" class="perf-section ${perfSubTab === 'detail' ? '' : 'hidden'}">
@@ -6416,30 +6415,6 @@ function renderPerformance() {
     </div>
 
     <!-- Media Kit Sub-tab -->
-    <div id="perf-mediakit" class="perf-section ${perfSubTab === 'mediakit' ? '' : 'hidden'}">
-      <div class="bg-white rounded-2xl p-6 shadow-sm">
-        <h3 class="font-medium mb-4">미디어킷</h3>
-        <div class="grid md:grid-cols-2 gap-4">
-          <div class="border border-botanical-stone rounded-xl p-5 bg-botanical-cream/30">
-            <div class="flex items-center gap-2 mb-3 font-medium">🇰🇷 한국어 버전</div>
-            <div class="flex flex-col gap-2 md:flex-row md:flex-wrap">
-              <a href="mediakit/index.html" target="_blank" class="w-full md:w-auto text-center px-4 py-2 rounded-lg text-sm font-medium border border-botanical-sage text-botanical-fg hover:bg-botanical-cream transition-all">👁️ 미리보기</a>
-              <button onclick="copyMediakitLink('ko')" class="w-full md:w-auto px-4 py-2 rounded-lg text-sm font-medium border-2 border-botanical-terracotta text-botanical-terracotta hover:bg-botanical-cream transition-all">🔗 링크 복사</button>
-              <button onclick="downloadMediakitPdf('ko')" class="w-full md:w-auto px-4 py-2 rounded-lg text-sm font-medium bg-botanical-fg text-white hover:opacity-90 transition-all">⬇️ PDF 다운로드</button>
-            </div>
-          </div>
-          <div class="border border-botanical-stone rounded-xl p-5 bg-botanical-cream/30">
-            <div class="flex items-center gap-2 mb-3 font-medium">🇺🇸 영어 버전 <span class="text-xs text-botanical-sage font-normal">(페이지 내용만 영어)</span></div>
-            <div class="flex flex-col gap-2 md:flex-row md:flex-wrap">
-              <a href="mediakit/en.html" target="_blank" class="w-full md:w-auto text-center px-4 py-2 rounded-lg text-sm font-medium border border-botanical-sage text-botanical-fg hover:bg-botanical-cream transition-all">👁️ 미리보기</a>
-              <button onclick="copyMediakitLink('en')" class="w-full md:w-auto px-4 py-2 rounded-lg text-sm font-medium border-2 border-botanical-terracotta text-botanical-terracotta hover:bg-botanical-cream transition-all">🔗 링크 복사</button>
-              <button onclick="downloadMediakitPdf('en')" class="w-full md:w-auto px-4 py-2 rounded-lg text-sm font-medium bg-botanical-fg text-white hover:opacity-90 transition-all">⬇️ PDF 다운로드</button>
-            </div>
-          </div>
-        </div>
-      </div>
-      <div id="mk-editor" class="mt-4"></div>
-    </div>
   `;
 }
 
@@ -6624,7 +6599,6 @@ function switchPerfTab(tab) {
   document.querySelectorAll('.perf-tab-btn').forEach(btn => setSubTabActive(btn, btn.id === 'perf-tab-' + tab));
   document.querySelectorAll('.perf-section').forEach(s => s.classList.add('hidden'));
   document.getElementById('perf-' + tab).classList.remove('hidden');
-  if (tab === 'mediakit') renderMediakitEditor(true);
 }
 
 function saveFollowerCount() {
@@ -6704,7 +6678,6 @@ const ACTIVITY_CHANNELS = [
       { id: 'ohou_creator', name: '오늘의집 크리에이터', url: 'https://contents.ohou.se/reward' },
       { id: 'youtube_shorts', name: '유튜브 쇼츠', url: 'https://studio.youtube.com/' },
       { id: 'tiktok', name: '틱톡', url: 'https://www.tiktok.com/' },
-      { id: 'naver_feedmaker', name: '네이버 블로그 피드메이커', url: '' },
     ]
   },
   {
@@ -6716,6 +6689,7 @@ const ACTIVITY_CHANNELS = [
       { id: 'cm29_curator', name: '29cm 큐레이터', url: 'https://curator.29cm.co.kr/' },
       { id: 'kurly_curator', name: '마켓컬리 큐레이터', url: 'https://lounge.kurly.com/curator-program/welcome' },
       { id: 'naver_brandconnect', name: '네이버 브랜드커넥트', url: 'https://brandconnect.naver.com/' },
+      { id: 'myrealtrip_partner', name: '마이리얼트립 파트너', url: 'https://partner.myrealtrip.com/welcome' },
     ]
   },
   {
@@ -6728,14 +6702,15 @@ const ACTIVITY_CHANNELS = [
       { id: 'popomon', name: '포포몬', url: 'https://popomon.com/' },
       { id: 'uconnec', name: '유커넥', url: 'https://uconnec.com/' },
       { id: 'homesmo', name: '홈스모 카페', url: 'https://cafe.naver.com/appealme' },
+      { id: 'dinnerqueen', name: '디너의여왕', url: 'https://dinnerqueen.net/' },
+      { id: 'gangnamunni', name: '강남언니', url: 'https://www.gangnamunni.com/' },
     ]
   },
   {
     group: '광고 (브랜디드)',
     desc: '미디어킷 기반 유가 협업',
-    sites: [
-      { id: 'my_mediakit', name: '내 미디어킷 열기', url: 'https://yudit-mediakit.netlify.app/' },
-    ]
+    special: 'mediakit',
+    sites: [],
   },
 ];
 
@@ -6743,40 +6718,60 @@ function channelJoinedMap() {
   return (revenueData && revenueData.channels && revenueData.channels.joined) || {};
 }
 
+function customChannels() {
+  return (revenueData && revenueData.channels && revenueData.channels.custom) || [];
+}
+
 function channelProgressText() {
   const joined = channelJoinedMap();
-  const total = ACTIVITY_CHANNELS.reduce((s, g) => s + g.sites.length, 0);
-  const done = ACTIVITY_CHANNELS.reduce((s, g) => s + g.sites.filter(x => joined[x.id]).length, 0);
-  return `가입 ${done} / ${total}`;
+  const ids = [];
+  ACTIVITY_CHANNELS.forEach(g => (g.sites || []).forEach(s => ids.push(s.id)));
+  customChannels().forEach(c => ids.push(c.id));
+  const done = ids.filter(id => joined[id]).length;
+  return `가입 ${done} / ${ids.length}`;
+}
+
+function channelRow(s, joined, isCustom) {
+  const on = !!joined[s.id];
+  const label = s.url
+    ? `<a href="${s.url}" target="_blank" rel="noopener" class="flex-1 flex items-center justify-between group min-w-0">
+         <span class="text-sm truncate ${on ? 'text-botanical-sage' : 'text-botanical-fg'} group-hover:text-botanical-terracotta">${s.name}</span>
+         <span class="text-botanical-sage text-xs group-hover:text-botanical-terracotta shrink-0 ml-1">↗</span>
+       </a>`
+    : `<span class="flex-1 text-sm ${on ? 'text-botanical-sage' : 'text-botanical-fg'}">${s.name} <span class="text-[10px] text-botanical-clay">(링크 준비중)</span></span>`;
+  return `
+    <div class="flex items-center gap-3 py-2.5">
+      <input type="checkbox" id="chk-${s.id}" ${on ? 'checked' : ''} onchange="toggleChannelJoined('${s.id}', this.checked)" style="accent-color:#C27B66;" class="w-4 h-4 shrink-0 cursor-pointer">
+      ${label}
+      ${on ? '<span class="text-[10px] px-1.5 py-0.5 rounded-full bg-botanical-cream text-botanical-sage shrink-0">가입</span>' : ''}
+      ${isCustom ? `<button onclick="deleteCustomChannel('${s.id}')" class="text-botanical-clay text-base leading-none shrink-0 hover:text-botanical-terracotta" title="삭제">×</button>` : ''}
+    </div>`;
 }
 
 function renderRevChannels() {
   const joined = channelJoinedMap();
-  const groups = ACTIVITY_CHANNELS.map(g => `
-    <div class="bg-white rounded-2xl p-5 shadow-sm mb-4">
-      <div class="flex items-baseline justify-between mb-2">
-        <h4 class="text-base font-semibold">${g.group}</h4>
-        <span class="text-xs text-botanical-sage">${g.desc}</span>
-      </div>
-      <div class="divide-y divide-botanical-stone/40">
-        ${g.sites.map(s => {
-          const on = !!joined[s.id];
-          const label = s.url
-            ? `<a href="${s.url}" target="_blank" rel="noopener" class="flex-1 flex items-center justify-between group">
-                 <span class="text-sm ${on ? 'text-botanical-sage' : 'text-botanical-fg'} group-hover:text-botanical-terracotta">${s.name}</span>
-                 <span class="text-botanical-sage text-xs group-hover:text-botanical-terracotta">↗</span>
-               </a>`
-            : `<span class="flex-1 text-sm ${on ? 'text-botanical-sage' : 'text-botanical-fg'}">${s.name} <span class="text-[10px] text-botanical-clay">(링크 준비중)</span></span>`;
-          return `
-            <div class="flex items-center gap-3 py-2.5">
-              <input type="checkbox" id="chk-${s.id}" ${on ? 'checked' : ''} onchange="toggleChannelJoined('${s.id}', this.checked)" style="accent-color:#C27B66;" class="w-4 h-4 shrink-0 cursor-pointer">
-              ${label}
-              ${on ? '<span class="text-[10px] px-1.5 py-0.5 rounded-full bg-botanical-cream text-botanical-sage shrink-0">가입</span>' : ''}
-            </div>`;
-        }).join('')}
-      </div>
-    </div>
-  `).join('');
+  const custom = customChannels();
+  const groups = ACTIVITY_CHANNELS.map(g => {
+    let inner;
+    if (g.special === 'mediakit') {
+      inner = `<button onclick="switchRevTab('mediakit')" class="text-sm text-botanical-terracotta font-medium hover:underline">미디어킷 관리 →</button>`;
+    } else {
+      const rows = (g.sites || []).map(s => channelRow(s, joined, false))
+        .concat(custom.filter(c => c.group === g.group).map(s => channelRow(s, joined, true)));
+      inner = `<div class="divide-y divide-botanical-stone/40">${rows.join('')}</div>`;
+    }
+    return `
+      <div class="bg-white rounded-2xl p-5 shadow-sm mb-4">
+        <div class="flex items-baseline justify-between mb-2">
+          <h4 class="text-base font-semibold">${g.group}</h4>
+          <span class="text-xs text-botanical-sage">${g.desc}</span>
+        </div>
+        ${inner}
+      </div>`;
+  }).join('');
+
+  const groupOptions = ACTIVITY_CHANNELS.filter(g => !g.special)
+    .map(g => `<option value="${g.group}">${g.group}</option>`).join('');
 
   return `
     <div class="flex items-center justify-between mb-4">
@@ -6784,7 +6779,52 @@ function renderRevChannels() {
       <span id="rev-channels-progress" class="text-xs font-medium text-botanical-terracotta">${channelProgressText()}</span>
     </div>
     ${groups}
+    <div class="bg-white rounded-2xl p-4 shadow-sm">
+      <button onclick="toggleAddChannelForm()" class="text-sm text-botanical-fg font-medium">＋ 채널 추가</button>
+      <div id="add-channel-form" class="hidden mt-3 flex flex-col gap-2">
+        <select id="ac-group" class="px-3 py-2 rounded-xl border border-botanical-stone text-sm focus:outline-none">${groupOptions}</select>
+        <input id="ac-name" placeholder="채널 이름" class="px-3 py-2 rounded-xl border border-botanical-stone text-sm focus:outline-none">
+        <input id="ac-url" placeholder="https://... (선택)" class="px-3 py-2 rounded-xl border border-botanical-stone text-sm focus:outline-none">
+        <div class="flex gap-2">
+          <button onclick="addCustomChannel()" class="flex-1 px-3 py-2 rounded-xl text-sm font-medium bg-botanical-fg text-white">추가</button>
+          <button onclick="toggleAddChannelForm()" class="px-3 py-2 rounded-xl text-sm border border-botanical-sage text-botanical-sage">취소</button>
+        </div>
+      </div>
+    </div>
   `;
+}
+
+function refreshRevChannels() {
+  const el = document.getElementById('rev-channels');
+  if (el) el.innerHTML = renderRevChannels();
+}
+
+function toggleAddChannelForm() {
+  const f = document.getElementById('add-channel-form');
+  if (f) f.classList.toggle('hidden');
+}
+
+function addCustomChannel() {
+  const group = document.getElementById('ac-group').value;
+  const name = (document.getElementById('ac-name').value || '').trim();
+  let url = (document.getElementById('ac-url').value || '').trim();
+  if (!name) { alert('채널 이름을 입력하세요'); return; }
+  if (url && !/^https?:\/\//i.test(url)) url = 'https://' + url;
+  if (!revenueData.channels) revenueData.channels = { joined: {}, custom: [] };
+  if (!revenueData.channels.custom) revenueData.channels.custom = [];
+  revenueData.channels.custom.push({ id: 'custom_' + Date.now(), group, name, url });
+  markDirty('revenue');
+  saveAllData();
+  refreshRevChannels();
+}
+
+function deleteCustomChannel(id) {
+  if (!revenueData.channels || !revenueData.channels.custom) return;
+  revenueData.channels.custom = revenueData.channels.custom.filter(c => c.id !== id);
+  if (revenueData.channels.joined) delete revenueData.channels.joined[id];
+  markDirty('revenue');
+  saveAllData();
+  refreshRevChannels();
 }
 
 function toggleChannelJoined(id, checked) {
@@ -6803,6 +6843,7 @@ function switchRevTab(tab) {
   document.querySelectorAll('.rev-section').forEach(s => s.classList.add('hidden'));
   const sec = document.getElementById('rev-' + tab);
   if (sec) sec.classList.remove('hidden');
+  if (tab === 'mediakit') renderMediakitEditor(true);
 }
 
 function renderRevenue() {
@@ -6836,6 +6877,7 @@ function renderRevenue() {
     <div class="flex gap-5 mb-6 border-b border-botanical-stone/40">
       <button onclick="switchRevTab('status')" id="rev-tab-status" class="rev-tab-btn pb-2 text-[13px] border-b-2 -mb-px ${revSubTab === 'status' ? 'border-botanical-terracotta text-botanical-terracotta font-bold' : 'border-transparent text-botanical-sage font-medium hover:text-botanical-fg'}">수익 현황</button>
       <button onclick="switchRevTab('channels')" id="rev-tab-channels" class="rev-tab-btn pb-2 text-[13px] border-b-2 -mb-px ${revSubTab === 'channels' ? 'border-botanical-terracotta text-botanical-terracotta font-bold' : 'border-transparent text-botanical-sage font-medium hover:text-botanical-fg'}">활동 채널</button>
+      <button onclick="switchRevTab('mediakit')" id="rev-tab-mediakit" class="rev-tab-btn pb-2 text-[13px] border-b-2 -mb-px ${revSubTab === 'mediakit' ? 'border-botanical-terracotta text-botanical-terracotta font-bold' : 'border-transparent text-botanical-sage font-medium hover:text-botanical-fg'}">미디어킷</button>
     </div>
 
     <div id="rev-status" class="rev-section ${revSubTab === 'status' ? '' : 'hidden'}">
@@ -6934,6 +6976,31 @@ function renderRevenue() {
 
     <div id="rev-channels" class="rev-section ${revSubTab === 'channels' ? '' : 'hidden'}">
       ${renderRevChannels()}
+    </div>
+
+    <div id="rev-mediakit" class="rev-section ${revSubTab === 'mediakit' ? '' : 'hidden'}">
+      <div class="bg-white rounded-2xl p-6 shadow-sm">
+        <h3 class="font-medium mb-4">미디어킷</h3>
+        <div class="grid md:grid-cols-2 gap-4">
+          <div class="border border-botanical-stone rounded-xl p-5 bg-botanical-cream/30">
+            <div class="flex items-center gap-2 mb-3 font-medium">🇰🇷 한국어 버전</div>
+            <div class="flex flex-col gap-2 md:flex-row md:flex-wrap">
+              <a href="mediakit/index.html" target="_blank" class="w-full md:w-auto text-center px-4 py-2 rounded-lg text-sm font-medium border border-botanical-sage text-botanical-fg hover:bg-botanical-cream transition-all">👁️ 미리보기</a>
+              <button onclick="copyMediakitLink('ko')" class="w-full md:w-auto px-4 py-2 rounded-lg text-sm font-medium border-2 border-botanical-terracotta text-botanical-terracotta hover:bg-botanical-cream transition-all">🔗 링크 복사</button>
+              <button onclick="downloadMediakitPdf('ko')" class="w-full md:w-auto px-4 py-2 rounded-lg text-sm font-medium bg-botanical-fg text-white hover:opacity-90 transition-all">⬇️ PDF 다운로드</button>
+            </div>
+          </div>
+          <div class="border border-botanical-stone rounded-xl p-5 bg-botanical-cream/30">
+            <div class="flex items-center gap-2 mb-3 font-medium">🇺🇸 영어 버전 <span class="text-xs text-botanical-sage font-normal">(페이지 내용만 영어)</span></div>
+            <div class="flex flex-col gap-2 md:flex-row md:flex-wrap">
+              <a href="mediakit/en.html" target="_blank" class="w-full md:w-auto text-center px-4 py-2 rounded-lg text-sm font-medium border border-botanical-sage text-botanical-fg hover:bg-botanical-cream transition-all">👁️ 미리보기</a>
+              <button onclick="copyMediakitLink('en')" class="w-full md:w-auto px-4 py-2 rounded-lg text-sm font-medium border-2 border-botanical-terracotta text-botanical-terracotta hover:bg-botanical-cream transition-all">🔗 링크 복사</button>
+              <button onclick="downloadMediakitPdf('en')" class="w-full md:w-auto px-4 py-2 rounded-lg text-sm font-medium bg-botanical-fg text-white hover:opacity-90 transition-all">⬇️ PDF 다운로드</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div id="mk-editor" class="mt-4"></div>
     </div>
   `;
 }
