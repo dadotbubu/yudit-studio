@@ -6720,12 +6720,6 @@ const ACTIVITY_CHANNELS = [
       { id: 'gangnam_matjip', name: '강남맛집 체험단', url: 'https://xn--939au0g4vj8sq.net/', note: '블로그·인스타 맛집 체험단. 맛집 후기 콘텐츠로 활용.' },
     ]
   },
-  {
-    group: '광고 (브랜디드)',
-    desc: '미디어킷 기반 유가 협업',
-    special: 'mediakit',
-    sites: [],
-  },
 ];
 
 function channelJoinedMap() {
@@ -6818,8 +6812,7 @@ function renderRevChannels() {
     .map(g => `<option value="${g.group}">${g.group}</option>`).join('');
 
   return `
-    <div class="flex items-center justify-between mb-4">
-      <p class="text-xs text-botanical-sage">가입한 곳은 체크 · 이름을 누르면 새 탭으로 열려요</p>
+    <div class="flex items-center justify-end mb-4">
       <span id="rev-channels-progress" class="text-xs font-medium text-botanical-terracotta">${channelProgressText()}</span>
     </div>
     ${groups}
