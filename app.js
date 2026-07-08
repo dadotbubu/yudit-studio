@@ -6455,6 +6455,8 @@ function mkClear(path){ mkSet(path, path.indexOf('images.headerBg')>=0 ? null : 
 function mkResize(file, maxW, cb){ var rd=new FileReader(); rd.onload=function(){ var img=new Image(); img.onload=function(){ var sc=Math.min(1, maxW/img.width); var w=Math.round(img.width*sc), h=Math.round(img.height*sc); var c=document.createElement('canvas'); c.width=w; c.height=h; c.getContext('2d').drawImage(img,0,0,w,h); cb(c.toDataURL('image/jpeg',0.82)); }; img.src=rd.result; }; rd.readAsDataURL(file); }
 function mkUpload(path, maxW){ var inp=document.createElement('input'); inp.type='file'; inp.accept='image/*'; inp.onchange=function(){ var f=inp.files&&inp.files[0]; if(!f) return; mkResize(f, maxW||900, function(url){ mkSet(path, url); renderMediakitEditor(); }); }; inp.click(); }
 
+function mkAddGrowth(){ if(!window._mkEdit.growth) window._mkEdit.growth={caption:{ko:'',en:''},points:[]}; if(!window._mkEdit.growth.points) window._mkEdit.growth.points=[]; window._mkEdit.growth.points.push({label:'', value:0}); renderMediakitEditor(); }
+function mkDelGrowth(i){ window._mkEdit.growth.points.splice(i,1); renderMediakitEditor(); }
 function mkAddTop(){ window._mkEdit.topContent.push({cat:'Career', views:100000, img:''}); renderMediakitEditor(); }
 function mkDelTop(i){ window._mkEdit.topContent.splice(i,1); renderMediakitEditor(); }
 function mkAddAd(){ if(!window._mkEdit.adCases) window._mkEdit.adCases=[]; window._mkEdit.adCases.push({views:100000, img:'', ko:{title:'',desc:''}, en:{title:'',desc:''}}); renderMediakitEditor(); }
@@ -6478,6 +6480,13 @@ function mkEnsure(d){
   d.age=d.age||[]; d.regions=d.regions||[]; d.topContent=d.topContent||[];
   if(!d.adCases){ d.adCases = d.adCase ? [d.adCase] : []; }
   d.brands=d.brands||[]; d.rates=d.rates||{noteKo:'3.3% 공제',noteEn:'USD',ko:[],en:[]};
+  d.channels=d.channels||{blog:'',blogDesc:{ko:'',en:''},funnel:{ko:'',en:''}};
+  if(!d.channels.blogDesc) d.channels.blogDesc={ko:'',en:''};
+  if(!d.channels.funnel) d.channels.funnel={ko:'',en:''};
+  d.growth=d.growth||{caption:{ko:'',en:''},points:[]};
+  if(!d.growth.caption) d.growth.caption={ko:'',en:''};
+  if(!d.growth.points) d.growth.points=[];
+  d.updatedAt=d.updatedAt||'';
 }
 
 function mkFormHtml(d){
@@ -6530,15 +6539,37 @@ function mkFormHtml(d){
     '<label '+LB+'>🇺🇸 단가</label>'+rateRows('en') +
     '<label '+LB+'>배지 문구 🇺🇸</label><input '+I+' value="'+mkAttr(d.rates.noteEn)+'" onchange="mkSet(\'rates.noteEn\',this.value)">';
 
+  // 운영 채널 (인스타 팔로워는 성과에서 자동, 블로그만 입력)
+  var ch=d.channels||{};
+  var chan =
+    '<p class="text-xs text-botanical-sage mb-2">인스타는 성과 데이터에서 자동으로 들어가요. 블로그 주소만 넣으면 헤더에 로고+링크로 나와요.</p>' +
+    '<label '+LB+'>네이버 블로그 주소</label><input '+I+' value="'+mkAttr(ch.blog)+'" placeholder="https://blog.naver.com/yudit_" onchange="mkSet(\'channels.blog\',this.value)">';
+
+  // 성장 추이
+  var gr=d.growth||{caption:{},points:[]};
+  var growth =
+    '<label '+LB+'>한 줄 캡션 🇰🇷</label><input '+I+' value="'+mkAttr(gr.caption&&gr.caption.ko)+'" placeholder="개설 4개월 만에 1만 · 5개월 만에 1.7만 돌파" onchange="mkSet(\'growth.caption.ko\',this.value)">' +
+    '<label '+LB+'>한 줄 캡션 🇺🇸</label><input '+I+' value="'+mkAttr(gr.caption&&gr.caption.en)+'" placeholder="10K in 4 months · 17K in 5 months" onchange="mkSet(\'growth.caption.en\',this.value)">' +
+    '<label '+LB+'>월별 팔로워 (라벨 / 숫자)</label>' +
+    (gr.points||[]).map(function(p,i){ return '<div class="flex items-center gap-2 mb-1"><input '+I+' style="max-width:90px" value="'+mkAttr(p.label)+'" placeholder="7월" onchange="mkSet(\'growth.points.'+i+'.label\',this.value)"><input type="number" '+I+' value="'+(p.value||'')+'" placeholder="17000" oninput="mkPrev(this,\'mkpv-gr'+i+'\')" onchange="mkSet(\'growth.points.'+i+'.value\',this.value,true)"><button onclick="mkDelGrowth('+i+')" class="text-xs text-botanical-terracotta underline">삭제</button></div><div class="text-xs text-botanical-sage mb-1" id="mkpv-gr'+i+'">🇰🇷 '+mkKoNum(p.value)+'</div>'; }).join('') +
+    '<button onclick="mkAddGrowth()" class="mt-1 px-3 py-2 rounded-lg text-sm border border-botanical-sage text-botanical-fg">＋ 월 추가</button>';
+
+  // 기준일
+  var updated =
+    '<label '+LB+'>기준일 <span class="font-normal">· 숫자 업데이트한 날짜 (미디어킷 하단에 표시)</span></label><input '+I+' value="'+mkAttr(d.updatedAt)+'" placeholder="2026.07.08" onchange="mkSet(\'updatedAt\',this.value)">';
+
   return '<h3 class="font-medium mb-3 mt-2">미디어킷 업데이트</h3>' +
     sec('📊 핵심 지표', stat, true) +
     sec('✍️ 소개', intro, true) +
+    sec('🔗 운영 채널 (블로그)', chan, false) +
+    sec('📈 성장 추이', growth, false) +
     sec('🖼️ 이미지 (헤더배경·프로필)', imgSec, false) +
     sec('👥 팔로워 분포', dist, false) +
     sec('🎬 대표 콘텐츠', top, false) +
     sec('📣 광고 성과 사례', ads, false) +
     sec('🏷️ 협업 브랜드', brands, false) +
     sec('💰 협업 단가', rate, false) +
+    sec('🗓️ 기준일 (숫자 업데이트 날짜)', updated, false) +
     '<div class="flex justify-end sticky bottom-3 mt-3"><button onclick="saveMediakit()" class="bg-botanical-fg text-white font-semibold rounded-xl px-7 py-3 shadow-lg">💾 저장</button></div>';
 }
 
@@ -7089,7 +7120,7 @@ function renderRevenue() {
           <div class="border border-botanical-stone rounded-xl p-5 bg-botanical-cream/30">
             <div class="flex items-center gap-2 mb-3 font-medium">🇰🇷 한국어 버전</div>
             <div class="flex flex-col gap-2 md:flex-row md:flex-wrap">
-              <a href="mediakit/index.html" target="_blank" class="w-full md:w-auto text-center px-4 py-2 rounded-lg text-sm font-medium border border-botanical-sage text-botanical-fg hover:bg-botanical-cream transition-all">👁️ 미리보기</a>
+              <a href="https://yudit-mediakit.netlify.app/" target="_blank" class="w-full md:w-auto text-center px-4 py-2 rounded-lg text-sm font-medium border border-botanical-sage text-botanical-fg hover:bg-botanical-cream transition-all">👁️ 미리보기</a>
               <button onclick="copyMediakitLink('ko')" class="w-full md:w-auto px-4 py-2 rounded-lg text-sm font-medium border-2 border-botanical-terracotta text-botanical-terracotta hover:bg-botanical-cream transition-all">🔗 링크 복사</button>
               <button onclick="downloadMediakitPdf('ko')" class="w-full md:w-auto px-4 py-2 rounded-lg text-sm font-medium bg-botanical-fg text-white hover:opacity-90 transition-all">⬇️ PDF 다운로드</button>
             </div>
@@ -7097,7 +7128,7 @@ function renderRevenue() {
           <div class="border border-botanical-stone rounded-xl p-5 bg-botanical-cream/30">
             <div class="flex items-center gap-2 mb-3 font-medium">🇺🇸 영어 버전 <span class="text-xs text-botanical-sage font-normal">(페이지 내용만 영어)</span></div>
             <div class="flex flex-col gap-2 md:flex-row md:flex-wrap">
-              <a href="mediakit/en.html" target="_blank" class="w-full md:w-auto text-center px-4 py-2 rounded-lg text-sm font-medium border border-botanical-sage text-botanical-fg hover:bg-botanical-cream transition-all">👁️ 미리보기</a>
+              <a href="https://yudit-mediakit.netlify.app/en.html" target="_blank" class="w-full md:w-auto text-center px-4 py-2 rounded-lg text-sm font-medium border border-botanical-sage text-botanical-fg hover:bg-botanical-cream transition-all">👁️ 미리보기</a>
               <button onclick="copyMediakitLink('en')" class="w-full md:w-auto px-4 py-2 rounded-lg text-sm font-medium border-2 border-botanical-terracotta text-botanical-terracotta hover:bg-botanical-cream transition-all">🔗 링크 복사</button>
               <button onclick="downloadMediakitPdf('en')" class="w-full md:w-auto px-4 py-2 rounded-lg text-sm font-medium bg-botanical-fg text-white hover:opacity-90 transition-all">⬇️ PDF 다운로드</button>
             </div>
