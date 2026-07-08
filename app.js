@@ -6721,7 +6721,7 @@ const ACTIVITY_CHANNELS = [
       { id: 'reuview', name: '르뷰', url: 'https://rewview.co.kr/', cat: '뷰티', note: '고퀄 화장품·뷰티디바이스 체험 전문.' },
       { id: 'reviewplace', name: '리뷰플레이스', url: 'https://reviewplace.co.kr/', note: '화장품·식품·생활·디지털·유아동+지역 맛집·뷰티·숙박 종합.' },
       { id: 'stylec', name: '스타일씨', url: 'https://www.stylec.co.kr/', note: '50만 인플루언서 체험단. 당첨 쉬운 편. 상품 공유 시 판매·클릭당 캐시도.' },
-      { id: 'njobler', name: '엔잡러', url: '', note: '다이소·노브랜드·메가커피 등 대형 브랜드 캠페인. 아직 유명하지 않아 경쟁률 매우 낮음(추천).' },
+      { id: 'njobler', name: '엔잡러', url: 'https://www.njober.co.kr/influencer/', note: '다이소·노브랜드·메가커피 등 대형 브랜드 캠페인. 아직 유명하지 않아 경쟁률 매우 낮음(추천).' },
       { id: 'gugudas', name: '구구다스', url: 'https://99das.com/amz/main/index.do', note: '인스타보다 블로그 제품 많은 편. 구매평 체험단 브랜드 괜찮음.' },
       { id: 'seoulouba', name: '서울오빠', url: 'https://www.seoulouba.co.kr/', note: '협찬 업체 퀄 좋음. 단 진행 기한이 넉넉하지 않음.' },
       { id: 'fineadple', name: '파인앳플', url: 'https://www.fineadple.com/m/', note: '체험단 종류가 다양하진 않지만 경쟁률이 높지 않음.' },
@@ -6750,20 +6750,48 @@ function orderedSites(g) {
   return result;
 }
 
-function moveChannel(groupName, id, dir) {
-  const g = ACTIVITY_CHANNELS.find(x => x.group === groupName);
-  if (!g) return;
-  const ids = orderedSites(g).map(s => s.id);
-  const i = ids.indexOf(id);
-  const j = i + dir;
-  if (i < 0 || j < 0 || j >= ids.length) return;
-  const tmp = ids[i]; ids[i] = ids[j]; ids[j] = tmp;
+// ===== 드래그로 순서 변경 (마우스+터치, 라이브러리 없음) =====
+let _chDrag = null;
+
+function chDragStart(e, groupName) {
+  const row = e.currentTarget.closest('[data-ch-row]');
+  if (!row) return;
+  e.preventDefault();
+  _chDrag = { groupName, list: row.parentElement, row };
+  row.style.opacity = '0.5';
+  try { e.currentTarget.setPointerCapture(e.pointerId); } catch (_) {}
+  window.addEventListener('pointermove', chDragMove, { passive: false });
+  window.addEventListener('pointerup', chDragEnd);
+  window.addEventListener('pointercancel', chDragEnd);
+}
+
+function chDragMove(e) {
+  if (!_chDrag) return;
+  e.preventDefault();
+  const { list, row } = _chDrag;
+  const others = Array.from(list.children).filter(el => el !== row && el.hasAttribute('data-ch-row'));
+  let placed = false;
+  for (const other of others) {
+    const r = other.getBoundingClientRect();
+    if (e.clientY < r.top + r.height / 2) { list.insertBefore(row, other); placed = true; break; }
+  }
+  if (!placed) list.appendChild(row);
+}
+
+function chDragEnd() {
+  if (!_chDrag) return;
+  const { list, row, groupName } = _chDrag;
+  row.style.opacity = '';
+  window.removeEventListener('pointermove', chDragMove);
+  window.removeEventListener('pointerup', chDragEnd);
+  window.removeEventListener('pointercancel', chDragEnd);
+  const ids = Array.from(list.children).filter(el => el.hasAttribute('data-ch-row')).map(el => el.getAttribute('data-ch-id'));
   if (!revenueData.channels) revenueData.channels = {};
   if (!revenueData.channels.order) revenueData.channels.order = {};
   revenueData.channels.order[groupName] = ids;
   markDirty('revenue');
   saveAllData();
-  refreshRevChannels();
+  _chDrag = null;
 }
 
 function channelProgressText() {
@@ -6784,7 +6812,7 @@ function esc(t) {
   return String(t == null ? '' : t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
-function channelRow(s, joined, isCustom, groupName, idx, total) {
+function channelRow(s, joined, isCustom, groupName) {
   const on = !!joined[s.id];
   const catTag = s.cat ? `<span class="text-[10px] px-1.5 py-0.5 rounded-full bg-botanical-cream text-botanical-clay shrink-0">${esc(s.cat)}</span>` : '';
   const nameEl = s.url
@@ -6792,16 +6820,13 @@ function channelRow(s, joined, isCustom, groupName, idx, total) {
     : `<span class="text-sm ${on ? 'text-botanical-sage' : 'text-botanical-fg'}">${s.name} <span class="text-[10px] text-botanical-clay">(링크 준비중)</span></span>`;
   const memo = channelNoteText(s);
   const detailId = 'detail-' + s.id;
-  const upDis = idx === 0 ? 'opacity-20 pointer-events-none' : '';
-  const downDis = idx === total - 1 ? 'opacity-20 pointer-events-none' : '';
   return `
-    <div class="py-2.5">
+    <div class="py-2.5" data-ch-row data-ch-id="${s.id}">
       <div class="flex items-center gap-2">
+        <span onpointerdown="chDragStart(event,'${esc(groupName)}')" class="text-botanical-stone shrink-0 select-none leading-none" style="touch-action:none;cursor:grab;font-size:15px" title="끌어서 순서 변경">⠿</span>
         <input type="checkbox" id="chk-${s.id}" ${on ? 'checked' : ''} onchange="toggleChannelJoined('${s.id}', this.checked)" style="accent-color:#C27B66;" class="w-4 h-4 shrink-0 cursor-pointer">
         <div class="flex-1 min-w-0 flex items-center gap-2">${nameEl}${catTag}${memo ? '<span class="w-1.5 h-1.5 rounded-full bg-botanical-terracotta shrink-0" title="메모 있음"></span>' : ''}</div>
         ${on ? '<span class="text-[10px] px-1.5 py-0.5 rounded-full bg-botanical-cream text-botanical-sage shrink-0">가입</span>' : ''}
-        <button onclick="moveChannel('${esc(groupName)}','${s.id}',-1)" class="text-botanical-sage text-xs shrink-0 hover:text-botanical-terracotta w-5 h-5 ${upDis}" title="위로">▲</button>
-        <button onclick="moveChannel('${esc(groupName)}','${s.id}',1)" class="text-botanical-sage text-xs shrink-0 hover:text-botanical-terracotta w-5 h-5 ${downDis}" title="아래로">▼</button>
         <button onclick="toggleChannelDetail('${detailId}')" class="text-botanical-sage text-xs shrink-0 hover:text-botanical-terracotta w-5 h-5 rounded-full border border-botanical-stone" title="설명·메모">?</button>
         ${isCustom ? `<button onclick="deleteCustomChannel('${s.id}')" class="text-botanical-clay text-base leading-none shrink-0 hover:text-botanical-terracotta" title="삭제">×</button>` : ''}
       </div>
@@ -6837,7 +6862,7 @@ function renderRevChannels() {
     } else {
       const customIds = new Set(custom.map(c => c.id));
       const ordered = orderedSites(g);
-      const rows = ordered.map((s, i) => channelRow(s, joined, customIds.has(s.id), g.group, i, ordered.length));
+      const rows = ordered.map(s => channelRow(s, joined, customIds.has(s.id), g.group));
       inner = `<div class="divide-y divide-botanical-stone/40">${rows.join('')}</div>`;
     }
     return `
