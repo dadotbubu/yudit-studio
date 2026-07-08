@@ -6703,7 +6703,7 @@ const ACTIVITY_CHANNELS = [
       { id: 'uconnec', name: '유커넥', url: 'https://uconnec.com/' },
       { id: 'homesmo', name: '홈스모 카페', url: 'https://cafe.naver.com/appealme' },
       { id: 'dinnerqueen', name: '디너의여왕', url: 'https://dinnerqueen.net/' },
-      { id: 'gangnamunni', name: '강남언니', url: 'https://www.gangnamunni.com/' },
+      { id: 'gangnam_matjip', name: '강남맛집 체험단', url: 'https://xn--939au0g4vj8sq.net/' },
     ]
   },
   {
