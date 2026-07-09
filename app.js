@@ -502,7 +502,8 @@ async function syncFromRemote(options = {}) {
     else if (activeTab === 'dashboard') renderDashboard();
     else if (activeTab === 'content') renderContentList();
     else if (activeTab === 'performance' && typeof renderPerformance === 'function') renderPerformance();
-    else if (activeTab === 'revenue') renderRevenue();
+    // 미디어킷 편집기를 열어놓고 편집 중이면 재렌더 skip (동기화가 폼을 날려 포커스·스크롤·입력 유실 방지)
+    else if (activeTab === 'revenue' && !(revSubTab === 'mediakit' && document.querySelector('#mk-editor details'))) renderRevenue();
     else if (activeTab === 'memos') renderMemos();
 
     if (showToast) showMemoSaveToast('최신 데이터 동기화됨');
@@ -6438,7 +6439,8 @@ function copyMediakitLink(lang, isPublic) {
 }
 function downloadMediakitPdf(lang, isPublic) {
   // 새 탭에서 열면서 인쇄 대화상자 자동 오픈 → 'PDF로 저장' 선택
-  window.open(mediakitUrl(lang, isPublic) + (isPublic ? '&print=1' : '?print=1'), '_blank');
+  const url = mediakitUrl(lang, isPublic);
+  window.open(url + (url.includes('?') ? '&' : '?') + 'print=1', '_blank');
 }
 
 // ===================== 미디어킷 편집기 =====================
@@ -6466,7 +6468,7 @@ function mkDelAd(i){ window._mkEdit.adCases.splice(i,1); renderMediakitEditor();
 function mkAddBrand(){ if(!window._mkEdit.brands) window._mkEdit.brands=[]; window._mkEdit.brands.push({ko:'',en:''}); renderMediakitEditor(); }
 function mkDelBrand(i){ window._mkEdit.brands.splice(i,1); renderMediakitEditor(); }
 
-function mkFetch(){ return fetch(SUPABASE_URL+'/rest/v1/'+SUPABASE_TABLE+'?key=eq.mediakit&select=data,updated_at&order=updated_at.desc',{headers:{apikey:SUPABASE_KEY,Authorization:'Bearer '+SUPABASE_KEY}}).then(function(r){return r.ok?r.json():[];}).then(function(rows){return rows[0]?rows[0].data:{};}).catch(function(){return {};}); }
+function mkFetch(){ return fetch(SUPABASE_URL+'/rest/v1/'+SUPABASE_TABLE+'?key=eq.mediakit&select=data,updated_at&order=updated_at.desc&limit=1',{headers:{apikey:SUPABASE_KEY,Authorization:'Bearer '+SUPABASE_KEY}}).then(function(r){return r.ok?r.json():[];}).then(function(rows){return rows[0]?rows[0].data:{};}).catch(function(){return {};}); }
 
 async function renderMediakitEditor(reload){
   var root=document.getElementById('mk-editor'); if(!root) return;
