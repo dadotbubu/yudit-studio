@@ -6420,13 +6420,15 @@ function renderPerformance() {
 
 // ===== 미디어킷 링크/PDF =====
 // 브랜드 공유용 공개 주소 (Netlify — dadotbubu 노출 안 됨)
-function mediakitUrl(lang) {
-  return lang === 'en'
+// isPublic=true → 프로필 공개용(단가 숨김, ?public)
+function mediakitUrl(lang, isPublic) {
+  const base = lang === 'en'
     ? 'https://yudit-mediakit.netlify.app/en.html'
     : 'https://yudit-mediakit.netlify.app/';
+  return isPublic ? base + '?public' : base;
 }
-function copyMediakitLink(lang) {
-  const url = mediakitUrl(lang);
+function copyMediakitLink(lang, isPublic) {
+  const url = mediakitUrl(lang, isPublic);
   const ok = () => { if (typeof showMemoSaveToast === 'function') showMemoSaveToast('링크 복사됨 ✅'); else alert('링크 복사됨:\n' + url); };
   if (navigator.clipboard && navigator.clipboard.writeText) {
     navigator.clipboard.writeText(url).then(ok).catch(() => prompt('아래 링크를 복사하세요', url));
@@ -6434,9 +6436,9 @@ function copyMediakitLink(lang) {
     prompt('아래 링크를 복사하세요', url);
   }
 }
-function downloadMediakitPdf(lang) {
+function downloadMediakitPdf(lang, isPublic) {
   // 새 탭에서 열면서 인쇄 대화상자 자동 오픈 → 'PDF로 저장' 선택
-  window.open(mediakitUrl(lang) + '?print=1', '_blank');
+  window.open(mediakitUrl(lang, isPublic) + (isPublic ? '&print=1' : '?print=1'), '_blank');
 }
 
 // ===================== 미디어킷 편집기 =====================
@@ -6559,8 +6561,8 @@ function mkFormHtml(d){
     '<label '+LB+'>기준일 <span class="font-normal">· 숫자 업데이트한 날짜 (미디어킷 하단에 표시)</span></label><input '+I+' value="'+mkAttr(d.updatedAt)+'" placeholder="2026.07.08" onchange="mkSet(\'updatedAt\',this.value)">';
 
   return '<div class="flex items-center justify-between mb-3 mt-2 sticky top-0 z-10 bg-botanical-cream/95 py-2 -mx-1 px-1 rounded-lg"><h3 class="font-medium">미디어킷 업데이트</h3><button onclick="saveMediakit()" class="px-5 py-2 rounded-lg text-sm font-semibold bg-botanical-fg text-white hover:opacity-90 transition-all shadow-sm">저장</button></div>' +
-    sec('📊 핵심 지표', stat, true) +
-    sec('✍️ 소개', intro, true) +
+    sec('📊 핵심 지표', stat, false) +
+    sec('✍️ 소개', intro, false) +
     sec('🔗 운영 채널 (블로그)', chan, false) +
     sec('📈 성장 추이', growth, false) +
     sec('🖼️ 이미지 (헤더배경·프로필)', imgSec, false) +
@@ -7117,15 +7119,18 @@ function renderRevenue() {
     <div id="rev-mediakit" class="rev-section ${revSubTab === 'mediakit' ? '' : 'hidden'}">
       <div class="bg-white rounded-2xl p-5 shadow-sm">
         <h3 class="font-medium mb-3">미디어킷 링크</h3>
-        ${['ko','en'].map(lang => { const label = lang==='ko'?'한국어':'영어'; const mkBtn='text-sm text-botanical-fg hover:text-botanical-terracotta underline underline-offset-2'; const previewUrl = lang==='ko'?'https://yudit-mediakit.netlify.app/':'https://yudit-mediakit.netlify.app/en.html'; return `
-        <div class="flex items-center gap-3 py-2 ${lang==='ko'?'border-b border-botanical-stone/40':''}">
-          <span class="text-sm font-medium w-12 shrink-0 text-botanical-sage">${label}</span>
-          <a href="${previewUrl}" target="_blank" class="${mkBtn}">미리보기</a>
-          <span class="text-botanical-stone">·</span>
-          <button onclick="copyMediakitLink('${lang}')" class="${mkBtn}">링크 복사</button>
-          <span class="text-botanical-stone">·</span>
-          <button onclick="downloadMediakitPdf('${lang}')" class="${mkBtn}">PDF</button>
-        </div>`; }).join('')}
+        ${(() => { const mkBtn='text-sm text-botanical-fg hover:text-botanical-terracotta underline underline-offset-2'; const dot='<span class="text-botanical-stone">·</span>';
+          const row = (label, lang, isPublic, withPdf) => `
+        <div class="flex flex-wrap items-center gap-x-2.5 gap-y-1 py-2.5 border-b border-botanical-stone/40">
+          <span class="text-xs font-semibold ${isPublic?'text-botanical-terracotta':'text-botanical-sage'} w-full">${label}</span>
+          <a href="${mediakitUrl(lang, isPublic)}" target="_blank" class="${mkBtn}">미리보기</a>${dot}
+          <button onclick="copyMediakitLink('${lang}', ${isPublic})" class="${mkBtn}">링크 복사</button>${withPdf?dot+`<button onclick="downloadMediakitPdf('${lang}', ${isPublic})" class="${mkBtn}">PDF</button>`:''}
+        </div>`;
+          return row('공개용 (프로필용 · 단가 숨김)', 'ko', true, false)
+               + row('협업 제안용 · 한국어 (단가 포함)', 'ko', false, true)
+               + row('협업 제안용 · 영어', 'en', false, true);
+        })()}
+        <p class="text-xs text-botanical-sage mt-2">공개용은 프로필 링크에 걸고, 문의 오면 협업 제안용을 보내요.</p>
       </div>
       <div id="mk-editor" class="mt-4 max-w-full overflow-x-hidden"></div>
     </div>
