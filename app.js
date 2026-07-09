@@ -6490,7 +6490,7 @@ function mkEnsure(d){
 }
 
 function mkFormHtml(d){
-  var I='class="w-full border border-botanical-stone rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-botanical-sage"';
+  var I='class="w-full min-w-0 border border-botanical-stone rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-botanical-sage"';
   var LB='class="block text-xs font-medium text-botanical-sage mb-1 mt-3"';
   function sec(title, inner, open){ return '<details '+(open?'open':'')+' class="bg-white rounded-2xl shadow-sm mb-3 px-5 py-4"><summary class="font-medium cursor-pointer select-none">'+title+'</summary><div class="pt-2">'+inner+'</div></details>'; }
   function imgField(label, path, cur, note){ var src=mkImgSrc(cur); var thumb=src?'<div style="width:56px;height:56px;border-radius:10px;background:url(\''+src+'\') center/cover;border:1px solid #E6E2DA;flex:0 0 auto"></div>':'<div style="width:56px;height:56px;border-radius:10px;background:#F2F0EB;display:flex;align-items:center;justify-content:center;color:#b3afa4;font-size:10px;flex:0 0 auto">없음</div>'; return '<label '+LB+'>'+label+(note?' <span class="text-botanical-sage font-normal">'+note+'</span>':'')+'</label><div class="flex items-center gap-2">'+thumb+'<button onclick="mkUpload(\''+path+'\')" class="px-3 py-1.5 rounded-lg text-sm border border-botanical-sage text-botanical-fg">🖼️ '+(cur?'변경':'올리기')+'</button>'+(cur?'<button onclick="mkClear(\''+path+'\')" class="text-xs text-botanical-sage underline">제거</button>':'')+'</div>'; }
@@ -6515,7 +6515,7 @@ function mkFormHtml(d){
   var dist =
     '<label '+LB+'>여성 %</label><input type="number" step="0.1" '+I+' value="'+d.gender.female+'" onchange="mkSet(\'gender.female\',this.value,true);mkSet(\'gender.male\',(100-Number(this.value)).toFixed(1),true)"><p class="text-xs text-botanical-sage mt-1">남성은 자동 (100-여성)</p>' +
     '<label '+LB+'>연령대 %</label>' + d.age.map(function(a,i){ return '<div class="flex items-center gap-2 mb-1"><span class="text-sm w-16">'+mkAttr(a.label)+'</span><input type="number" step="0.1" '+I+' value="'+a.pct+'" onchange="mkSet(\'age.'+i+'.pct\',this.value,true)"></div>'; }).join('') +
-    '<label '+LB+'>지역 (도시명 한/영 + %)</label>' + d.regions.map(function(r,i){ return '<div class="grid grid-cols-3 gap-2 mb-1"><input '+I+' value="'+mkAttr(r.ko)+'" placeholder="서울" onchange="mkSet(\'regions.'+i+'.ko\',this.value)"><input '+I+' value="'+mkAttr(r.en)+'" placeholder="Seoul" onchange="mkSet(\'regions.'+i+'.en\',this.value)"><input type="number" step="0.1" '+I+' value="'+r.pct+'" onchange="mkSet(\'regions.'+i+'.pct\',this.value,true)"></div>'; }).join('');
+    '<label '+LB+'>지역 (도시명 한/영 + %)</label>' + d.regions.map(function(r,i){ return '<div class="grid grid-cols-[1fr_1fr_64px] gap-2 mb-1"><input '+I+' value="'+mkAttr(r.ko)+'" placeholder="서울" onchange="mkSet(\'regions.'+i+'.ko\',this.value)"><input '+I+' value="'+mkAttr(r.en)+'" placeholder="Seoul" onchange="mkSet(\'regions.'+i+'.en\',this.value)"><input type="number" step="0.1" '+I+' value="'+r.pct+'" onchange="mkSet(\'regions.'+i+'.pct\',this.value,true)"></div>'; }).join('');
 
   // 대표 콘텐츠
   var top = d.topContent.map(function(c,i){ var src=mkImgSrc(c.img); var thumb=src?'background:url(\''+src+'\') center/cover':'background:#F2F0EB';
@@ -6558,7 +6558,7 @@ function mkFormHtml(d){
   var updated =
     '<label '+LB+'>기준일 <span class="font-normal">· 숫자 업데이트한 날짜 (미디어킷 하단에 표시)</span></label><input '+I+' value="'+mkAttr(d.updatedAt)+'" placeholder="2026.07.08" onchange="mkSet(\'updatedAt\',this.value)">';
 
-  return '<h3 class="font-medium mb-3 mt-2">미디어킷 업데이트</h3>' +
+  return '<div class="flex items-center justify-between mb-3 mt-2 sticky top-0 z-10 bg-botanical-cream/95 py-2 -mx-1 px-1 rounded-lg"><h3 class="font-medium">미디어킷 업데이트</h3><button onclick="saveMediakit()" class="px-5 py-2 rounded-lg text-sm font-semibold bg-botanical-fg text-white hover:opacity-90 transition-all shadow-sm">저장</button></div>' +
     sec('📊 핵심 지표', stat, true) +
     sec('✍️ 소개', intro, true) +
     sec('🔗 운영 채널 (블로그)', chan, false) +
@@ -6569,8 +6569,7 @@ function mkFormHtml(d){
     sec('📣 광고 성과 사례', ads, false) +
     sec('🏷️ 협업 브랜드', brands, false) +
     sec('💰 협업 단가', rate, false) +
-    sec('🗓️ 기준일 (숫자 업데이트 날짜)', updated, false) +
-    '<div class="flex justify-end sticky bottom-3 mt-3"><button onclick="saveMediakit()" class="bg-botanical-fg text-white font-semibold rounded-xl px-7 py-3 shadow-lg">💾 저장</button></div>';
+    sec('🗓️ 기준일 (숫자 업데이트 날짜)', updated, false);
 }
 
 async function saveMediakit(){
@@ -7117,10 +7116,7 @@ function renderRevenue() {
 
     <div id="rev-mediakit" class="rev-section ${revSubTab === 'mediakit' ? '' : 'hidden'}">
       <div class="bg-white rounded-2xl p-5 shadow-sm">
-        <div class="flex items-center justify-between mb-3">
-          <h3 class="font-medium">미디어킷</h3>
-          <button onclick="saveMediakit()" class="px-4 py-1.5 rounded-lg text-sm font-semibold bg-botanical-fg text-white hover:opacity-90 transition-all">저장</button>
-        </div>
+        <h3 class="font-medium mb-3">미디어킷 링크</h3>
         ${['ko','en'].map(lang => { const label = lang==='ko'?'한국어':'영어'; const mkBtn='text-sm text-botanical-fg hover:text-botanical-terracotta underline underline-offset-2'; const previewUrl = lang==='ko'?'https://yudit-mediakit.netlify.app/':'https://yudit-mediakit.netlify.app/en.html'; return `
         <div class="flex items-center gap-3 py-2 ${lang==='ko'?'border-b border-botanical-stone/40':''}">
           <span class="text-sm font-medium w-12 shrink-0 text-botanical-sage">${label}</span>
@@ -7131,9 +7127,11 @@ function renderRevenue() {
           <button onclick="downloadMediakitPdf('${lang}')" class="${mkBtn}">PDF</button>
         </div>`; }).join('')}
       </div>
-      <div id="mk-editor" class="mt-4"></div>
+      <div id="mk-editor" class="mt-4 max-w-full overflow-x-hidden"></div>
     </div>
   `;
+  // 수익 탭이 다시 그려질 때(동기화 등) 미디어킷 편집기가 열려 있었으면 복원 — 입력값 유지
+  if (revSubTab === 'mediakit') renderMediakitEditor();
 }
 
 function renderRevenueList(title, items, color) {
