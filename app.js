@@ -6978,7 +6978,9 @@ function switchRevTab(tab) {
   document.querySelectorAll('.rev-section').forEach(s => s.classList.add('hidden'));
   const sec = document.getElementById('rev-' + tab);
   if (sec) sec.classList.remove('hidden');
-  if (tab === 'mediakit') renderMediakitEditor(true);
+  // 이미 그려져 있으면 다시 안 그림 → 스크롤·펼침·입력값 유지 (안 날아감)
+  // 메모리에 _mkEdit 있으면 서버 재조회 없이 그 값으로 렌더 (미저장 입력 보존)
+  if (tab === 'mediakit' && !document.querySelector('#mk-editor details')) renderMediakitEditor();
 }
 
 function renderRevenue() {
@@ -7114,26 +7116,20 @@ function renderRevenue() {
     </div>
 
     <div id="rev-mediakit" class="rev-section ${revSubTab === 'mediakit' ? '' : 'hidden'}">
-      <div class="bg-white rounded-2xl p-6 shadow-sm">
-        <h3 class="font-medium mb-4">미디어킷</h3>
-        <div class="grid md:grid-cols-2 gap-4">
-          <div class="border border-botanical-stone rounded-xl p-5 bg-botanical-cream/30">
-            <div class="flex items-center gap-2 mb-3 font-medium">🇰🇷 한국어 버전</div>
-            <div class="flex flex-col gap-2 md:flex-row md:flex-wrap">
-              <a href="https://yudit-mediakit.netlify.app/" target="_blank" class="w-full md:w-auto text-center px-4 py-2 rounded-lg text-sm font-medium border border-botanical-sage text-botanical-fg hover:bg-botanical-cream transition-all">👁️ 미리보기</a>
-              <button onclick="copyMediakitLink('ko')" class="w-full md:w-auto px-4 py-2 rounded-lg text-sm font-medium border-2 border-botanical-terracotta text-botanical-terracotta hover:bg-botanical-cream transition-all">🔗 링크 복사</button>
-              <button onclick="downloadMediakitPdf('ko')" class="w-full md:w-auto px-4 py-2 rounded-lg text-sm font-medium bg-botanical-fg text-white hover:opacity-90 transition-all">⬇️ PDF 다운로드</button>
-            </div>
-          </div>
-          <div class="border border-botanical-stone rounded-xl p-5 bg-botanical-cream/30">
-            <div class="flex items-center gap-2 mb-3 font-medium">🇺🇸 영어 버전 <span class="text-xs text-botanical-sage font-normal">(페이지 내용만 영어)</span></div>
-            <div class="flex flex-col gap-2 md:flex-row md:flex-wrap">
-              <a href="https://yudit-mediakit.netlify.app/en.html" target="_blank" class="w-full md:w-auto text-center px-4 py-2 rounded-lg text-sm font-medium border border-botanical-sage text-botanical-fg hover:bg-botanical-cream transition-all">👁️ 미리보기</a>
-              <button onclick="copyMediakitLink('en')" class="w-full md:w-auto px-4 py-2 rounded-lg text-sm font-medium border-2 border-botanical-terracotta text-botanical-terracotta hover:bg-botanical-cream transition-all">🔗 링크 복사</button>
-              <button onclick="downloadMediakitPdf('en')" class="w-full md:w-auto px-4 py-2 rounded-lg text-sm font-medium bg-botanical-fg text-white hover:opacity-90 transition-all">⬇️ PDF 다운로드</button>
-            </div>
-          </div>
+      <div class="bg-white rounded-2xl p-5 shadow-sm">
+        <div class="flex items-center justify-between mb-3">
+          <h3 class="font-medium">미디어킷</h3>
+          <button onclick="saveMediakit()" class="px-4 py-1.5 rounded-lg text-sm font-semibold bg-botanical-fg text-white hover:opacity-90 transition-all">저장</button>
         </div>
+        ${['ko','en'].map(lang => { const label = lang==='ko'?'한국어':'영어'; const mkBtn='text-sm text-botanical-fg hover:text-botanical-terracotta underline underline-offset-2'; const previewUrl = lang==='ko'?'https://yudit-mediakit.netlify.app/':'https://yudit-mediakit.netlify.app/en.html'; return `
+        <div class="flex items-center gap-3 py-2 ${lang==='ko'?'border-b border-botanical-stone/40':''}">
+          <span class="text-sm font-medium w-12 shrink-0 text-botanical-sage">${label}</span>
+          <a href="${previewUrl}" target="_blank" class="${mkBtn}">미리보기</a>
+          <span class="text-botanical-stone">·</span>
+          <button onclick="copyMediakitLink('${lang}')" class="${mkBtn}">링크 복사</button>
+          <span class="text-botanical-stone">·</span>
+          <button onclick="downloadMediakitPdf('${lang}')" class="${mkBtn}">PDF</button>
+        </div>`; }).join('')}
       </div>
       <div id="mk-editor" class="mt-4"></div>
     </div>
