@@ -6474,7 +6474,12 @@ function mkFetch(){ return fetch(SUPABASE_URL+'/rest/v1/'+SUPABASE_TABLE+'?key=e
 async function renderMediakitEditor(reload){
   var root=document.getElementById('mk-editor'); if(!root) return;
   if(reload || !window._mkEdit){ root.innerHTML='<p class="text-sm text-botanical-sage p-4">불러오는 중…</p>'; window._mkEdit = await mkFetch(); mkEnsure(window._mkEdit); }
+  // 다시 그려도 섹션 펼침 상태·스크롤 유지 (순서이동·삭제 눌렀을 때 접히지 않게)
+  var wasOpen=[].map.call(root.querySelectorAll('details'), function(el){ return el.open; });
+  var y=window.scrollY;
   root.innerHTML = mkFormHtml(window._mkEdit);
+  var secs=root.querySelectorAll('details');
+  if(wasOpen.length===secs.length){ wasOpen.forEach(function(o,i){ secs[i].open=o; }); window.scrollTo(0,y); }
 }
 // 누락 필드 기본 채움
 function mkEnsure(d){
