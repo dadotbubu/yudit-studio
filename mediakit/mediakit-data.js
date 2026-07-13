@@ -128,7 +128,9 @@
     }).join('');
 
     var genderPct = d.gender.female;
-    var geoHtml = d.regions.map(function (r) {
+    var geoHtml = d.regions.filter(function (r) {
+      return (r.ko || r.en) && Number(r.pct) > 0;
+    }).map(function (r) {
       return '<div class="geo"><span>📍 ' + esc(r[L] || r.ko) + '</span><span class="v">' + r.pct + '%</span></div>';
     }).join('');
 

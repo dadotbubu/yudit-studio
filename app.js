@@ -6463,6 +6463,7 @@ function mkAddGrowth(){ if(!window._mkEdit.growth) window._mkEdit.growth={captio
 function mkDelGrowth(i){ window._mkEdit.growth.points.splice(i,1); renderMediakitEditor(); }
 function mkAddTop(){ window._mkEdit.topContent.push({cat:'Career', views:100000, img:''}); renderMediakitEditor(); }
 function mkDelTop(i){ window._mkEdit.topContent.splice(i,1); renderMediakitEditor(); }
+function mkMoveTop(i,dir){ var a=window._mkEdit.topContent, j=i+dir; if(j<0||j>=a.length) return; var t=a[i]; a[i]=a[j]; a[j]=t; renderMediakitEditor(); }
 function mkAddAd(){ if(!window._mkEdit.adCases) window._mkEdit.adCases=[]; window._mkEdit.adCases.push({views:100000, img:'', ko:{title:'',desc:''}, en:{title:'',desc:''}}); renderMediakitEditor(); }
 function mkDelAd(i){ window._mkEdit.adCases.splice(i,1); renderMediakitEditor(); }
 function mkAddBrand(){ if(!window._mkEdit.brands) window._mkEdit.brands=[]; window._mkEdit.brands.push({ko:'',en:''}); renderMediakitEditor(); }
@@ -6482,6 +6483,7 @@ function mkEnsure(d){
   d.tags=d.tags||{ko:[],en:[]}; d.bio=d.bio||{ko:['','',''],en:['','','']};
   d.stats=d.stats||{views30d:0,reach30d:0}; d.gender=d.gender||{female:50,male:50};
   d.age=d.age||[]; d.regions=d.regions||[]; d.topContent=d.topContent||[];
+  while(d.regions.length<4) d.regions.push({ko:'',en:'',pct:0});
   if(!d.adCases){ d.adCases = d.adCase ? [d.adCase] : []; }
   d.brands=d.brands||[]; d.rates=d.rates||{noteKo:'3.3% 공제',noteEn:'USD',ko:[],en:[]};
   d.channels=d.channels||{blog:'',blogDesc:{ko:'',en:''},funnel:{ko:'',en:''}};
@@ -6519,11 +6521,12 @@ function mkFormHtml(d){
   var dist =
     '<label '+LB+'>여성 %</label><input type="number" step="0.1" '+I+' value="'+d.gender.female+'" onchange="mkSet(\'gender.female\',this.value,true);mkSet(\'gender.male\',(100-Number(this.value)).toFixed(1),true)"><p class="text-xs text-botanical-sage mt-1">남성은 자동 (100-여성)</p>' +
     '<label '+LB+'>연령대 %</label>' + d.age.map(function(a,i){ return '<div class="flex items-center gap-2 mb-1"><span class="text-sm w-16">'+mkAttr(a.label)+'</span><input type="number" step="0.1" '+I+' value="'+a.pct+'" onchange="mkSet(\'age.'+i+'.pct\',this.value,true)"></div>'; }).join('') +
-    '<label '+LB+'>지역 (도시명 한/영 + %)</label>' + d.regions.map(function(r,i){ return '<div class="grid grid-cols-[1fr_1fr_64px] gap-2 mb-1"><input '+I+' value="'+mkAttr(r.ko)+'" placeholder="서울" onchange="mkSet(\'regions.'+i+'.ko\',this.value)"><input '+I+' value="'+mkAttr(r.en)+'" placeholder="Seoul" onchange="mkSet(\'regions.'+i+'.en\',this.value)"><input type="number" step="0.1" '+I+' value="'+r.pct+'" onchange="mkSet(\'regions.'+i+'.pct\',this.value,true)"></div>'; }).join('');
+    '<label '+LB+'>지역 (도시명 한/영 + %)</label>' + d.regions.map(function(r,i){ return '<div style="display:grid;grid-template-columns:1fr 1fr 96px;gap:8px;margin-bottom:6px"><input '+I+' value="'+mkAttr(r.ko)+'" placeholder="서울" onchange="mkSet(\'regions.'+i+'.ko\',this.value)"><input '+I+' value="'+mkAttr(r.en)+'" placeholder="Seoul" onchange="mkSet(\'regions.'+i+'.en\',this.value)"><input type="number" step="0.1" '+I+' value="'+(r.pct||'')+'" placeholder="%" onchange="mkSet(\'regions.'+i+'.pct\',this.value,true)"></div>'; }).join('') +
+    '<p class="text-xs text-botanical-sage mt-1">4개까지 · 비워두면 미디어킷에서 자동 숨김</p>';
 
   // 대표 콘텐츠
   var top = d.topContent.map(function(c,i){ var src=mkImgSrc(c.img); var thumb=src?'background:url(\''+src+'\') center/cover':'background:#F2F0EB';
-    return '<div class="border border-botanical-stone rounded-xl p-3 mb-2"><div class="flex items-center gap-3"><div style="width:48px;height:64px;border-radius:8px;'+thumb+';flex:0 0 auto"></div><div class="flex-1"><div class="flex gap-2"><input '+I+' value="'+mkAttr(c.cat)+'" placeholder="Career" onchange="mkSet(\'topContent.'+i+'.cat\',this.value)"><input type="number" '+I+' value="'+(c.views||'')+'" placeholder="조회수" oninput="mkPrev(this,\'mkpv-top'+i+'\')" onchange="mkSet(\'topContent.'+i+'.views\',this.value,true)"></div><div class="text-xs text-botanical-sage mt-1" id="mkpv-top'+i+'">🇰🇷 '+mkKoNum(c.views)+' · 🇺🇸 '+mkEnNum(c.views)+'</div></div></div><div class="flex items-center gap-2 mt-2"><button onclick="mkUpload(\'topContent.'+i+'.img\',700)" class="px-3 py-1 rounded-lg text-xs border border-botanical-sage text-botanical-fg">🖼️ 썸네일 '+(c.img?'변경':'올리기')+'</button><button onclick="mkDelTop('+i+')" class="text-xs text-botanical-terracotta underline ml-auto">삭제</button></div></div>'; }).join('') +
+    return '<div class="border border-botanical-stone rounded-xl p-3 mb-2"><div class="flex items-center gap-3"><div style="width:48px;height:64px;border-radius:8px;'+thumb+';flex:0 0 auto"></div><div class="flex-1"><div class="flex gap-2"><input '+I+' value="'+mkAttr(c.cat)+'" placeholder="Career" onchange="mkSet(\'topContent.'+i+'.cat\',this.value)"><input type="number" '+I+' value="'+(c.views||'')+'" placeholder="조회수" oninput="mkPrev(this,\'mkpv-top'+i+'\')" onchange="mkSet(\'topContent.'+i+'.views\',this.value,true)"></div><div class="text-xs text-botanical-sage mt-1" id="mkpv-top'+i+'">🇰🇷 '+mkKoNum(c.views)+' · 🇺🇸 '+mkEnNum(c.views)+'</div></div></div><div class="flex items-center gap-2 mt-2"><button onclick="mkUpload(\'topContent.'+i+'.img\',700)" class="px-3 py-1 rounded-lg text-xs border border-botanical-sage text-botanical-fg">🖼️ 썸네일 '+(c.img?'변경':'올리기')+'</button><button onclick="mkMoveTop('+i+',-1)" '+(i===0?'disabled':'')+' class="px-2 py-1 rounded-lg text-xs border border-botanical-stone text-botanical-fg disabled:opacity-30 disabled:cursor-not-allowed" title="위로">↑</button><button onclick="mkMoveTop('+i+',1)" '+(i===d.topContent.length-1?'disabled':'')+' class="px-2 py-1 rounded-lg text-xs border border-botanical-stone text-botanical-fg disabled:opacity-30 disabled:cursor-not-allowed" title="아래로">↓</button><span class="text-xs text-botanical-sage">'+(i+1)+'번째</span><button onclick="mkDelTop('+i+')" class="text-xs text-botanical-terracotta underline ml-auto">삭제</button></div></div>'; }).join('') +
     '<button onclick="mkAddTop()" class="mt-1 px-3 py-2 rounded-lg text-sm border border-botanical-sage text-botanical-fg">＋ 릴스 추가</button>';
 
   // 광고 성과
