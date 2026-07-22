@@ -91,7 +91,7 @@
 - 레퍼 추가 분석 → refs 재태깅(골격/앵글/변수) → planning_data.js 재생성 → `git add -f` 커밋·푸시
 
 ## 미디어킷 (2026-07-02 완성)
-- **공개 링크**: `yudit-mediakit.netlify.app` (한) / `.../en.html` (영) — Netlify Drop 배포, dadotbubu 미노출
+- **공개 링크**: `yudit-mediakit.pages.dev` (한) / `.../en.html` (영) — Cloudflare Pages 배포, dadotbubu 미노출
 - **동적 렌더**: `mediakit/mediakit-data.js`가 Supabase `mediakit`+`performance` 읽어 실시간 렌더 → **재배포 불필요**
   - 팔로워 = 성과 데이터 자동 / 숫자 raw 저장 → 한(1.2만)/영(12K) 자동 포맷
   - 비어있는 섹션(협업 브랜드 등) 자동 숨김 / PDF = `?print=1` 인쇄 방식(항상 최신)

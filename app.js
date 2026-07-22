@@ -6420,12 +6420,12 @@ function renderPerformance() {
 }
 
 // ===== 미디어킷 링크/PDF =====
-// 브랜드 공유용 공개 주소 (Netlify — dadotbubu 노출 안 됨)
+// 브랜드 공유용 공개 주소 (Cloudflare Pages — dadotbubu 노출 안 됨)
 // isPublic=true → 프로필 공개용(단가 숨김, ?public)
 function mediakitUrl(lang, isPublic) {
   const base = lang === 'en'
-    ? 'https://yudit-mediakit.netlify.app/en.html'
-    : 'https://yudit-mediakit.netlify.app/';
+    ? 'https://yudit-mediakit.pages.dev/en.html'
+    : 'https://yudit-mediakit.pages.dev/';
   return isPublic ? base + '?public' : base;
 }
 function copyMediakitLink(lang, isPublic) {
