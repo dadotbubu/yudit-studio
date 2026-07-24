@@ -1821,6 +1821,7 @@ function getRegistrationFormHTML(dateStr) {
         <select id="new-type" class="w-full px-3 py-2 rounded-xl border border-botanical-stone focus:outline-none">
           <option value="릴스">릴스</option>
           <option value="캐러셀">캐러셀</option>
+          <option value="인스타툰">인스타툰</option>
         </select>
       </div>
       <div>
@@ -1853,6 +1854,7 @@ function getRegistrationFormHTML(dateStr) {
         <select id="new-revenue-content-type" class="w-full px-3 py-2 rounded-xl border border-botanical-stone focus:outline-none">
           <option value="릴스">릴스</option>
           <option value="캐러셀">캐러셀</option>
+          <option value="인스타툰">인스타툰</option>
         </select>
       </div>
       <div>
@@ -2864,7 +2866,7 @@ function renderContentList() {
       <div class="flex items-center gap-3 text-sm font-medium text-botanical-sage">
         <span class="w-32 shrink-0">카테고리</span>
         <span class="w-24 shrink-0">상태</span>
-        <span class="w-14 shrink-0">타입</span>
+        <span class="w-20 shrink-0">타입</span>
         <span class="flex-1 min-w-0">콘텐츠 제목</span>
         <span class="w-16 shrink-0 text-center">업로드</span>
         <span class="w-12 shrink-0 text-center">URL</span>
@@ -2914,7 +2916,7 @@ function renderContentList() {
           <div class="hidden md:flex items-center gap-3 text-sm">
             <span class="w-32 shrink-0"><span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full flex-shrink-0" style="background-color: ${categoryColor};"></span><span class="text-xs text-botanical-sage">${content.category}</span></span></span>
             <span class="w-24 shrink-0"><span class="px-2 py-1 rounded-full text-xs whitespace-nowrap" style="background-color: ${statusStyle.bg}; color: ${statusStyle.text};">${statusText(content.status)}</span></span>
-            <span class="w-14 shrink-0"><span class="px-2 py-1 rounded-full text-xs font-medium whitespace-nowrap bg-botanical-sage/20 text-botanical-sage">${content.type}</span></span>
+            <span class="w-20 shrink-0"><span class="px-2 py-1 rounded-full text-xs font-medium whitespace-nowrap bg-botanical-sage/20 text-botanical-sage">${content.type}</span></span>
             <span class="font-medium flex-1 min-w-0"><span data-content-title="${content.id}" class="truncate block">${content.title || '무제'}</span></span>
             <span class="w-16 shrink-0 text-botanical-sage text-xs text-center" data-upload-cell="${content.id}">${uploadedAt ? uploadedAt.slice(5).replace('-', '/') : '-'}</span>
             <span class="w-12 shrink-0 text-xs text-center">${content.url ? `<a href="${content.url}" target="_blank" class="text-blue-500 underline" onclick="event.stopPropagation()">링크</a>` : '<span class="text-botanical-sage">-</span>'}</span>
@@ -3036,37 +3038,58 @@ function attachDialogueLongPress() {
   });
 }
 
+// 카드형 타입 — 구간이 표지/N장/CTA로 흐르고, 영상 길이 개념이 없다
+const CARD_TYPES = ['캐러셀', '인스타툰'];
+const isCardType = (type) => CARD_TYPES.includes(type);
+
+// 타입별 2번 섹션·대본표 라벨 (body = 본문 컬럼명, 카드형은 대사/자막 구분 없이 한 칸)
+function typeLabels(type) {
+  if (type === '캐러셀') return { section: '카드 구성', script: '카드 작성', addRow: '+ 장 추가', body: '내용' };
+  if (type === '인스타툰') return { section: '콘티', script: '콘티 작성', addRow: '+ 장 추가', body: '내용' };
+  return { section: '촬영 및 대본 (20초 미만~최대 30초)', script: '대본 작성', addRow: '+ 행 추가', body: '대사' };
+}
+
+const SECTION_COLORS = {
+  'HOOK': '#6366F1',
+  'INTRO': '#0EA5E9',
+  'MAIN 1': '#10B981',
+  'MAIN 2': '#F59E0B',
+  'MAIN 3': '#06B6D4',
+  'MAIN 4': '#A855F7',
+  'MAIN 5': '#EF4444',
+  'MAIN 6': '#EAB308',
+  'MAIN 7': '#14B8A6',
+  'OUTRO': '#EC4899',
+  'CTA': '#EF4444',
+  '표지': '#6366F1'
+};
+const CARD_SECTION_COLORS = ['#0EA5E9', '#10B981', '#F59E0B', '#06B6D4', '#A855F7', '#EF4444', '#EAB308', '#14B8A6'];
+
+// N장은 번호에 따라 색을 돌려쓴다 (2장이 첫 색)
+function sectionColor(section) {
+  if (SECTION_COLORS[section]) return SECTION_COLORS[section];
+  const m = (section || '').match(/^(\d+)\s*장$/);
+  if (m) {
+    const len = CARD_SECTION_COLORS.length;
+    return CARD_SECTION_COLORS[((parseInt(m[1], 10) - 2) % len + len) % len];
+  }
+  return '#8C9A84';
+}
+
 function renderContentForm(content) {
-  const sectionColors = {
-    'HOOK': '#6366F1',
-    'INTRO': '#0EA5E9',
-    'MAIN 1': '#10B981',
-    'MAIN 2': '#F59E0B',
-    'MAIN 3': '#06B6D4',
-    'MAIN 4': '#A855F7',
-    'MAIN 5': '#EF4444',
-    'MAIN 6': '#EAB308',
-    'MAIN 7': '#14B8A6',
-    'OUTRO': '#EC4899',
-    'CTA': '#EF4444'
-  };
+  const labels = typeLabels(content.type);
+  const cardType = isCardType(content.type);
 
   const scriptVersions = (content.script?.versions && content.script.versions.length > 0)
     ? content.script.versions
-    : [{ rows: [
-        {section: 'HOOK', dialogue: '', subtitle: '', scene: ''},
-        {section: 'INTRO', dialogue: '', subtitle: '', scene: ''},
-        {section: 'MAIN 1', dialogue: '', subtitle: '', scene: ''},
-        {section: 'MAIN 2', dialogue: '', subtitle: '', scene: ''},
-        {section: 'OUTRO', dialogue: '', subtitle: '', scene: ''},
-        {section: 'CTA', dialogue: '', subtitle: '', scene: ''}
-      ]}];
+    : [{ rows: DEFAULT_SCRIPT_ROWS(content.type) }];
   const currentVer = Math.min(content.script?.currentVersion ?? 0, scriptVersions.length - 1);
   const scriptRows = scriptVersions[currentVer].rows || [];
   // 컬럼 너비 복원 (사용자가 드래그해서 저장한 값)
   const colW = content.script?.columnWidths || {};
   const colSection = colW.section ?? 100;
-  const colDialogue = colW.dialogue ?? 280;
+  // 카드형은 본문 한 칸뿐이라 대사+자막 폭을 합친 만큼 넓게
+  const colDialogue = colW.dialogue ?? (cardType ? 740 : 280);
   const colSubtitle = colW.subtitle ?? 460;
 
   return `
@@ -3472,11 +3495,11 @@ function renderContentForm(content) {
           style="min-height: 60px; word-break: break-word;">${content.planDetail ? content.planDetail.split('\n').map(line => line.trim()).filter(line => line).join('\n') : ''}</textarea>
       </div>
 
-      <!-- 2. 촬영 및 대본 -->
+      <!-- 2. 촬영 및 대본 / 카드 구성 / 콘티 -->
       <div class="md:border md:border-botanical-stone md:rounded-xl p-0 md:p-5">
         <h3 class="font-medium flex items-center gap-2 mb-4">
           <span class="w-6 h-6 rounded-full bg-botanical-sage/20 text-botanical-sage text-xs flex items-center justify-center">2</span>
-          촬영 및 대본 (20초 미만~최대 30초)
+          ${labels.section}
         </h3>
 
         <!-- 기획 체크리스트 (모든 버전 공통) -->
@@ -3490,7 +3513,11 @@ function renderContentForm(content) {
               '영상 길이가 30초 이내로 간결한가요?',
               '콘텐츠에서 다 못 알려준 정보는 본문에 상세히 풀었나요?',
               '레퍼런스 카피가 아닌지 냉정하게 판단해주세요.'
-            ].map((text, i) => `
+            ]
+              // 체크 상태는 인덱스로 저장되므로, 숨겨도 원래 인덱스(i)는 그대로 넘긴다
+              .map((text, i) => ({ text, i }))
+              .filter(({ text }) => !(cardType && text.startsWith('영상 길이가')))
+              .map(({ text, i }) => `
               <label class="flex items-center gap-2 text-sm cursor-pointer">
                 <input type="checkbox" ${content.planChecklist?.[i] ? 'checked' : ''} onchange="toggleChecklist(${content.id}, 'plan', ${i}, this.checked)" class="w-4 h-4 rounded border-botanical-stone">
                 <span>${text}</span>
@@ -3530,7 +3557,7 @@ function renderContentForm(content) {
         <div class="mb-4">
           <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-2 md:gap-0 mb-3">
             <div class="flex items-center gap-2">
-              <p class="text-sm font-medium text-botanical-terracotta">대본 작성</p>
+              <p class="text-sm font-medium text-botanical-terracotta">${labels.script}</p>
               ${(() => {
                 const isFinal = (content.script?.finalVersion ?? 0) === currentVer;
                 return `<button onclick="setFinalVersion(${content.id}, ${currentVer})" title="현재 V${currentVer+1}을 최종으로 지정 (목록·캘린더에 이 버전 제목 표시)" class="px-3 py-1 rounded-full text-xs transition-all ${isFinal ? 'bg-amber-400 text-white' : 'border border-botanical-stone text-botanical-sage hover:bg-amber-50 hover:text-amber-600'}">${isFinal ? '✓ 최종' : '최종'}</button>`;
@@ -3538,41 +3565,42 @@ function renderContentForm(content) {
               <button onclick="gotoFeedbackFromScript(${content.id})" title="이 대본으로 기획 ③ 대사 피드백 받기 (대사 자동 입력)" class="px-3 py-1 rounded-full text-xs border border-botanical-terracotta text-botanical-terracotta font-medium hover:bg-botanical-terracotta hover:text-white transition-all">피드백 이동 →</button>
             </div>
             <div class="flex gap-2 flex-wrap md:justify-end">
-              <button onclick="copyScriptForFeedback(${content.id})" class="px-3 py-1 rounded-full text-xs border border-botanical-stone hover:bg-botanical-cream transition-all">구간+대사 복사</button>
-              <button onclick="copyScript(${content.id}, 'dialogue')" class="px-3 py-1 rounded-full text-xs border border-botanical-stone hover:bg-botanical-cream transition-all">대사 복사</button>
-              <button onclick="copyScript(${content.id}, 'subtitle')" class="px-3 py-1 rounded-full text-xs border border-botanical-stone hover:bg-botanical-cream transition-all">자막 복사</button>
+              <button onclick="copyScriptForFeedback(${content.id})" class="px-3 py-1 rounded-full text-xs border border-botanical-stone hover:bg-botanical-cream transition-all">구간+${labels.body} 복사</button>
+              <button onclick="copyScript(${content.id}, 'dialogue')" class="px-3 py-1 rounded-full text-xs border border-botanical-stone hover:bg-botanical-cream transition-all">${labels.body} 복사</button>
+              ${cardType ? '' : `<button onclick="copyScript(${content.id}, 'subtitle')" class="px-3 py-1 rounded-full text-xs border border-botanical-stone hover:bg-botanical-cream transition-all">자막 복사</button>`}
               <button onclick="copyScriptAll(${content.id})" class="px-3 py-1 rounded-full text-xs border border-botanical-sage bg-botanical-sage/10 text-botanical-sage hover:bg-botanical-sage hover:text-white transition-all">전체 복사</button>
             </div>
           </div>
           <div class="border border-botanical-stone rounded-lg overflow-x-auto">
-            <table class="script-table text-xs md:text-sm min-w-[720px] md:min-w-0" data-content-id="${content.id}" style="table-layout: fixed; width: auto;">
+            <table class="script-table text-xs md:text-sm ${cardType ? 'min-w-[420px]' : 'min-w-[720px]'} md:min-w-0" data-content-id="${content.id}" style="table-layout: fixed; width: auto;">
               <colgroup>
                 <col style="width: ${colSection}px">
                 <col style="width: ${colDialogue}px">
-                <col style="width: ${colSubtitle}px">
+                ${cardType ? '' : `<col style="width: ${colSubtitle}px">`}
               </colgroup>
               <thead>
                 <tr class="bg-botanical-cream/50">
                   <th class="col-resizable px-4 py-3 text-left font-medium" data-col="section">구간<span class="col-resize-handle"></span></th>
-                  <th class="col-resizable px-4 py-3 text-left font-medium" data-col="dialogue">대사<span class="col-resize-handle"></span></th>
-                  <th class="col-resizable px-4 py-3 text-left font-medium" data-col="subtitle">자막<span class="col-resize-handle"></span></th>
+                  <th class="col-resizable px-4 py-3 text-left font-medium" data-col="dialogue">${labels.body}<span class="col-resize-handle"></span></th>
+                  ${cardType ? '' : '<th class="col-resizable px-4 py-3 text-left font-medium" data-col="subtitle">자막<span class="col-resize-handle"></span></th>'}
                 </tr>
               </thead>
               <tbody id="script-tbody-${content.id}">
                 ${scriptRows.map((row, idx) => `
                   <tr class="border-t border-botanical-stone group">
                     <td class="px-4 py-3 font-semibold">
-                      <input type="text" value="${row.section || ''}" oninput="updateScriptRow(${content.id}, ${idx}, 'section', this.value)" class="section-input w-full bg-transparent focus:outline-none font-semibold" style="color: ${sectionColors[row.section] || '#8C9A84'};">
+                      <input type="text" value="${row.section || ''}" oninput="updateScriptRow(${content.id}, ${idx}, 'section', this.value)" class="section-input w-full bg-transparent focus:outline-none font-semibold" style="color: ${sectionColor(row.section)};">
                       <button onclick="removeScriptRow(${content.id}, ${idx})" title="행 삭제" class="w-5 h-5 rounded text-xs text-red-400 opacity-0 group-hover:opacity-100 hover:bg-red-50 transition-opacity mt-1">×</button>
                     </td>
                     <td class="px-4 py-3 border-l border-botanical-stone relative dialogue-cell" data-content-id="${content.id}" data-row-idx="${idx}">
-                      <textarea rows="1" oninput="autoResize(this);updateScriptRow(${content.id}, ${idx}, 'dialogue', this.value)" class="script-cell w-full bg-transparent focus:outline-none resize-none overflow-hidden" ${row.section === 'HOOK' ? 'placeholder="궁금증, 호기심 자극"' : (row.section === 'INTRO' ? 'placeholder="주제+권위/타겟+이득"' : '')}>${row.dialogue || ''}</textarea>
+                      <textarea rows="1" oninput="autoResize(this);updateScriptRow(${content.id}, ${idx}, 'dialogue', this.value)" class="script-cell w-full bg-transparent focus:outline-none resize-none overflow-hidden" ${(row.section === 'HOOK' || row.section === '표지') ? 'placeholder="궁금증, 호기심 자극"' : (row.section === 'INTRO' ? 'placeholder="주제+권위/타겟+이득"' : '')}>${row.dialogue || ''}</textarea>
                       <button class="dialogue-menu-btn" onclick="event.stopPropagation();toggleDialogueMenu(${content.id}, ${idx})">⋮</button>
                       <div class="dialogue-menu hidden" id="dialogue-menu-${content.id}-${idx}">
                         <button onclick="copyDialogueCell(${content.id}, ${idx})">복사</button>
                         <button onclick="clearDialogueCell(${content.id}, ${idx})">지우기</button>
                       </div>
                     </td>
+                    ${cardType ? '' : `
                     <td class="px-4 py-3 border-l border-botanical-stone relative subtitle-cell" data-content-id="${content.id}" data-row-idx="${idx}">
                       <textarea rows="1" oninput="autoResize(this);updateScriptRow(${content.id}, ${idx}, 'subtitle', this.value)" class="script-cell w-full bg-transparent focus:outline-none resize-none overflow-hidden">${row.subtitle || ''}</textarea>
                       <button class="subtitle-menu-btn" onclick="event.stopPropagation();toggleSubtitleMenu(${content.id}, ${idx})">⋮</button>
@@ -3580,13 +3608,13 @@ function renderContentForm(content) {
                         <button onclick="copySubtitleCell(${content.id}, ${idx})">복사</button>
                         <button onclick="clearSubtitleCell(${content.id}, ${idx})">지우기</button>
                       </div>
-                    </td>
+                    </td>`}
                   </tr>
                 `).join('')}
               </tbody>
             </table>
           </div>
-          <button onclick="addScriptRow(${content.id})" class="mt-2 px-3 py-1.5 text-xs text-botanical-sage border border-botanical-stone rounded-lg hover:bg-botanical-cream transition-all">+ 행 추가</button>
+          <button onclick="addScriptRow(${content.id})" class="mt-2 px-3 py-1.5 text-xs text-botanical-sage border border-botanical-stone rounded-lg hover:bg-botanical-cream transition-all">${labels.addRow}</button>
         </div>
       </div>
 
@@ -3956,18 +3984,26 @@ function collapseAllContentForms() {
 }
 
 // ========== Script Row/Version 관련 ==========
-const DEFAULT_SCRIPT_ROWS = () => [
-  {section: 'HOOK', dialogue: '', subtitle: '', scene: ''},
-  {section: 'INTRO', dialogue: '', subtitle: '', scene: ''},
-  {section: 'MAIN 1', dialogue: '', subtitle: '', scene: ''},
-  {section: 'MAIN 2', dialogue: '', subtitle: '', scene: ''},
-  {section: 'OUTRO', dialogue: '', subtitle: '', scene: ''},
-  {section: 'CTA', dialogue: '', subtitle: '', scene: ''}
-];
+const emptyScriptRow = (section) => ({section, dialogue: '', subtitle: '', scene: ''});
+
+const DEFAULT_SCRIPT_ROWS = (type) => isCardType(type)
+  ? [
+      emptyScriptRow('표지'),
+      ...[2, 3, 4, 5, 6, 7, 8].map(n => emptyScriptRow(`${n}장`)),
+      emptyScriptRow('CTA')
+    ]
+  : [
+      emptyScriptRow('HOOK'),
+      emptyScriptRow('INTRO'),
+      emptyScriptRow('MAIN 1'),
+      emptyScriptRow('MAIN 2'),
+      emptyScriptRow('OUTRO'),
+      emptyScriptRow('CTA')
+    ];
 
 function ensureScript(content) {
   if (!content.script || !content.script.versions || content.script.versions.length === 0) {
-    content.script = { versions: [{ rows: DEFAULT_SCRIPT_ROWS() }], currentVersion: 0 };
+    content.script = { versions: [{ rows: DEFAULT_SCRIPT_ROWS(content.type) }], currentVersion: 0 };
   }
   if (content.script.currentVersion == null) content.script.currentVersion = 0;
   if (content.script.currentVersion >= content.script.versions.length) {
@@ -4002,18 +4038,20 @@ function addScriptRow(contentId) {
   if (!content.script.versions[ver].rows) content.script.versions[ver].rows = [];
   const rows = content.script.versions[ver].rows;
 
-  // 다음 MAIN 번호 (기존 MAIN 1~N 중 최대 + 1)
-  let maxMain = 0;
+  // 카드형은 N장, 릴스는 MAIN N — 각각 기존 최대 번호 + 1
+  const cardType = isCardType(content.type);
+  const pattern = cardType ? /^(\d+)\s*장$/ : /^MAIN\s*(\d+)/;
+  let maxNo = cardType ? 1 : 0; // 카드형 1번은 '표지'라 2장부터 시작
   rows.forEach(r => {
-    const m = (r.section || '').match(/^MAIN\s*(\d+)/);
-    if (m) maxMain = Math.max(maxMain, parseInt(m[1], 10));
+    const m = (r.section || '').match(pattern);
+    if (m) maxNo = Math.max(maxNo, parseInt(m[1], 10));
   });
-  const newRow = { section: `MAIN ${maxMain + 1}`, dialogue: '', subtitle: '', scene: '' };
+  const newRow = emptyScriptRow(cardType ? `${maxNo + 1}장` : `MAIN ${maxNo + 1}`);
 
-  // OUTRO 앞에 삽입 (OUTRO 없으면 맨 끝)
-  const outroIdx = rows.findIndex(r => r.section === 'OUTRO');
-  if (outroIdx === -1) rows.push(newRow);
-  else rows.splice(outroIdx, 0, newRow);
+  // 마무리 구간 앞에 삽입 (없으면 맨 끝)
+  const tailIdx = rows.findIndex(r => r.section === (cardType ? 'CTA' : 'OUTRO'));
+  if (tailIdx === -1) rows.push(newRow);
+  else rows.splice(tailIdx, 0, newRow);
 
   saveAllData();
   renderContentList();
@@ -4088,7 +4126,7 @@ function addScriptVersion(contentId) {
   const content = contentsData.contents.find(c => c.id === contentId);
   if (!content) return;
   ensureScript(content);
-  content.script.versions.push({ rows: DEFAULT_SCRIPT_ROWS(), title: '' });
+  content.script.versions.push({ rows: DEFAULT_SCRIPT_ROWS(content.type), title: '' });
   content.script.currentVersion = content.script.versions.length - 1;
   // 최종 버전은 기존대로 유지 (새 버전은 draft)
   saveAllData();
@@ -4102,7 +4140,7 @@ function addScriptVersionCopy(contentId, sourceIdx) {
 
   // 원본 버전 복사 (깊은 복사)
   const sourceVersion = content.script.versions[sourceIdx];
-  const copiedRows = JSON.parse(JSON.stringify(sourceVersion.rows || DEFAULT_SCRIPT_ROWS()));
+  const copiedRows = JSON.parse(JSON.stringify(sourceVersion.rows || DEFAULT_SCRIPT_ROWS(content.type)));
   const copiedTitle = sourceVersion.title ? `${sourceVersion.title} (복사)` : '';
 
   content.script.versions.push({ rows: copiedRows, title: copiedTitle });
@@ -4179,8 +4217,9 @@ function copyScript(contentId, field) {
   if (!rows || rows.length === 0) { alert('복사할 내용이 없습니다'); return; }
   const text = rows.map(r => r[field] || '').filter(t => t.trim()).join('\n');
   if (!text) { alert('복사할 내용이 없습니다'); return; }
+  const label = field === 'dialogue' ? typeLabels(content.type).body : '자막';
   navigator.clipboard.writeText(text).then(() => {
-    alert((field === 'dialogue' ? '대사' : '자막') + ' 복사됨');
+    alert(label + ' 복사됨');
   }).catch(() => alert('복사 실패'));
 }
 
@@ -4190,10 +4229,14 @@ function copyScriptAll(contentId) {
   const rows = content?.script?.versions?.[ver]?.rows;
   if (!rows || rows.length === 0) { alert('복사할 내용이 없습니다'); return; }
   // 탭 구분 표 (스프레드시트/노션 표로 바로 붙여넣기 가능) + 가독용 제목
-  const header = ['구간', '대사', '자막', '장면'];
+  const labels = typeLabels(content.type);
+  const cardType = isCardType(content.type);
+  const header = cardType ? ['구간', labels.body] : ['구간', '대사', '자막', '장면'];
   const lines = [header.join('\t')];
   rows.forEach(r => {
-    lines.push([r.section || '', r.dialogue || '', r.subtitle || '', r.scene || ''].join('\t'));
+    lines.push(cardType
+      ? [r.section || '', r.dialogue || ''].join('\t')
+      : [r.section || '', r.dialogue || '', r.subtitle || '', r.scene || ''].join('\t'));
   });
   const text = lines.join('\n');
   navigator.clipboard.writeText(text).then(() => {
@@ -4213,18 +4256,24 @@ function buildFeedbackText(contentId) {
     .join('\n');
 }
 
+// 콘텐츠 타입별 본문 라벨 (릴스=대사, 카드형=내용)
+function bodyLabel(contentId) {
+  return typeLabels(contentsData.contents.find(c => c.id === contentId)?.type).body;
+}
+
 function copyScriptForFeedback(contentId) {
   const text = buildFeedbackText(contentId);
-  if (!text) { alert('복사할 대사가 없습니다'); return; }
+  const label = bodyLabel(contentId);
+  if (!text) { alert(`복사할 ${label}가 없습니다`); return; }
   navigator.clipboard.writeText(text).then(() => {
-    alert('구간+대사 복사됨 — 기획 ③ 피드백에 붙여넣으세요');
+    alert(`구간+${label} 복사됨 — 기획 ③ 피드백에 붙여넣으세요`);
   }).catch(() => alert('복사 실패'));
 }
 
 // 콘텐츠 대본 → 기획 ③ 대사 피드백으로 이동 + 현재 구간+대사 자동 입력
 function gotoFeedbackFromScript(contentId) {
   const text = buildFeedbackText(contentId);
-  if (!text) { alert('피드백 받을 대사가 없어요. 먼저 대본을 작성해주세요.'); return; }
+  if (!text) { alert(`피드백 받을 ${bodyLabel(contentId)}가 없어요. 먼저 작성해주세요.`); return; }
   switchTab('planning');            // 기획 탭
   plSwitchSection('gen');           // 생성기 섹션
   const ta = document.getElementById('pl-polish');  // ③ 대사 피드백 입력칸
@@ -5801,6 +5850,7 @@ function showNewContentModal() {
           <select id="new-content-type" class="w-full px-3 py-2 rounded-xl border border-botanical-stone focus:outline-none">
             <option value="릴스">릴스</option>
             <option value="캐러셀">캐러셀</option>
+            <option value="인스타툰">인스타툰</option>
           </select>
         </div>
       </div>
@@ -5826,6 +5876,7 @@ function showNewContentModal() {
         <select id="new-content-revenue-type" class="w-full px-3 py-2 rounded-xl border border-botanical-stone focus:outline-none">
           <option value="릴스">릴스</option>
           <option value="캐러셀">캐러셀</option>
+          <option value="인스타툰">인스타툰</option>
         </select>
       </div>
       <button onclick="saveNewContent('revenue')" class="w-full py-2.5 bg-botanical-terracotta text-white rounded-xl hover:bg-botanical-terracotta/90 transition-all font-medium">등록</button>
