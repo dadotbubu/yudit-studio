@@ -3657,15 +3657,28 @@ function renderContentForm(content) {
       </div>`;
       })()}
 
-      <!-- 4. 공유 링크 + DM 자동 답변 -->
+      <!-- 4. 고정 댓글 -->
       <div class="md:border md:border-botanical-stone md:rounded-xl p-0 md:p-5">
         <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-2 md:gap-0 mb-4">
           <h3 class="font-medium flex items-center gap-2">
             <span class="w-6 h-6 rounded-full bg-botanical-sage/20 text-botanical-sage text-xs flex items-center justify-center">4</span>
+            고정 댓글
+          </h3>
+          <button onclick="copyPinnedComment(${content.id})" class="self-start px-3 py-1 rounded-full text-xs border border-botanical-stone hover:bg-botanical-cream transition-all">고정 댓글 복사</button>
+        </div>
+        <textarea id="pinned-${content.id}" rows="2" oninput="autoResize(this);updateContentField(${content.id}, 'pinnedComment', this.value)" placeholder="시청자가 할 법한 강력한 한 문장 — 첫 댓글로 고정" class="auto-grow unified-text w-full px-3 py-2 rounded-lg border border-botanical-stone focus:outline-none focus:border-botanical-sage resize-none overflow-hidden">${content.pinnedComment || ''}</textarea>
+      </div>
+
+      <!-- 5. 공유 링크 + DM 자동 답변 -->
+      <div class="md:border md:border-botanical-stone md:rounded-xl p-0 md:p-5">
+        <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-2 md:gap-0 mb-4">
+          <h3 class="font-medium flex items-center gap-2">
+            <span class="w-6 h-6 rounded-full bg-botanical-sage/20 text-botanical-sage text-xs flex items-center justify-center">5</span>
             공유 링크 & DM 답변
           </h3>
           <div class="flex gap-2">
-            <button onclick="copyShareLink(${content.id})" class="px-3 py-1 rounded-full text-xs border border-botanical-stone hover:bg-botanical-cream transition-all">링크 복사</button>
+            <button onclick="copyShareLink(${content.id}, 1)" class="px-3 py-1 rounded-full text-xs border border-botanical-stone hover:bg-botanical-cream transition-all">링크1 복사</button>
+            <button id="copylink2-${content.id}" onclick="copyShareLink(${content.id}, 2)" class="${content.shareLink2 ? '' : 'hidden'} px-3 py-1 rounded-full text-xs border border-botanical-stone hover:bg-botanical-cream transition-all">링크2 복사</button>
             <button onclick="copyDM(${content.id})" class="px-3 py-1 rounded-full text-xs border border-botanical-stone hover:bg-botanical-cream transition-all">DM 복사</button>
           </div>
         </div>
@@ -4457,12 +4470,30 @@ function copyDM(contentId) {
   navigator.clipboard.writeText(el.value).then(() => alert('DM 복사됨'));
 }
 
-function copyShareLink(contentId) {
-  const el1 = document.getElementById('sharelink-' + contentId);
-  const el2 = document.getElementById('sharelink2-' + contentId);
-  const links = [el1?.value?.trim(), el2?.value?.trim()].filter(Boolean);
+// n=1/2 이면 해당 링크만, 없으면 있는 것 전부 (하위호환)
+function copyShareLink(contentId, n) {
+  const v1 = document.getElementById('sharelink-' + contentId)?.value?.trim();
+  const v2 = document.getElementById('sharelink2-' + contentId)?.value?.trim();
+  if (n === 1) {
+    if (!v1) { alert('링크1이 비어있습니다'); return; }
+    navigator.clipboard.writeText(v1).then(() => alert('링크1 복사됨'));
+    return;
+  }
+  if (n === 2) {
+    if (!v2) { alert('링크2가 비어있습니다'); return; }
+    navigator.clipboard.writeText(v2).then(() => alert('링크2 복사됨'));
+    return;
+  }
+  const links = [v1, v2].filter(Boolean);
   if (!links.length) { alert('복사할 링크가 없습니다'); return; }
   navigator.clipboard.writeText(links.join('\n')).then(() => alert('링크 복사됨' + (links.length > 1 ? ' (2개)' : '')));
+}
+
+// 고정 댓글 복사 (시청자가 할 법한 강력한 한 문장 → 첫 댓글로 고정)
+function copyPinnedComment(contentId) {
+  const el = document.getElementById('pinned-' + contentId);
+  if (!el || !el.value.trim()) { alert('복사할 고정 댓글이 없습니다'); return; }
+  navigator.clipboard.writeText(el.value).then(() => alert('고정 댓글 복사됨'));
 }
 
 function openShareLink(contentId, n) {
@@ -4476,8 +4507,10 @@ function openShareLink(contentId, n) {
 function addShareLink2(contentId) {
   const row = document.getElementById('sharelink2-row-' + contentId);
   const btn = document.getElementById('add-sharelink-' + contentId);
+  const copyBtn = document.getElementById('copylink2-' + contentId);
   if (row) row.classList.remove('hidden');
   if (btn) btn.classList.add('hidden');
+  if (copyBtn) copyBtn.classList.remove('hidden');  // 링크2 복사 버튼 같이 노출
 }
 
 function copyMyInstaLink() {
@@ -5966,6 +5999,7 @@ function saveNewContent(formType) {
     planDetail: '',
     script: { versions: [], currentVersion: 0 },
     caption: '',
+    pinnedComment: '',
     dm: '',
     shareLinks: [],
     checklist: [
