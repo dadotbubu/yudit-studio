@@ -6848,6 +6848,8 @@ function mkAddAd(){ if(!window._mkEdit.adCases) window._mkEdit.adCases=[]; windo
 function mkDelAd(i){ window._mkEdit.adCases.splice(i,1); renderMediakitEditor(); }
 function mkAddBrand(){ if(!window._mkEdit.brands) window._mkEdit.brands=[]; window._mkEdit.brands.push({ko:'',en:''}); renderMediakitEditor(); }
 function mkDelBrand(i){ window._mkEdit.brands.splice(i,1); renderMediakitEditor(); }
+function mkAddRate(lang){ if(!window._mkEdit.rates) window._mkEdit.rates={noteKo:'3.3% 공제',noteEn:'USD',ko:[],en:[]}; if(!window._mkEdit.rates[lang]) window._mkEdit.rates[lang]=[]; window._mkEdit.rates[lang].push({label:'', amount:''}); renderMediakitEditor(); }
+function mkDelRate(lang,i){ window._mkEdit.rates[lang].splice(i,1); renderMediakitEditor(); }
 
 function mkFetch(){ return fetch(SUPABASE_URL+'/rest/v1/'+SUPABASE_TABLE+'?key=eq.mediakit&select=data,updated_at&order=updated_at.desc&limit=1',{headers:{apikey:SUPABASE_KEY,Authorization:'Bearer '+SUPABASE_KEY}}).then(function(r){return r.ok?r.json():[];}).then(function(rows){return rows[0]?rows[0].data:{};}).catch(function(){return {};}); }
 
@@ -6924,11 +6926,13 @@ function mkFormHtml(d){
     '<p class="text-xs text-botanical-sage mb-2">비어있으면 미디어킷에서 자동 숨김돼요</p><button onclick="mkAddBrand()" class="px-3 py-2 rounded-lg text-sm border border-botanical-sage text-botanical-fg">＋ 브랜드 추가</button>';
 
   // 단가
-  function rateRows(lang){ var arr=d.rates[lang]||[]; return arr.map(function(r,i){ return '<div class="grid grid-cols-2 gap-2 mb-1"><input '+I+' value="'+mkAttr(r.label)+'" onchange="mkSet(\'rates.'+lang+'.'+i+'.label\',this.value)"><input '+I+' value="'+mkAttr(r.amount)+'" onchange="mkSet(\'rates.'+lang+'.'+i+'.amount\',this.value)"></div>'; }).join(''); }
+  function rateRows(lang){ var arr=d.rates[lang]||[]; return arr.map(function(r,i){ return '<div class="grid grid-cols-2 gap-2 mb-1"><input '+I+' value="'+mkAttr(r.label)+'" placeholder="항목" onchange="mkSet(\'rates.'+lang+'.'+i+'.label\',this.value)"><div class="flex gap-2"><input '+I+' value="'+mkAttr(r.amount)+'" placeholder="금액" onchange="mkSet(\'rates.'+lang+'.'+i+'.amount\',this.value)"><button onclick="mkDelRate(\''+lang+'\','+i+')" class="text-xs text-botanical-terracotta underline">삭제</button></div></div>'; }).join(''); }
   var rate =
     '<label '+LB+'>🇰🇷 단가 (항목 / 금액)</label>'+rateRows('ko') +
+    '<button onclick="mkAddRate(\'ko\')" class="mt-1 px-3 py-2 rounded-lg text-sm border border-botanical-sage text-botanical-fg">＋ 단가 추가</button>' +
     '<label '+LB+'>배지 문구 🇰🇷</label><input '+I+' value="'+mkAttr(d.rates.noteKo)+'" onchange="mkSet(\'rates.noteKo\',this.value)">' +
     '<label '+LB+'>🇺🇸 단가</label>'+rateRows('en') +
+    '<button onclick="mkAddRate(\'en\')" class="mt-1 px-3 py-2 rounded-lg text-sm border border-botanical-sage text-botanical-fg">＋ 단가 추가</button>' +
     '<label '+LB+'>배지 문구 🇺🇸</label><input '+I+' value="'+mkAttr(d.rates.noteEn)+'" onchange="mkSet(\'rates.noteEn\',this.value)">';
 
   // 운영 채널 (인스타 팔로워는 성과에서 자동, 블로그만 입력)
