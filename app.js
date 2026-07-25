@@ -8651,6 +8651,7 @@ function plRenderIdeas() {
       <div class="flex gap-1.5">${srcBtn('all', '전체')}${srcBtn('original', '오리지널')}${srcBtn('reference', '레퍼런스')}</div>
       <button onclick="addIdea()" class="px-3 py-1.5 rounded-lg bg-botanical-fg text-white text-xs font-medium hover:bg-opacity-90 transition-all shrink-0">+ 추가</button>
     </div>
+    <div class="border-t border-botanical-stone mb-3"></div>
     <div class="flex flex-wrap gap-1.5 mb-4">${catBtn('all', '전체')}${catBtn('Career Guide', 'Career')}${catBtn('Money Log', 'Money')}${catBtn('AI Work', 'AI')}${catBtn('Life Style', 'Life')}</div>
     <div class="bg-white rounded-2xl p-4 shadow-sm">
       ${list.length > 0 ? `<div class="space-y-3">${list.map(idea => `
