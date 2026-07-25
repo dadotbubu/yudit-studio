@@ -2657,14 +2657,24 @@ function addIdea() {
     </div>
 
     <div class="space-y-4">
-      <div>
-        <label class="text-sm font-medium block mb-1">카테고리</label>
-        <select id="new-idea-category" class="w-full px-3 py-2 rounded-xl border border-botanical-stone focus:outline-none">
-          <option value="Career Guide">Career Guide</option>
-          <option value="AI Work">AI Work</option>
-          <option value="Money Log">Money Log</option>
-          <option value="Life Style">Life Style</option>
-        </select>
+      <div class="grid grid-cols-2 gap-3">
+        <div>
+          <label class="text-sm font-medium block mb-1">카테고리</label>
+          <select id="new-idea-category" class="w-full px-3 py-2 rounded-xl border border-botanical-stone focus:outline-none">
+            <option value="Career Guide">Career Guide</option>
+            <option value="AI Work">AI Work</option>
+            <option value="Money Log">Money Log</option>
+            <option value="Life Style">Life Style</option>
+          </select>
+        </div>
+        <div>
+          <label class="text-sm font-medium block mb-1">형식</label>
+          <select id="new-idea-format" class="w-full px-3 py-2 rounded-xl border border-botanical-stone focus:outline-none">
+            <option value="릴스">릴스</option>
+            <option value="캐러셀">캐러셀</option>
+            <option value="인스타툰">인스타툰</option>
+          </select>
+        </div>
       </div>
       <div>
         <label class="text-sm font-medium block mb-1">제목</label>
@@ -2709,14 +2719,24 @@ function editIdea(ideaId) {
     </div>
 
     <div class="space-y-4">
-      <div>
-        <label class="text-sm font-medium block mb-1">카테고리</label>
-        <select id="edit-idea-category" class="w-full px-3 py-2 rounded-xl border border-botanical-stone focus:outline-none">
-          <option value="Career Guide" ${idea.category === 'Career Guide' ? 'selected' : ''}>Career Guide</option>
-          <option value="AI Work" ${idea.category === 'AI Work' ? 'selected' : ''}>AI Work</option>
-          <option value="Money Log" ${idea.category === 'Money Log' ? 'selected' : ''}>Money Log</option>
-          <option value="Life Style" ${idea.category === 'Life Style' ? 'selected' : ''}>Life Style</option>
-        </select>
+      <div class="grid grid-cols-2 gap-3">
+        <div>
+          <label class="text-sm font-medium block mb-1">카테고리</label>
+          <select id="edit-idea-category" class="w-full px-3 py-2 rounded-xl border border-botanical-stone focus:outline-none">
+            <option value="Career Guide" ${idea.category === 'Career Guide' ? 'selected' : ''}>Career Guide</option>
+            <option value="AI Work" ${idea.category === 'AI Work' ? 'selected' : ''}>AI Work</option>
+            <option value="Money Log" ${idea.category === 'Money Log' ? 'selected' : ''}>Money Log</option>
+            <option value="Life Style" ${idea.category === 'Life Style' ? 'selected' : ''}>Life Style</option>
+          </select>
+        </div>
+        <div>
+          <label class="text-sm font-medium block mb-1">형식</label>
+          <select id="edit-idea-format" class="w-full px-3 py-2 rounded-xl border border-botanical-stone focus:outline-none">
+            <option value="릴스" ${(idea.format || '릴스') === '릴스' ? 'selected' : ''}>릴스</option>
+            <option value="캐러셀" ${idea.format === '캐러셀' ? 'selected' : ''}>캐러셀</option>
+            <option value="인스타툰" ${idea.format === '인스타툰' ? 'selected' : ''}>인스타툰</option>
+          </select>
+        </div>
       </div>
       <div>
         <label class="text-sm font-medium block mb-1">제목</label>
@@ -2753,6 +2773,7 @@ function deleteIdea(ideaId) {
 
 function saveNewIdea() {
   const category = document.getElementById('new-idea-category').value;
+  const format = document.getElementById('new-idea-format').value;
   const title = document.getElementById('new-idea-title').value;
   const link = document.getElementById('new-idea-link').value;
   const description = document.getElementById('new-idea-description').value;
@@ -2768,6 +2789,7 @@ function saveNewIdea() {
   const newIdea = {
     id: `i_${Date.now()}`,
     category: category,
+    format: format,
     title: title,
     link: link,
     description: description,
@@ -2784,6 +2806,7 @@ function saveNewIdea() {
 
 function saveIdea(ideaId) {
   const category = document.getElementById('edit-idea-category').value;
+  const format = document.getElementById('edit-idea-format').value;
   const title = document.getElementById('edit-idea-title').value;
   const link = document.getElementById('edit-idea-link').value;
   const description = document.getElementById('edit-idea-description').value;
@@ -2800,6 +2823,7 @@ function saveIdea(ideaId) {
   }
 
   idea.category = category;
+  idea.format = format;
   idea.title = title;
   idea.link = link;
   idea.description = description;
@@ -8634,6 +8658,7 @@ function plRenderIdeas() {
           <div class="flex items-center justify-between mb-1">
             <div class="flex items-center gap-1.5">
               <span class="inline-block px-2 py-0.5 rounded-md text-xs font-medium bg-botanical-cream text-botanical-sage whitespace-nowrap">${idea.category}</span>
+              ${idea.format ? `<span class="inline-block px-2 py-0.5 rounded-md text-xs font-medium whitespace-nowrap" style="background-color:#C27B6620;color:#C27B66;">${idea.format}</span>` : ''}
               ${idea.link ? `<a href="${idea.link}" target="_blank" title="레퍼런스 열기" class="inline-block px-2 py-0.5 rounded-md text-xs font-medium hover:underline" style="background-color:#87948320;color:#879483;">레퍼 ↗</a>` : '<span class="inline-block px-2 py-0.5 rounded-md text-xs font-medium bg-botanical-stone text-botanical-sage">오리지널</span>'}
             </div>
             <div class="flex items-center gap-2">
