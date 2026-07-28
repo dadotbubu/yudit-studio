@@ -8454,7 +8454,8 @@ function plAutoGrow(el) {
 }
 // ===== 1단계: 훅·표지 프롬프트 =====
 // ⓪ 레퍼런스 조사 — 인스타 메타 AI 에 붙여넣는 고정 프롬프트
-// ★ 짝: `릴스-레퍼` 스킬. 조건(1년·30만·10배)을 고치면 양쪽 같이 고친다.
+// ★ 짝: `릴스-레퍼` 스킬. 조건(1년·30만·10배, 조회수 모르면 좋아요 5%)과
+//    결과 포맷(5줄)을 고치면 양쪽 같이 고친다.
 // 유디트가 직접 복사해 밖(메타 AI)에 쓰는 완전판이라 code 모드가 없다.
 function plBuildRefPrompt() {
   const kw = (document.getElementById('pl-refkw') || {}).value || '';
@@ -8463,25 +8464,25 @@ function plBuildRefPrompt() {
 ■ 키워드
 ${kw.trim() || '(키워드를 넣어주세요)'}
 
-■ 조건 — 셋 다 만족하는 것만
+■ 조건
 1. 최근 1년 이내 게시물 (필수)
-2. 조회수 30만 이상
-3. 조회수가 그 계정 팔로워수의 10배 이상
+2. 조회수를 알면 → 30만 이상 + 그 계정 팔로워수의 10배 이상
+3. 조회수를 모르면 → 좋아요가 팔로워수의 5% 이상
+
+조회수를 모를 땐 '확인 불가'라고 쓰고, 좋아요 기준으로 골랐다고 표시해 줘.
 
 ■ 개수
 10개. 조건에 못 미치면 억지로 채우지 말고 '조건 충족 N개'라고 알려줘.
 
-■ 각 건마다 이 순서대로
-1) 릴스 링크 (전체 URL)
-2) 계정명
-3) 팔로워수
-4) 조회수
-5) 좋아요
-6) 댓글수
-7) 게시일 (YYYY-MM-DD)
-8) 영상 길이 (초)
-9) 제목 또는 캡션 첫 줄
+■ 결과는 이 모양 그대로. 한 건에 5줄, 건 사이는 빈 줄 하나.
 
+1. (제목 또는 캡션 첫 줄)
+링크: (전체 URL)
+계정: (계정명) (팔로워 000)
+조회수 000 / 좋아요 000 / 댓글 000
+0000-00-00 / 길이 00초
+
+라벨은 위 글자 그대로 붙여 줘. 값만 죽 나열하지 마.
 숫자는 실제 값만. 모르면 '확인 불가'라고 쓰고 추정치는 쓰지 마.`;
 }
 function plGenRef() {
@@ -9090,7 +9091,8 @@ function plRenderRef() {
       <label class="block text-xs text-botanical-sage mb-1 mt-3">키워드</label>
       <input type="text" id="pl-refkw" class="${PL_INPUT_CLS}" placeholder="예: 통장쪼개기 / 신혼가전 / 면접" oninput="plSaveState()">
       <div class="text-[11px] text-botanical-fg bg-botanical-cream/60 rounded-lg px-3 py-2 mt-3 leading-relaxed">
-        찾는 조건 — 1년 이내 <b>필수</b> · 조회수 <b>30만 이상</b> · 조회수가 팔로워의 <b>10배 이상</b>
+        찾는 조건 — 1년 이내 <b>필수</b> · 조회수 <b>30만 이상</b> + 팔로워의 <b>10배 이상</b><br>
+        <span class="text-botanical-sage">조회수를 못 긁어오면 → 좋아요가 팔로워의 <b>5% 이상</b></span>
       </div>
       <div class="flex gap-2 mt-4">
         <button onclick="plGenRef()" class="flex-1 py-3 bg-botanical-terracotta text-white rounded-xl text-sm font-bold hover:opacity-90 transition-all">메타 AI 프롬프트</button>
