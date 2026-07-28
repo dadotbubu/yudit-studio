@@ -8367,6 +8367,20 @@ function plRenderGen() {
 
     <div class="bg-white rounded-2xl p-5 shadow-sm mb-4">
       <div class="flex items-center justify-between mb-1">
+        <div class="flex items-center gap-2"><span class="w-5 h-5 rounded-full bg-botanical-sage text-white text-[11px] font-bold flex items-center justify-center">0</span><h3 class="font-medium text-sm">레퍼런스 조사</h3></div>
+        <button onclick="plResetStep0()" class="text-[11px] text-botanical-sage hover:text-botanical-terracotta">↺ 초기화</button>
+      </div>
+      <p class="text-[11px] text-botanical-sage mt-2 mb-2">키워드 넣고 프롬프트를 복사 → 인스타 <b>메타 AI</b>에 붙여넣기 → 받은 결과를 <b>앤</b>에게 그대로 주면 대본 추출·분석까지 해줘요</p>
+      <label class="block text-xs text-botanical-sage mb-1 mt-2">키워드</label>
+      <input type="text" id="pl-refkw" class="${PL_INPUT_CLS}" placeholder="예: 통장쪼개기 / 신혼가전 / 면접" oninput="plSaveState()">
+      <div class="flex gap-2 mt-4">
+        <button onclick="plGenRef()" class="flex-1 py-3 bg-botanical-sage text-white rounded-xl text-sm font-bold hover:opacity-90 transition-all">⓪ 메타 AI 프롬프트</button>
+      </div>
+      <div id="pl-out0-card" class="hidden">${outBlock(0)}</div>
+    </div>
+
+    <div class="bg-white rounded-2xl p-5 shadow-sm mb-4">
+      <div class="flex items-center justify-between mb-1">
         <div class="flex items-center gap-2"><span class="w-5 h-5 rounded-full bg-botanical-terracotta text-white text-[11px] font-bold flex items-center justify-center">1</span><h3 class="font-medium text-sm">훅 · 표지 뽑기</h3></div>
         <button onclick="plResetStep1()" class="text-[11px] text-botanical-sage hover:text-botanical-terracotta">↺ 초기화</button>
       </div>
@@ -8450,6 +8464,49 @@ function plAutoGrow(el) {
   el.style.height = el.scrollHeight + 'px';
 }
 // ===== 1단계: 훅·표지 프롬프트 =====
+// ⓪ 레퍼런스 조사 — 인스타 메타 AI 에 붙여넣는 고정 프롬프트
+// ★ 짝: `릴스-레퍼` 스킬. 조건(1년·50만·10배)을 고치면 양쪽 같이 고친다.
+// 유디트가 직접 복사해 밖(메타 AI)에 쓰는 완전판이라 code 모드가 없다.
+function plBuildRefPrompt() {
+  const kw = (document.getElementById('pl-refkw') || {}).value || '';
+  return `인스타그램 릴스 레퍼런스를 찾아줘.
+
+■ 키워드
+${kw.trim() || '(키워드를 넣어주세요)'}
+
+■ 조건 — 셋 다 만족하는 것만
+1. 최근 1년 이내 게시물 (필수)
+2. 조회수 50만 이상
+3. 조회수가 그 계정 팔로워수의 10배 이상
+
+■ 개수
+10개. 조건에 못 미치면 억지로 채우지 말고 '조건 충족 N개'라고 알려줘.
+
+■ 각 건마다 이 순서대로
+1) 릴스 링크 (전체 URL)
+2) 계정명
+3) 팔로워수
+4) 조회수
+5) 좋아요
+6) 댓글수
+7) 게시일 (YYYY-MM-DD)
+8) 영상 길이 (초)
+9) 제목 또는 캡션 첫 줄
+
+숫자는 실제 값만. 모르면 '확인 불가'라고 쓰고 추정치는 쓰지 마.`;
+}
+function plGenRef() {
+  document.getElementById('pl-out0-card').classList.remove('hidden');
+  document.getElementById('pl-out0').textContent = plBuildRefPrompt();
+  plSaveState();
+}
+function plResetStep0() {
+  const k = document.getElementById('pl-refkw'); if (k) k.value = '';
+  document.getElementById('pl-out0-card').classList.add('hidden');
+  document.getElementById('pl-out0').textContent = '';
+  plSaveState(); plToast('0단계 초기화');
+}
+
 function plBuildHookPrompt(mode = 'chat') {
   const D = PLANNING_DATA;
   const cat = document.getElementById('pl-cat').value;
@@ -8726,6 +8783,7 @@ function plCollectState() {
   const o = id => { const e = document.getElementById(id); return e ? e.textContent : ''; };
   return {
     cat: g('pl-cat'), pos: g('pl-pos'), tar: g('pl-tar'), msg: g('pl-msg'),
+    refkw: g('pl-refkw'), out0: o('pl-out0'),
     topic: g('pl-topic'), cover: g('pl-cover'), hook: g('pl-hook'), skel: g('pl-skel'), exp: g('pl-exp'),
     purpose: plSel.purpose, len: plSel.len, prod: plSel.prod,
     out1: o('pl-out1'), out2: o('pl-out2'),
@@ -8758,6 +8816,7 @@ function plRestoreState() {
   if (!st) return;
   const set = (id, v) => { const el = document.getElementById(id); if (el != null && v != null) el.value = v; };
   set('pl-cat', st.cat); set('pl-pos', st.pos); set('pl-tar', st.tar); set('pl-msg', st.msg);
+  set('pl-refkw', st.refkw);
   set('pl-topic', st.topic); set('pl-cover', st.cover); set('pl-hook', st.hook); set('pl-skel', st.skel); set('pl-exp', st.exp);
   set('pl-polish', st.polish);
   ['pl-topic', 'pl-exp', 'pl-polish'].forEach(id => plAutoGrow(document.getElementById(id))); // 복원된 긴 내용도 펼치기
@@ -8769,6 +8828,7 @@ function plRestoreState() {
   plPillSet('len', plSel.len);
   plPillSet('prod', (D.productionOptions.find(p => p.id === plSel.prod) || {}).name);
   // 생성된 프롬프트 복원
+  if (st.out0) { document.getElementById('pl-out0-card').classList.remove('hidden'); document.getElementById('pl-out0').textContent = st.out0; }
   if (st.out1) { document.getElementById('pl-out1-card').classList.remove('hidden'); document.getElementById('pl-out1').textContent = st.out1; }
   if (st.out2) { document.getElementById('pl-out2-card').classList.remove('hidden'); document.getElementById('pl-out2').textContent = st.out2; }
   if (st.out3) { const c = document.getElementById('pl-out3-card'); if (c) { c.classList.remove('hidden'); document.getElementById('pl-out3').textContent = st.out3; } }
