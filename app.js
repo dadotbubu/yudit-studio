@@ -8238,13 +8238,16 @@ function renderPlanning() {
         <button onclick="plSwitchSection('idea')" id="pl-nav-idea" class="pl-navbtn pb-2 text-[13px] border-b-2 -mb-px border-transparent text-botanical-sage font-medium hover:text-botanical-fg">아이디어</button>
         <button onclick="plSwitchSection('lib')" id="pl-nav-lib" class="pl-navbtn pb-2 text-[13px] border-b-2 -mb-px border-transparent text-botanical-sage font-medium hover:text-botanical-fg">레퍼 보관함</button>
         <button onclick="plSwitchSection('kw')" id="pl-nav-kw" class="pl-navbtn pb-2 text-[13px] border-b-2 -mb-px border-transparent text-botanical-sage font-medium hover:text-botanical-fg">검색어</button>
+        <button onclick="plSwitchSection('ref')" id="pl-nav-ref" class="pl-navbtn pb-2 text-[13px] border-b-2 -mb-px border-transparent text-botanical-sage font-medium hover:text-botanical-fg">레퍼조사</button>
       </div>
     </div>
     <div id="pl-sec-gen"></div>
     <div id="pl-sec-idea" class="hidden"></div>
     <div id="pl-sec-lib" class="hidden"></div>
     <div id="pl-sec-kw" class="hidden"></div>
+    <div id="pl-sec-ref" class="hidden"></div>
   `;
+  plRenderRef();   // 생성기보다 먼저 — plRestoreState 가 이 안의 입력칸을 복원한다
   plRenderGen();
   plRenderIdeas();
   plRenderKw();
@@ -8254,7 +8257,7 @@ function renderPlanning() {
 
 function plSwitchSection(sec) {
   plSel.section = sec;
-  ['gen', 'idea', 'lib', 'kw'].forEach(s => {
+  ['gen', 'idea', 'lib', 'kw', 'ref'].forEach(s => {
     document.getElementById('pl-sec-' + s).classList.toggle('hidden', s !== sec);
     setSubTabActive(document.getElementById('pl-nav-' + s), s === sec);
   });
@@ -8363,20 +8366,6 @@ function plRenderGen() {
       <input type="text" id="pl-tar" class="${PL_INPUT_CLS}" oninput="plSaveState()">
       <label class="block text-xs text-botanical-sage mb-1 mt-3">핵심 메시지</label>
       <input type="text" id="pl-msg" class="${PL_INPUT_CLS}" oninput="plSaveState()">
-    </div>
-
-    <div class="bg-white rounded-2xl p-5 shadow-sm mb-4">
-      <div class="flex items-center justify-between mb-1">
-        <div class="flex items-center gap-2"><span class="w-5 h-5 rounded-full bg-botanical-sage text-white text-[11px] font-bold flex items-center justify-center">0</span><h3 class="font-medium text-sm">레퍼런스 조사</h3></div>
-        <button onclick="plResetStep0()" class="text-[11px] text-botanical-sage hover:text-botanical-terracotta">↺ 초기화</button>
-      </div>
-      <p class="text-[11px] text-botanical-sage mt-2 mb-2">키워드 넣고 프롬프트를 복사 → 인스타 <b>메타 AI</b>에 붙여넣기 → 받은 결과를 <b>앤</b>에게 그대로 주면 대본 추출·분석까지 해줘요</p>
-      <label class="block text-xs text-botanical-sage mb-1 mt-2">키워드</label>
-      <input type="text" id="pl-refkw" class="${PL_INPUT_CLS}" placeholder="예: 통장쪼개기 / 신혼가전 / 면접" oninput="plSaveState()">
-      <div class="flex gap-2 mt-4">
-        <button onclick="plGenRef()" class="flex-1 py-3 bg-botanical-sage text-white rounded-xl text-sm font-bold hover:opacity-90 transition-all">⓪ 메타 AI 프롬프트</button>
-      </div>
-      <div id="pl-out0-card" class="hidden">${outBlock(0)}</div>
     </div>
 
     <div class="bg-white rounded-2xl p-5 shadow-sm mb-4">
@@ -8500,11 +8489,11 @@ function plGenRef() {
   document.getElementById('pl-out0').textContent = plBuildRefPrompt();
   plSaveState();
 }
-function plResetStep0() {
+function plResetRef() {
   const k = document.getElementById('pl-refkw'); if (k) k.value = '';
   document.getElementById('pl-out0-card').classList.add('hidden');
   document.getElementById('pl-out0').textContent = '';
-  plSaveState(); plToast('0단계 초기화');
+  plSaveState(); plToast('레퍼조사 초기화');
 }
 
 function plBuildHookPrompt(mode = 'chat') {
@@ -9087,6 +9076,34 @@ function plRenderKw() {
     </div>`;
 }
 function plCopyKw(k) { navigator.clipboard.writeText(k).then(() => plToast(`"${k}" 복사!`)); }
+
+// ---------- 레퍼조사 (파이프라인 맨 앞) ----------
+function plRenderRef() {
+  const box = document.getElementById('pl-sec-ref');
+  if (!box) return;
+  box.innerHTML = `
+    <div class="bg-white rounded-2xl p-5 shadow-sm mb-4">
+      <div class="flex items-center justify-between mb-1">
+        <h3 class="font-medium text-sm">레퍼조사</h3>
+        <button onclick="plResetRef()" class="text-[11px] text-botanical-sage hover:text-botanical-terracotta">↺ 초기화</button>
+      </div>
+      <p class="text-[11px] text-botanical-sage mb-4">키워드 넣고 프롬프트 복사 → 인스타 <b>메타 AI</b>에 붙여넣기 → 받은 결과를 <b>앤</b>에게 주면 대본 추출·분석해서 콘텐츠 레퍼런스 칸까지 채워줘요</p>
+      <label class="block text-xs text-botanical-sage mb-1">키워드</label>
+      <input type="text" id="pl-refkw" class="${PL_INPUT_CLS}" placeholder="예: 통장쪼개기 / 신혼가전 / 면접" oninput="plSaveState()">
+      <div class="text-[11px] text-botanical-fg bg-botanical-cream/60 rounded-lg px-3 py-2 mt-3 leading-relaxed">
+        찾는 조건 — 1년 이내 <b>필수</b> · 조회수 <b>50만 이상</b> · 조회수가 팔로워의 <b>10배 이상</b>
+      </div>
+      <div class="flex gap-2 mt-4">
+        <button onclick="plGenRef()" class="flex-1 py-3 bg-botanical-terracotta text-white rounded-xl text-sm font-bold hover:opacity-90 transition-all">메타 AI 프롬프트</button>
+      </div>
+      <div id="pl-out0-card" class="hidden">
+        <div class="relative mt-3">
+          <button onclick="plCopy('pl-out0')" class="absolute top-2 right-2 z-10 px-2.5 py-1 rounded-lg text-[11px] border border-botanical-terracotta text-botanical-terracotta font-bold bg-white/90 backdrop-blur-sm hover:bg-white">📋 복사</button>
+          <div id="pl-out0" class="whitespace-pre-wrap bg-botanical-cream/50 border border-botanical-stone rounded-xl p-4 pt-9 text-xs leading-relaxed max-h-[340px] overflow-auto"></div>
+        </div>
+      </div>
+    </div>`;
+}
 
 // ---------- 공통 유틸 ----------
 // 외부 링크 열기 — PWA에서 외부 Safari/앱으로 (기존 열기 버튼들과 동일 패턴)
