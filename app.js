@@ -9087,8 +9087,7 @@ function plRenderRef() {
         <h3 class="font-medium text-sm">레퍼조사</h3>
         <button onclick="plResetRef()" class="text-[11px] text-botanical-sage hover:text-botanical-terracotta">↺ 초기화</button>
       </div>
-      <p class="text-[11px] text-botanical-sage mb-4">키워드 넣고 프롬프트 복사 → 인스타 <b>메타 AI</b>에 붙여넣기 → 받은 결과를 <b>앤</b>에게 주면 대본 추출·분석해서 콘텐츠 레퍼런스 칸까지 채워줘요</p>
-      <label class="block text-xs text-botanical-sage mb-1">키워드</label>
+      <label class="block text-xs text-botanical-sage mb-1 mt-3">키워드</label>
       <input type="text" id="pl-refkw" class="${PL_INPUT_CLS}" placeholder="예: 통장쪼개기 / 신혼가전 / 면접" oninput="plSaveState()">
       <div class="text-[11px] text-botanical-fg bg-botanical-cream/60 rounded-lg px-3 py-2 mt-3 leading-relaxed">
         찾는 조건 — 1년 이내 <b>필수</b> · 조회수 <b>50만 이상</b> · 조회수가 팔로워의 <b>10배 이상</b>
