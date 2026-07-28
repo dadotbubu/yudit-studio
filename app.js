@@ -8454,7 +8454,7 @@ function plAutoGrow(el) {
 }
 // ===== 1단계: 훅·표지 프롬프트 =====
 // ⓪ 레퍼런스 조사 — 인스타 메타 AI 에 붙여넣는 고정 프롬프트
-// ★ 짝: `릴스-레퍼` 스킬. 조건(1년·50만·10배)을 고치면 양쪽 같이 고친다.
+// ★ 짝: `릴스-레퍼` 스킬. 조건(1년·30만·10배)을 고치면 양쪽 같이 고친다.
 // 유디트가 직접 복사해 밖(메타 AI)에 쓰는 완전판이라 code 모드가 없다.
 function plBuildRefPrompt() {
   const kw = (document.getElementById('pl-refkw') || {}).value || '';
@@ -8465,7 +8465,7 @@ ${kw.trim() || '(키워드를 넣어주세요)'}
 
 ■ 조건 — 셋 다 만족하는 것만
 1. 최근 1년 이내 게시물 (필수)
-2. 조회수 50만 이상
+2. 조회수 30만 이상
 3. 조회수가 그 계정 팔로워수의 10배 이상
 
 ■ 개수
@@ -9090,7 +9090,7 @@ function plRenderRef() {
       <label class="block text-xs text-botanical-sage mb-1 mt-3">키워드</label>
       <input type="text" id="pl-refkw" class="${PL_INPUT_CLS}" placeholder="예: 통장쪼개기 / 신혼가전 / 면접" oninput="plSaveState()">
       <div class="text-[11px] text-botanical-fg bg-botanical-cream/60 rounded-lg px-3 py-2 mt-3 leading-relaxed">
-        찾는 조건 — 1년 이내 <b>필수</b> · 조회수 <b>50만 이상</b> · 조회수가 팔로워의 <b>10배 이상</b>
+        찾는 조건 — 1년 이내 <b>필수</b> · 조회수 <b>30만 이상</b> · 조회수가 팔로워의 <b>10배 이상</b>
       </div>
       <div class="flex gap-2 mt-4">
         <button onclick="plGenRef()" class="flex-1 py-3 bg-botanical-terracotta text-white rounded-xl text-sm font-bold hover:opacity-90 transition-all">메타 AI 프롬프트</button>
