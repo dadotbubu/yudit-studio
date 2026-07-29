@@ -8504,7 +8504,12 @@ function plBuildHookPrompt(mode = 'chat') {
   const topic = (document.getElementById('pl-topic').value || '').trim() || '(주제 입력)';
   const exp = (document.getElementById('pl-exp') ? document.getElementById('pl-exp').value : '').trim();
   const purpDef = D.purposes.find(p => p.id === plSel.purpose);
-  if (mode === 'code') return `앤, 너는 우리 채널(yudit_insta) 레퍼 수백 개와 터지는 릴스 공식을 머릿속에 가진 인플루언서다 — 어항처럼. 단순 지시 수행이 아니라 그 감각으로 직접 기획해. (필요하면 planning_data.js·세계관 문서·훅 13앵글을 직접 열어 참고할 것.)
+  if (mode === 'code') return `앤, 너는 우리 채널(yudit_insta) 레퍼 수백 개와 터지는 릴스 공식을 머릿속에 가진 인플루언서다 — 어항처럼. 단순 지시 수행이 아니라 그 감각으로 직접 기획해.
+
+★ 먼저 \`릴스-대본\` 스킬을 열고 「시작 전에 찍는 것」을 그대로 찍어라. 기억으로 쓰지 마라.
+   특히 \`scripts/훅모음.py --카테고리 ${cat}\` 과 \`scripts/기획규칙.py\` 는 **훅을 짜기 전에** 돌린다.
+   (planning_data.js 를 통째로 Read 하지 말 것 — 157KB 중 절반이 레퍼라 규칙만 못 본다.)
+   출력 맨 앞에 「📖 찍은 것」 한 줄을 박아라.
 
 그 감각으로 이 주제 훅·표지를 뽑아줘. 13앵글 순서대로 표지+훅 1세트씩(안 맞는 앵글은 생략), 차별점은 첫 문장에 하나만, 표지·훅 5요소(주제·권위/타겟·이득·창작·유디트화)는 속으로 점검해 통과한 것만(점검은 끝에 한 줄 요약).
 
@@ -8589,7 +8594,10 @@ function plBuildScriptPrompt(mode = 'chat') {
   const prodBlock = plSel.prod === 'dialogue'
     ? '두 사람(부부/동료)이 주고받는 대화 장면으로 구성, 대사를 화자별로 분리. 진행자 얼굴 미노출 — 음성·자막·보조 화면.'
     : '진행자 얼굴 없이 음성 내레이션 + 화면(보조 영상·자막)으로 구성. 화면 메모 충실히.';
-  if (mode === 'code') return `앤, 너는 우리 채널(yudit_insta) 레퍼 수백 개와 터지는 릴스 공식을 머릿속에 가진 인플루언서다 — 어항처럼. 그 감각으로 직접 기획해. (필요하면 planning_data.js·세계관 문서·골격을 직접 참고.)
+  if (mode === 'code') return `앤, 너는 우리 채널(yudit_insta) 레퍼 수백 개와 터지는 릴스 공식을 머릿속에 가진 인플루언서다 — 어항처럼. 그 감각으로 직접 기획해.
+
+★ 먼저 \`릴스-대본\` 스킬을 열고 「시작 전에 찍는 것」을 그대로 찍어라 (세계관·서사라이브러리·\`scripts/기획규칙.py\`). 기억으로 쓰지 마라.
+   (planning_data.js 통째로 Read 금지 — 157KB.)
 
 확정 훅·표지로 [${skel.name}${curveDef ? ' · ' + curveDef.name : ''}] 골격 대본 써줘. 골격 구조·기획 원칙·인사이트(나만의 인사이트·인간미) 체크·연출 규칙은 네 감각으로.
 
@@ -8669,7 +8677,7 @@ function plBuildPolishPrompt(mode = 'chat') {
   if (mode === 'code') return `앤, 너는 yudit_insta 채널의 터지는 피드백 감각으로 직접 피드백하는 인플루언서다 — 어항 그 자체.
 그 감각은 머릿속이 아니라 보관함에 있다. 피드백 전에 반드시 둘을 연다:
 ① 릴스/레퍼런스/_어항피드백예시.md — 어항 실물 피드백 예시. 말투·강도·알맹이는 이대로 따라간다. 단 두 가지는 절대 따라가지 마라: 표 형식(아래 출력 형식 대신), 그리고 "댓글 남기면 ○○ 보내드릴게요" 식 CTA(아래 금지).
-② 이 대사 카테고리(재테크&부동산/커리어&자기계발/AI/라이프)의 닮은 레퍼 2~3개 — _분석현황.md 카테고리 인덱스나 planning_data.js의 keywords로 골라 연다.
+② 이 대사 카테고리(재테크&부동산/커리어&자기계발/AI/라이프)의 닮은 레퍼 2~3개 — \`python3 scripts/훅모음.py --카테고리 {카테고리}\` 로 훑고 닮은 것을 고른다. (planning_data.js 통째로 Read 금지 — 157KB.)
 
 [출력 형식 — 표 절대 금지 (모바일에서 표는 못 본다), 구간마다 3줄 블록]
 입력의 구간 순서 그대로, 각 구간을 아래 3줄로만 (앞뒤 머리말·분석·비교표 금지):
