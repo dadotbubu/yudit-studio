@@ -5904,7 +5904,7 @@ function salesRevenueEditorHTML(content) {
     ? '<p class="text-xs text-botanical-sage py-1">등록된 월이 없어요. 아래 “＋ 월 추가”로 시작하세요.</p>'
     : rows.map(r => `
       <div class="flex items-center gap-1.5 md:gap-2">
-        <select onchange="changeSalesRevenueMonth(${content.id}, '${r.month}', this.value)" class="w-28 md:w-36 shrink-0 px-2 md:px-3 rounded-lg border border-botanical-stone text-sm bg-white focus:outline-none" style="height:38px;">
+        <select onchange="changeSalesRevenueMonth(${content.id}, '${r.month}', this.value)" class="w-32 md:w-40 shrink-0 px-2 md:px-3 rounded-lg border border-botanical-stone text-sm bg-white focus:outline-none" style="height:38px;">
           ${monthOpts(r.month)}
         </select>
         <input type="number" value="${r.amount || ''}" placeholder="0" onchange="setSalesRevenue(${content.id}, '${r.month}', this.value, { refreshEditor: true })" class="flex-1 min-w-0 px-2 md:px-3 text-sm text-right rounded-lg border border-botanical-stone focus:outline-none" style="height:38px;">
@@ -5919,7 +5919,7 @@ function salesRevenueEditorHTML(content) {
         <button onclick="addSalesRevenueMonth(${content.id})" class="px-2.5 py-1.5 text-xs rounded-lg border border-dashed border-botanical-stone text-botanical-sage hover:bg-botanical-cream/40">＋ 월 추가</button>
         <span class="text-xs text-botanical-sage">합계 <span class="font-serif font-semibold text-sm text-botanical-fg">${fmt(salesRevenueTotal(content))}</span>원</span>
       </div>
-      <p class="text-[10px] text-botanical-sage/80">입력한 달 금액이 수익 현황에 바로 반영돼요 · 판매는 사업소득 3.3%</p>
+      <p class="text-[10px] text-botanical-sage">입력한 달 금액이 수익 현황에 바로 반영돼요 · 판매는 사업소득 3.3%</p>
     </div>
   `;
 }
@@ -7467,27 +7467,20 @@ function renderSalesMonthInput() {
     : salesContents.map(c => {
         const name = c.adInfo?.productName || c.title || '무제';
         const amount = getSalesAmount(c, month);
-        const yearTotal = getSalesRevenue(c)
-          .filter(r => r.month.startsWith(String(new Date().getFullYear())))
-          .reduce((s, r) => s + (r.amount || 0), 0);
         return `
-        <div class="flex items-center gap-2 py-2 border-b border-botanical-stone/40 last:border-0">
-          <button onclick="goToContentExpanded(${c.id})" class="flex-1 min-w-0 text-left">
-            <p class="text-sm truncate ${amount > 0 ? 'text-botanical-fg' : 'text-botanical-sage'}">${name}</p>
-            <p class="text-[10px] text-botanical-sage/80">연 누적 ${fmt(yearTotal)}원</p>
-          </button>
-          <input type="number" value="${amount || ''}" placeholder="0" onchange="setSalesRevenue(${c.id}, '${month}', this.value)" class="w-28 md:w-36 shrink-0 px-2 md:px-3 text-sm text-right rounded-lg border border-botanical-stone focus:outline-none" style="height:38px;">
+        <div class="flex items-center gap-2 py-2 border-b border-botanical-stone/40">
+          <button onclick="goToContentExpanded(${c.id})" class="flex-1 min-w-0 text-left text-sm truncate ${amount > 0 ? 'text-botanical-fg' : 'text-botanical-sage'}">${name}</button>
+          <input type="number" value="${amount || ''}" placeholder="0" onchange="setSalesRevenue(${c.id}, '${month}', this.value)" class="w-32 md:w-40 shrink-0 px-2 md:px-3 text-sm text-right rounded-lg border border-botanical-stone focus:outline-none" style="height:38px;">
           <span class="text-xs text-botanical-sage shrink-0">원</span>
         </div>`;
       }).join('');
 
   return `
     <div class="bg-white rounded-2xl p-5 shadow-sm mb-6">
-      <div class="flex items-center justify-between mb-1">
+      <div class="flex items-center justify-between mb-3">
         <h4 class="text-base font-semibold">판매 상품 <span class="font-serif italic">${monthNum}월</span> 매출</h4>
         <span class="text-sm text-botanical-sage">합계 <span class="font-serif font-semibold text-botanical-fg">${fmt(monthTotal)}</span>원</span>
       </div>
-      <p class="text-xs text-botanical-sage mb-3">달을 바꾸면 그 달 금액이 보여요. 숫자만 채우면 위 카드·그래프·세금에 바로 반영돼요.</p>
       ${body}
     </div>
   `;
