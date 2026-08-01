@@ -211,12 +211,108 @@ const fmt = (n) => (Number(n) || 0).toLocaleString();
 
 // 상태 표시 전용 짧은 레이블 (데이터 값은 기존 그대로 유지)
 const STATUS_LABEL = {
+  '계약완료': '계약 완료',
   '기획안1차공유': '기획안 공유',
-  '기획안최종컨펌': '기획안 컨펌',
   '영상1차공유': '영상 공유',
-  '영상최종컨펌': '영상 컨펌'
+  '업로드완료': '업로드 완료'
 };
 const statusText = (s) => STATUS_LABEL[s] || s || '';
+
+// ========== 진행 단계 정의 (상태 · 일정 마일스톤 공통) ==========
+// 광고만 브랜드 협업 4단계, 나머지(일반·판매·협찬)는 2단계로 통일
+const AD_STAGES = ['계약완료', '기획안1차공유', '영상1차공유', '업로드완료'];
+const GENERAL_STAGES = ['기획중', '업로드완료'];
+const AD_STAGE_SHORT = { '계약완료': '계약', '기획안1차공유': '기획안', '영상1차공유': '영상', '업로드완료': '업로드' };
+
+// 광고 흐름을 쓰는지 판단 — 판매/협찬은 일반과 동일한 흐름
+const usesAdFlow = (c) => !!(c && c.isRevenue && c.category === '광고');
+const getStages = (c) => (usesAdFlow(c) ? AD_STAGES : GENERAL_STAGES);
+const stagesForCategory = (cat) => (cat === '광고' ? AD_STAGES : GENERAL_STAGES);
+const defaultStatusFor = (cat) => stagesForCategory(cat)[0];
+
+// <select> 옵션 HTML 생성 (상태 드롭다운 공통)
+function statusOptionsHTML(stages, selected) {
+  return stages.map(s => `<option value="${s}" ${selected === s ? 'selected' : ''}>${statusText(s)}</option>`).join('');
+}
+
+// 폐지된 진행 단계 → 남은 단계 매핑 (일회성 마이그레이션)
+// 광고: 최종컨펌 단계를 1차공유로 병합 / 그 외: 업로드완료가 아니면 전부 기획중
+const AD_STAGE_MIGRATION = {
+  '기획안최종컨펌': '기획안1차공유',
+  '영상최종컨펌': '영상1차공유'
+};
+
+function mapLegacyStatus(status, category, isRevenue) {
+  if (!status) return status;
+  const stages = stagesForCategory(isRevenue ? category : null);
+  if (stages.includes(status)) return status; // '업로드완료'는 양쪽 모두에 있음
+  if (stages === AD_STAGES) return AD_STAGE_MIGRATION[status] || AD_STAGES[0];
+  return '기획중';
+}
+
+// 카테고리를 바꿔서 단계 집합이 달라졌을 때 상태·마일스톤을 새 단계로 맞춤
+function applyCategoryStageChange(content) {
+  const stages = getStages(content);
+  content.status = mapLegacyStatus(content.status, content.category, !!content.isRevenue) || stages[0];
+
+  if (Array.isArray(content.milestones) && content.milestones.length > 0) {
+    const merged = {};
+    content.milestones.forEach(m => {
+      if (!m?.status || !m.date) return;
+      const st = mapLegacyStatus(m.status, content.category, !!content.isRevenue);
+      if (!merged[st] || m.date < merged[st]) merged[st] = m.date;
+    });
+    content.milestones = Object.keys(merged)
+      .sort((a, b) => stages.indexOf(a) - stages.indexOf(b))
+      .map(status => ({ status, date: merged[status] }));
+  }
+}
+
+function migrateStatusStages() {
+  let changed = false;
+
+  (contentsData?.contents || []).forEach(content => {
+    const cat = content.category;
+    const isRev = !!content.isRevenue;
+    const stages = stagesForCategory(isRev ? cat : null);
+
+    const newStatus = mapLegacyStatus(content.status, cat, isRev);
+    if (newStatus !== content.status) {
+      content.status = newStatus;
+      changed = true;
+    }
+
+    if (Array.isArray(content.milestones) && content.milestones.length > 0) {
+      // 매핑 후 같은 단계로 겹치면 가장 빠른 날짜만 남김
+      const merged = {};
+      content.milestones.forEach(m => {
+        if (!m?.status || !m.date) return;
+        const st = mapLegacyStatus(m.status, cat, isRev);
+        if (!merged[st] || m.date < merged[st]) merged[st] = m.date;
+      });
+      const next = Object.keys(merged)
+        .sort((a, b) => stages.indexOf(a) - stages.indexOf(b))
+        .map(status => ({ status, date: merged[status] }));
+      if (JSON.stringify(next) !== JSON.stringify(content.milestones)) {
+        content.milestones = next;
+        changed = true;
+      }
+    }
+  });
+
+  // 콘텐츠와 연동 안 된 캘린더 항목(직접 등록분)도 상태 변환
+  // 마일스톤 항목은 reconcileCalendarMilestones()가 콘텐츠 기준으로 다시 맞춰줌
+  (calendarData?.items || []).forEach(it => {
+    if (it.isMilestone && it.contentId) return;
+    const newStatus = mapLegacyStatus(it.status, it.category, !!it.isRevenue);
+    if (newStatus !== it.status) {
+      it.status = newStatus;
+      changed = true;
+    }
+  });
+
+  return changed;
+}
 
 // 실제 업로드 날짜는 '업로드완료' 마일스톤에서만 가져옴
 // content.uploadDate (상단 '예정일' 메모 필드)는 어느 로직에도 연결 안 함
@@ -755,6 +851,16 @@ async function loadData() {
       localStorage.setItem('yudit_ideaMilestoneRemoved', 'true');
     }
 
+    // 일회성 마이그레이션: 진행 단계 축소 (제작중/기획안컨펌/영상컨펌 제거, 판매·협찬 → 일반 흐름)
+    if (!localStorage.getItem('yudit_stagesV2Migrated')) {
+      if (migrateStatusStages()) {
+        console.log('🔁 진행 단계 마이그레이션 완료');
+        saveAllData();
+        reconcileCalendarMilestones();
+      }
+      localStorage.setItem('yudit_stagesV2Migrated', 'true');
+    }
+
     // 일회성 마이그레이션: 월별 아이디어 → 전역 아이디어로 이동
     if (!localStorage.getItem('yudit_ideasGlobalMigrated') && plansData) {
       if (!plansData._ideas) plansData._ideas = [];
@@ -1017,6 +1123,8 @@ function initApp() {
   }
   // 초기 로드 후 캘린더 ↔ 마일스톤 정합성 한 번 정리 (stale orphan 제거 + 누락 추가)
   reconcileCalendarMilestones();
+  // 판매 콘텐츠의 월별 수익 ↔ 수익 리포트 정합성 정리 (다른 기기에서 입력한 분 포함)
+  if (reconcileSalesRevenue()) saveAllData();
 
   // 저장된 탭 복원 (앱 전환 후 복귀용) 또는 캘린더 기본
   // 30분(1800000ms) 이상 미사용 시 캘린더로 초기화
@@ -1480,17 +1588,11 @@ function renderMilestoneView() {
       }
     });
 
-    // Define stage order
-    const generalStages = ['기획중', '제작중', '업로드완료'];
-    const revenueStages = ['계약완료', '기획안1차공유', '기획안최종컨펌', '영상1차공유', '영상최종컨펌', '업로드완료'];
-
     allContents.forEach(content => {
       const color = categoryColors[content.category] || '#8C9A84';
       const milestones = content.milestones || milestonesByContent[content.id] || [];
-      const stages = content.isRevenue ? revenueStages : generalStages;
-      const stageLabels = content.isRevenue
-        ? ['계약', '기획1차', '기획최종', '영상1차', '영상최종', '업로드']
-        : ['기획중', '제작중', '업로드'];
+      const stages = getStages(content);
+      const stageLabels = stages.map(s => AD_STAGE_SHORT[s] || statusText(s));
 
       // Get date for each stage
       const stageDates = {};
@@ -1827,9 +1929,7 @@ function getRegistrationFormHTML(dateStr) {
       <div>
         <label class="text-sm font-medium block mb-1">상태</label>
         <select id="new-status" class="w-full px-3 py-2 rounded-xl border border-botanical-stone focus:outline-none">
-          <option value="기획중">기획중</option>
-          <option value="제작중">제작중</option>
-          <option value="업로드완료">업로드 완료</option>
+          ${statusOptionsHTML(GENERAL_STAGES)}
         </select>
       </div>
       <button onclick="saveNewCalendarItem('${dateStr}', 'general')" class="w-full py-2 bg-botanical-fg text-white rounded-xl hover:bg-botanical-fg/90 transition-all">등록</button>
@@ -1860,12 +1960,7 @@ function getRegistrationFormHTML(dateStr) {
       <div>
         <label class="text-sm font-medium block mb-1">상태</label>
         <select id="new-revenue-status" class="w-full px-3 py-2 rounded-xl border border-botanical-stone focus:outline-none">
-          <option value="계약완료">계약완료</option>
-          <option value="기획안1차공유">기획안 공유</option>
-          <option value="기획안최종컨펌">기획안 컨펌</option>
-          <option value="영상1차공유">영상 공유</option>
-          <option value="영상최종컨펌">영상 컨펌</option>
-          <option value="업로드완료">업로드 완료</option>
+          ${statusOptionsHTML(stagesForCategory(selectedRevenueType))}
         </select>
       </div>
       <button onclick="saveNewCalendarItem('${dateStr}', 'revenue')" class="w-full py-2 bg-botanical-terracotta text-white rounded-xl hover:bg-botanical-terracotta/90 transition-all">등록</button>
@@ -1904,6 +1999,10 @@ function selectRevenueType(type) {
   const btn = document.getElementById('rev-type-' + type);
   btn.classList.remove('border-botanical-stone', 'text-botanical-sage');
   btn.classList.add('border-botanical-terracotta', 'bg-botanical-terracotta/10', 'text-botanical-terracotta');
+
+  // 광고는 4단계, 판매·협찬은 일반과 같은 2단계 — 유형 바꾸면 상태 옵션 교체
+  const statusSel = document.getElementById('new-revenue-status');
+  if (statusSel) statusSel.innerHTML = statusOptionsHTML(stagesForCategory(type));
 }
 
 function saveNewCalendarItem(dateStr, formType) {
@@ -2500,7 +2599,7 @@ function openLinkContentPopup(planId) {
         <button onclick="linkContentToPlan('${planId}', ${content.id})" class="w-full p-3 rounded-lg border border-botanical-stone hover:border-botanical-sage cursor-pointer transition-all text-left">
           <div class="flex items-center justify-between gap-2 mb-1">
             <span class="inline-block px-2 py-0.5 rounded-md text-xs font-medium bg-botanical-cream text-botanical-sage">${content.category || '미분류'}</span>
-            <span class="text-xs text-botanical-sage">${content.status || ''}</span>
+            <span class="text-xs text-botanical-sage">${statusText(content.status)}</span>
           </div>
           <h4 class="text-sm font-semibold text-botanical-fg truncate">${content.title || '제목 없음'}</h4>
         </button>
@@ -2879,17 +2978,13 @@ function renderContentList() {
 
   filteredContents.forEach((content, idx) => {
     const statusColors = {
-      // 일반 상태
-      '아이디어': { bg: '#F3F4F6', text: '#4B5563' },
+      // 일반 · 판매 · 협찬 상태
       '기획중': { bg: '#FEF3C7', text: '#92400E' },
-      '제작중': { bg: '#DBEAFE', text: '#1E40AF' },
       '업로드완료': { bg: '#D1FAE5', text: '#065F46' },
-      // 수익 상태
+      // 광고 상태
       '계약완료': { bg: '#FCE7F3', text: '#9D174D' },
-      '기획안1차공유': { bg: '#FEF3C7', text: '#92400E' },
-      '기획안최종컨펌': { bg: '#FFEDD5', text: '#9A3412' },
-      '영상1차공유': { bg: '#DBEAFE', text: '#1E40AF' },
-      '영상최종컨펌': { bg: '#E0E7FF', text: '#3730A3' }
+      '기획안1차공유': { bg: '#FFEDD5', text: '#9A3412' },
+      '영상1차공유': { bg: '#DBEAFE', text: '#1E40AF' }
     };
     const statusStyle = statusColors[content.status] || statusColors['기획중'];
     const isCompleted = content.status === '완료' || content.status === '업로드완료';
@@ -3105,22 +3200,9 @@ function renderContentForm(content) {
         <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
           <div>
             <label class="text-xs text-botanical-sage mb-1 block">상태</label>
-            ${content.isRevenue ? `
             <select data-field="status" class="w-full px-3 py-2 rounded-lg border border-botanical-stone bg-white text-sm focus:outline-none">
-              <option value="계약완료" ${content.status === '계약완료' ? 'selected' : ''}>계약완료</option>
-              <option value="기획안1차공유" ${content.status === '기획안1차공유' ? 'selected' : ''}>기획안 공유</option>
-              <option value="기획안최종컨펌" ${content.status === '기획안최종컨펌' ? 'selected' : ''}>기획안 컨펌</option>
-              <option value="영상1차공유" ${content.status === '영상1차공유' ? 'selected' : ''}>영상 공유</option>
-              <option value="영상최종컨펌" ${content.status === '영상최종컨펌' ? 'selected' : ''}>영상 컨펌</option>
-              <option value="업로드완료" ${content.status === '업로드완료' ? 'selected' : ''}>업로드 완료</option>
+              ${statusOptionsHTML(getStages(content), content.status)}
             </select>
-            ` : `
-            <select data-field="status" class="w-full px-3 py-2 rounded-lg border border-botanical-stone bg-white text-sm focus:outline-none">
-              <option value="기획중" ${content.status === '기획중' ? 'selected' : ''}>기획중</option>
-              <option value="제작중" ${content.status === '제작중' ? 'selected' : ''}>제작중</option>
-              <option value="업로드완료" ${content.status === '업로드완료' ? 'selected' : ''}>업로드 완료</option>
-            </select>
-            `}
           </div>
           <div>
             <label class="text-xs text-botanical-sage mb-1 block">카테고리</label>
@@ -3177,49 +3259,13 @@ function renderContentForm(content) {
         <!-- 일정 (캘린더 연동) -->
         <div class="border-t border-botanical-stone pt-3 md:pt-4 mt-3 md:mt-4">
           <p class="text-sm font-medium mb-2 md:mb-3">일정 (캘린더 연동)</p>
-          ${content.isRevenue ? `
-          <div class="grid grid-cols-2 md:grid-cols-3 gap-2 md:gap-3">
+          <div class="grid grid-cols-2 ${usesAdFlow(content) ? 'md:grid-cols-4' : ''} gap-2 md:gap-3">
+            ${getStages(content).map((stage, i) => `
             <div>
-              <label class="text-xs text-botanical-sage block mb-1">계약완료</label>
-              <input type="date" id="milestone-${content.id}-contract" value="${getMilestoneDate(content, '계약완료')}" oninput="updateMilestone(${content.id}, '계약완료', this.value)" class="w-full px-2 md:px-3 py-1.5 md:py-2 rounded-lg border border-botanical-stone text-xs md:text-sm focus:outline-none">
-            </div>
-            <div>
-              <label class="text-xs text-botanical-sage block mb-1">기획안 공유</label>
-              <input type="date" id="milestone-${content.id}-plan1" value="${getMilestoneDate(content, '기획안1차공유')}" oninput="updateMilestone(${content.id}, '기획안1차공유', this.value)" class="w-full px-2 md:px-3 py-1.5 md:py-2 rounded-lg border border-botanical-stone text-xs md:text-sm focus:outline-none">
-            </div>
-            <div>
-              <label class="text-xs text-botanical-sage block mb-1">기획안 컨펌</label>
-              <input type="date" id="milestone-${content.id}-planfinal" value="${getMilestoneDate(content, '기획안최종컨펌')}" oninput="updateMilestone(${content.id}, '기획안최종컨펌', this.value)" class="w-full px-2 md:px-3 py-1.5 md:py-2 rounded-lg border border-botanical-stone text-xs md:text-sm focus:outline-none">
-            </div>
-            <div>
-              <label class="text-xs text-botanical-sage block mb-1">영상 공유</label>
-              <input type="date" id="milestone-${content.id}-video1" value="${getMilestoneDate(content, '영상1차공유')}" oninput="updateMilestone(${content.id}, '영상1차공유', this.value)" class="w-full px-2 md:px-3 py-1.5 md:py-2 rounded-lg border border-botanical-stone text-xs md:text-sm focus:outline-none">
-            </div>
-            <div>
-              <label class="text-xs text-botanical-sage block mb-1">영상 컨펌</label>
-              <input type="date" id="milestone-${content.id}-videofinal" value="${getMilestoneDate(content, '영상최종컨펌')}" oninput="updateMilestone(${content.id}, '영상최종컨펌', this.value)" class="w-full px-2 md:px-3 py-1.5 md:py-2 rounded-lg border border-botanical-stone text-xs md:text-sm focus:outline-none">
-            </div>
-            <div>
-              <label class="text-xs text-botanical-sage block mb-1">업로드 완료</label>
-              <input type="date" id="milestone-${content.id}-upload" value="${getMilestoneDate(content, '업로드완료')}" oninput="updateMilestone(${content.id}, '업로드완료', this.value)" class="w-full px-2 md:px-3 py-1.5 md:py-2 rounded-lg border border-botanical-stone text-xs md:text-sm focus:outline-none">
-            </div>
+              <label class="text-xs text-botanical-sage block mb-1">${statusText(stage)}</label>
+              <input type="date" id="milestone-${content.id}-${i}" value="${getMilestoneDate(content, stage)}" oninput="updateMilestone(${content.id}, '${stage}', this.value)" class="w-full px-2 md:px-3 py-1.5 md:py-2 rounded-lg border border-botanical-stone text-xs md:text-sm focus:outline-none">
+            </div>`).join('')}
           </div>
-          ` : `
-          <div class="grid grid-cols-3 gap-2 md:gap-3">
-            <div>
-              <label class="text-xs text-botanical-sage block mb-1">기획중</label>
-              <input type="date" id="milestone-${content.id}-planning" value="${getMilestoneDate(content, '기획중')}" oninput="updateMilestone(${content.id}, '기획중', this.value)" class="w-full px-2 md:px-3 py-1.5 md:py-2 rounded-lg border border-botanical-stone text-xs md:text-sm focus:outline-none">
-            </div>
-            <div>
-              <label class="text-xs text-botanical-sage block mb-1">제작중</label>
-              <input type="date" id="milestone-${content.id}-production" value="${getMilestoneDate(content, '제작중')}" oninput="updateMilestone(${content.id}, '제작중', this.value)" class="w-full px-2 md:px-3 py-1.5 md:py-2 rounded-lg border border-botanical-stone text-xs md:text-sm focus:outline-none">
-            </div>
-            <div>
-              <label class="text-xs text-botanical-sage block mb-1">업로드 완료</label>
-              <input type="date" id="milestone-${content.id}-upload" value="${getMilestoneDate(content, '업로드완료')}" oninput="updateMilestone(${content.id}, '업로드완료', this.value)" class="w-full px-2 md:px-3 py-1.5 md:py-2 rounded-lg border border-botanical-stone text-xs md:text-sm focus:outline-none">
-            </div>
-          </div>
-          `}
         </div>
       </div>
 
@@ -3229,9 +3275,9 @@ function renderContentForm(content) {
         <div class="flex items-center justify-between mb-4">
           <h3 class="font-medium flex items-center gap-2">
             <span class="w-6 h-6 rounded-full bg-botanical-sage/20 text-botanical-sage text-xs flex items-center justify-center">1</span>
-            ${content.category} 상세${content.category === '광고' ? ' (수익 연동)' : ''}
+            ${content.category} 상세${content.category === '협찬' ? '' : ' (수익 연동)'}
           </h3>
-          <span class="text-xs text-botanical-sage">${content.category === '광고' ? '수익 리포트 자동 반영' : '수익 연동 없음'}</span>
+          <span class="text-xs text-botanical-sage">${content.category === '협찬' ? '수익 연동 없음' : '수익 리포트 자동 반영'}</span>
         </div>
 
         <div class="border border-botanical-stone rounded-lg overflow-x-auto">
@@ -3311,6 +3357,12 @@ function renderContentForm(content) {
                     <input type="text" value="${content.adInfo?.saleLink || ''}" oninput="updateAdInfo(${content.id}, 'saleLink', this.value)" placeholder="https://..." class="flex-1 px-3 rounded-lg border border-botanical-stone text-sm focus:outline-none" style="height:38px;">
                     ${openLinkBtn(content.adInfo?.saleLink)}
                   </div>
+                </td>
+              </tr>
+              <tr class="border-b border-botanical-stone">
+                <td class="px-2 md:px-4 py-2 md:py-3 bg-botanical-terracotta/10 font-medium text-botanical-terracotta w-24 md:w-40 text-xs md:text-sm break-keep align-top">월별 수익</td>
+                <td class="px-2 md:px-4 py-2">
+                  ${salesRevenueEditorHTML(content)}
                 </td>
               </tr>
               ` : `
@@ -3741,6 +3793,8 @@ function updateMilestone(contentId, status, date) {
       uploadCell.textContent = date ? date.slice(5).replace('-', '/') : '-';
     }
     if (typeof renderPerformance === 'function') renderPerformance();
+    // 광고 수익 항목은 업로드완료 날짜 기준으로 월이 잡히므로 함께 갱신
+    if (content.isRevenue && content.category === '광고') syncRevenueFromContent(content);
   }
 
   // 캘린더에도 업데이트
@@ -5321,12 +5375,14 @@ function autoSaveTopField(el, contentId) {
     content.performance[key] = isNaN(num) ? 0 : num;
   } else if (field === 'status') {
     content.status = val;
+    // 마일스톤 항목은 각자의 단계를 들고 있으므로 건드리지 않음
     calendarData.items.forEach(item => {
-      if (item.contentId === contentId) item.status = val;
+      if (item.contentId === contentId && !item.isMilestone) item.status = val;
     });
   } else if (field === 'category') {
     content.category = val;
     content.isRevenue = ['광고', '판매', '협찬'].includes(val);
+    applyCategoryStageChange(content);
     calendarData.items.forEach(item => {
       if (item.contentId === contentId) {
         item.category = val;
@@ -5340,6 +5396,15 @@ function autoSaveTopField(el, contentId) {
   // 성과분석 탭은 상태/카테고리/성과에 따라 내용 바뀌므로 갱신 (uploadDate는 제외 — 메모)
   if (['status', 'category'].includes(field) || field.startsWith('performance.')) {
     if (typeof renderPerformance === 'function') renderPerformance();
+  }
+  // 카테고리가 바뀌면 진행 단계·상세 섹션·수익 연동이 통째로 달라지므로 다시 그림
+  if (field === 'category') {
+    reconcileCalendarMilestones();
+    syncRevenueFromContent(content); // saveAllData 포함
+    renderContentList();
+    renderCalendar();
+    reopenForm(contentId);
+    return;
   }
   saveAllData();
 }
@@ -5448,12 +5513,15 @@ function saveTopInfo(contentId) {
     } else if (field === 'category') {
       content.category = val;
       content.isRevenue = ['광고', '판매', '협찬'].includes(val);
+      applyCategoryStageChange(content);
       calendarData.items.forEach(item => {
         if (item.contentId === contentId) {
           item.category = val;
           item.type = content.isRevenue ? '광고' : '일반';
         }
       });
+      reconcileCalendarMilestones();
+      syncRevenueFromContent(content);
     } else {
       content[field] = val;
     }
@@ -5738,35 +5806,182 @@ function removeNotionLink(contentId, idx) {
   reopenForm(contentId);
 }
 
-// ========== 수익 리포트 자동 연동 ==========
-// 광고만 수익 리포트에 연동 (판매/협찬은 추후 별도 처리)
-function syncRevenueFromContent(content) {
-  if (!content.isRevenue || content.category !== '광고') {
-    // 광고가 아니면 혹시라도 등록된 ad 항목 제거
-    if (revenueData.items?.ad) {
-      revenueData.items.ad = revenueData.items.ad.filter(i => i.contentId !== content.id);
-    }
-    recalculateRevenueSummary();
-    saveAllData();
-    renderRevenue();
+// ========== 판매 월별 수익 ==========
+// 판매 상품은 업로드 한 번으로 끝이 아니라 매달 매출이 나오므로
+// content.salesRevenue = [{ month: 'YYYY-MM', amount: 숫자 }] 로 월별 관리
+function getSalesRevenue(content) {
+  if (!Array.isArray(content?.salesRevenue)) return [];
+  return content.salesRevenue
+    .filter(r => r && r.month)
+    .slice()
+    .sort((a, b) => b.month.localeCompare(a.month));
+}
+
+function salesRevenueTotal(content) {
+  return getSalesRevenue(content).reduce((s, r) => s + (r.amount || 0), 0);
+}
+
+function getSalesAmount(content, month) {
+  return getSalesRevenue(content).find(r => r.month === month)?.amount || 0;
+}
+
+// 월 금액 저장 (0 이하면 해당 월 삭제) — 판매 상세 / 수익 현황 공통 진입점
+function setSalesRevenue(contentId, month, rawValue, opts = {}) {
+  const content = contentsData.contents.find(c => c.id === contentId);
+  if (!content || !month) return;
+  if (!Array.isArray(content.salesRevenue)) content.salesRevenue = [];
+
+  const amount = Math.round(parseFloat(String(rawValue).replace(/[^0-9.-]/g, '')) || 0);
+  const idx = content.salesRevenue.findIndex(r => r.month === month);
+  if (amount > 0) {
+    if (idx >= 0) content.salesRevenue[idx].amount = amount;
+    else content.salesRevenue.push({ month, amount });
+  } else if (idx >= 0) {
+    content.salesRevenue.splice(idx, 1);
+  }
+  content.salesRevenue.sort((a, b) => b.month.localeCompare(a.month));
+
+  syncRevenueFromContent(content); // 저장 + 수익 리포트 갱신 포함
+  if (opts.refreshEditor) refreshSalesEditor(content);
+}
+
+// 월 자체를 바꿀 때 (같은 월이 이미 있으면 금액 합침)
+function changeSalesRevenueMonth(contentId, oldMonth, newMonth) {
+  const content = contentsData.contents.find(c => c.id === contentId);
+  if (!content || !newMonth || oldMonth === newMonth) return;
+  const rows = content.salesRevenue || [];
+  const from = rows.find(r => r.month === oldMonth);
+  if (!from) return;
+  const to = rows.find(r => r.month === newMonth);
+  if (to) {
+    to.amount = (to.amount || 0) + (from.amount || 0);
+    content.salesRevenue = rows.filter(r => r !== from);
+  } else {
+    from.month = newMonth;
+  }
+  content.salesRevenue.sort((a, b) => b.month.localeCompare(a.month));
+  syncRevenueFromContent(content);
+  refreshSalesEditor(content);
+}
+
+function addSalesRevenueMonth(contentId) {
+  const content = contentsData.contents.find(c => c.id === contentId);
+  if (!content) return;
+  if (!Array.isArray(content.salesRevenue)) content.salesRevenue = [];
+  // 아직 안 쓴 월 중 가장 최근 달을 기본값으로
+  const used = new Set(content.salesRevenue.map(r => r.month));
+  const candidate = getMonthOptions().map(o => o.value).find(m => !used.has(m));
+  if (!candidate) {
+    alert('추가할 수 있는 월이 없어요');
     return;
   }
+  content.salesRevenue.push({ month: candidate, amount: 0 });
+  content.salesRevenue.sort((a, b) => b.month.localeCompare(a.month));
+  saveAllData();
+  refreshSalesEditor(content);
+}
 
+function removeSalesRevenueMonth(contentId, month) {
+  const content = contentsData.contents.find(c => c.id === contentId);
+  if (!content?.salesRevenue) return;
+  content.salesRevenue = content.salesRevenue.filter(r => r.month !== month);
+  syncRevenueFromContent(content);
+  refreshSalesEditor(content);
+}
+
+// 콘텐츠 목록 전체 재렌더 없이 판매 수익 편집기만 다시 그림 (스크롤·열림 상태 유지)
+function refreshSalesEditor(content) {
+  const box = document.getElementById('sales-rev-' + content.id);
+  if (box) box.outerHTML = salesRevenueEditorHTML(content);
+}
+
+function salesRevenueEditorHTML(content) {
+  const rows = getSalesRevenue(content);
+  const monthOpts = (selected) => getMonthOptions(selected)
+    .map(o => `<option value="${o.value}" ${o.value === selected ? 'selected' : ''}>${o.label}</option>`).join('');
+
+  const body = rows.length === 0
+    ? '<p class="text-xs text-botanical-sage py-1">등록된 월이 없어요. 아래 “＋ 월 추가”로 시작하세요.</p>'
+    : rows.map(r => `
+      <div class="flex items-center gap-1.5 md:gap-2">
+        <select onchange="changeSalesRevenueMonth(${content.id}, '${r.month}', this.value)" class="w-28 md:w-36 shrink-0 px-2 md:px-3 rounded-lg border border-botanical-stone text-sm bg-white focus:outline-none" style="height:38px;">
+          ${monthOpts(r.month)}
+        </select>
+        <input type="number" value="${r.amount || ''}" placeholder="0" onchange="setSalesRevenue(${content.id}, '${r.month}', this.value, { refreshEditor: true })" class="flex-1 min-w-0 px-2 md:px-3 text-sm text-right rounded-lg border border-botanical-stone focus:outline-none" style="height:38px;">
+        <span class="text-xs text-botanical-sage shrink-0">원</span>
+        <button onclick="removeSalesRevenueMonth(${content.id}, '${r.month}')" class="shrink-0 px-1.5 py-1 text-xs text-botanical-terracotta hover:text-red-600">삭제</button>
+      </div>`).join('');
+
+  return `
+    <div id="sales-rev-${content.id}" class="space-y-1.5">
+      ${body}
+      <div class="flex items-center justify-between pt-2 mt-1 border-t border-botanical-stone/50">
+        <button onclick="addSalesRevenueMonth(${content.id})" class="px-2.5 py-1.5 text-xs rounded-lg border border-dashed border-botanical-stone text-botanical-sage hover:bg-botanical-cream/40">＋ 월 추가</button>
+        <span class="text-xs text-botanical-sage">합계 <span class="font-serif font-semibold text-sm text-botanical-fg">${fmt(salesRevenueTotal(content))}</span>원</span>
+      </div>
+      <p class="text-[10px] text-botanical-sage/80">입력한 달 금액이 수익 현황에 바로 반영돼요 · 판매는 사업소득 3.3%</p>
+    </div>
+  `;
+}
+
+// 판매 콘텐츠 하나가 수익 리포트에 만드는 항목들
+function salesEntriesFor(content) {
+  return getSalesRevenue(content)
+    .filter(r => r.amount > 0)
+    .map(r => ({
+      contentId: content.id,
+      date: `${r.month}-01`,
+      month: r.month,
+      brand: content.title || '무제',
+      amount: r.amount
+    }));
+}
+
+// 판매 콘텐츠 ↔ 수익 리포트 정합성 재구성
+// 콘텐츠를 열어 편집하지 않아도(다른 기기 입력·마이그레이션 직후) 리포트에 반영되도록 시작 시 1회
+function reconcileSalesRevenue() {
+  if (!Array.isArray(contentsData?.contents) || !revenueData) return false;
   if (!revenueData.items) revenueData.items = { ad: [], sales: [], sponsor: [] };
-  if (!revenueData.items.ad) revenueData.items.ad = [];
+  if (!Array.isArray(revenueData.items.sales)) revenueData.items.sales = [];
 
-  const total = (content.adInfo?.reelsFee || 0) + (content.adInfo?.contentFee || 0) + (content.adInfo?.secondaryFee || 0);
-  const date = getUploadDate(content) || new Date().toISOString().slice(0, 10);
+  // contentId 없는 항목은 수동 등록분이므로 보존
+  const manual = revenueData.items.sales.filter(i => !i.contentId);
+  const generated = contentsData.contents
+    .filter(c => c.isRevenue && c.category === '판매')
+    .flatMap(salesEntriesFor);
+
+  const next = [...manual, ...generated];
+  if (JSON.stringify(next) === JSON.stringify(revenueData.items.sales)) return false;
+
+  revenueData.items.sales = next;
+  recalculateRevenueSummary();
+  console.log(`💰 판매 수익 ${generated.length}건 재연동`);
+  return true;
+}
+
+// ========== 수익 리포트 자동 연동 ==========
+// 광고: 광고비 합계 1건 / 판매: 월별 수익 여러 건 / 협찬: 연동 없음
+function syncRevenueFromContent(content) {
+  if (!revenueData.items) revenueData.items = { ad: [], sales: [], sponsor: [] };
+  ['ad', 'sales', 'sponsor'].forEach(t => { if (!revenueData.items[t]) revenueData.items[t] = []; });
+
+  // 이 콘텐츠가 만든 기존 항목은 전부 걷어내고 현재 상태로 다시 등록
+  revenueData.items.ad = revenueData.items.ad.filter(i => i.contentId !== content.id);
+  revenueData.items.sales = revenueData.items.sales.filter(i => i.contentId !== content.id);
+
   const brand = content.title || '무제';
-  const incomeType = content.adInfo?.incomeType || 'etc';
 
-  const existingIdx = revenueData.items.ad.findIndex(item => item.contentId === content.id);
-  if (total > 0) {
-    const entry = { contentId: content.id, date, brand, amount: total, incomeType };
-    if (existingIdx >= 0) revenueData.items.ad[existingIdx] = entry;
-    else revenueData.items.ad.push(entry);
-  } else {
-    if (existingIdx >= 0) revenueData.items.ad.splice(existingIdx, 1);
+  if (content.isRevenue && content.category === '광고') {
+    const total = (content.adInfo?.reelsFee || 0) + (content.adInfo?.contentFee || 0) + (content.adInfo?.secondaryFee || 0);
+    const date = getUploadDate(content) || new Date().toISOString().slice(0, 10);
+    if (total > 0) {
+      revenueData.items.ad.push({
+        contentId: content.id, date, brand, amount: total,
+        incomeType: content.adInfo?.incomeType || 'etc'
+      });
+    }
+  } else if (content.isRevenue && content.category === '판매') {
+    revenueData.items.sales.push(...salesEntriesFor(content));
   }
 
   recalculateRevenueSummary();
@@ -5981,7 +6196,7 @@ function saveNewContent(formType) {
   }
 
   // 현재 상태: 선택한 상태가 있으면 그것, 없으면 기본값
-  const currentStatus = selectedStatus || (formType === 'revenue' ? '계약완료' : '기획중');
+  const currentStatus = selectedStatus || (formType === 'revenue' ? defaultStatusFor(category) : '기획중');
 
   const contentId = Date.now();
   const newContent = {
@@ -7183,6 +7398,8 @@ function renderRevenue() {
       </div>
     </div>
 
+    ${renderSalesMonthInput()}
+
     <div class="bg-white rounded-2xl p-5 shadow-sm mb-6">
       <p class="text-base font-semibold mb-3">세금 구분 (${realYear}년)</p>
       <div class="grid grid-cols-2 gap-3">
@@ -7234,6 +7451,48 @@ function renderRevenue() {
   if (revSubTab === 'mediakit') renderMediakitEditor();
 }
 
+// 선택한 달의 판매 상품 매출을 수익 탭에서 바로 입력 — 콘텐츠 목록은 업로드 월 기준으로
+// 필터되니까, 지난달에 올린 상품도 여기서는 항상 보이게 전체 판매 콘텐츠를 나열한다
+function renderSalesMonthInput() {
+  const month = revenueSelectedMonth;
+  const monthNum = parseInt(month.slice(5));
+  const salesContents = (contentsData?.contents || [])
+    .filter(c => c.isRevenue && c.category === '판매')
+    .sort((a, b) => b.id - a.id);
+
+  const monthTotal = salesContents.reduce((s, c) => s + getSalesAmount(c, month), 0);
+
+  const body = salesContents.length === 0
+    ? '<p class="text-sm text-botanical-sage">아직 판매 상품이 없어요. 콘텐츠를 <span class="text-botanical-fg">수익 → 판매</span>로 등록하면 여기에 나타나요.</p>'
+    : salesContents.map(c => {
+        const name = c.adInfo?.productName || c.title || '무제';
+        const amount = getSalesAmount(c, month);
+        const yearTotal = getSalesRevenue(c)
+          .filter(r => r.month.startsWith(String(new Date().getFullYear())))
+          .reduce((s, r) => s + (r.amount || 0), 0);
+        return `
+        <div class="flex items-center gap-2 py-2 border-b border-botanical-stone/40 last:border-0">
+          <button onclick="goToContentExpanded(${c.id})" class="flex-1 min-w-0 text-left">
+            <p class="text-sm truncate ${amount > 0 ? 'text-botanical-fg' : 'text-botanical-sage'}">${name}</p>
+            <p class="text-[10px] text-botanical-sage/80">연 누적 ${fmt(yearTotal)}원</p>
+          </button>
+          <input type="number" value="${amount || ''}" placeholder="0" onchange="setSalesRevenue(${c.id}, '${month}', this.value)" class="w-28 md:w-36 shrink-0 px-2 md:px-3 text-sm text-right rounded-lg border border-botanical-stone focus:outline-none" style="height:38px;">
+          <span class="text-xs text-botanical-sage shrink-0">원</span>
+        </div>`;
+      }).join('');
+
+  return `
+    <div class="bg-white rounded-2xl p-5 shadow-sm mb-6">
+      <div class="flex items-center justify-between mb-1">
+        <h4 class="text-base font-semibold">판매 상품 <span class="font-serif italic">${monthNum}월</span> 매출</h4>
+        <span class="text-sm text-botanical-sage">합계 <span class="font-serif font-semibold text-botanical-fg">${fmt(monthTotal)}</span>원</span>
+      </div>
+      <p class="text-xs text-botanical-sage mb-3">달을 바꾸면 그 달 금액이 보여요. 숫자만 채우면 위 카드·그래프·세금에 바로 반영돼요.</p>
+      ${body}
+    </div>
+  `;
+}
+
 function renderRevenueList(title, items, color) {
   const monthStr = revenueSelectedMonth;
   const yearStr = String(new Date().getFullYear());
@@ -7247,15 +7506,21 @@ function renderRevenueList(title, items, color) {
   };
   const style = colorStyles[color] || colorStyles['botanical-sage'];
 
-  const itemsHtml = items.map(item => {
+  // 판매는 일자가 의미 없어서 '08월'로 표시 (광고·협찬은 기존대로 월/일)
+  const isSales = title === '판매';
+  const sorted = items.slice().sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+
+  const itemsHtml = sorted.map(item => {
     const isOld = !item.date.startsWith(monthStr);
+    const dateLabel = isSales ? `${item.date.slice(5, 7)}월` : item.date.slice(5).replace('-', '/');
+    const jump = item.contentId ? `onclick="goToContentExpanded(${item.contentId})"` : '';
     return `
-      <div class="flex items-center justify-between py-1 hover:bg-botanical-cream/30 cursor-pointer ${isOld ? 'text-botanical-sage/70' : ''}">
-        <div class="flex items-center gap-2">
-          <span class="text-xs ${isOld ? '' : 'text-botanical-sage'} w-10">${item.date.slice(5).replace('-', '/')}</span>
-          <span class="text-sm">${item.brand}</span>
+      <div ${jump} class="flex items-center justify-between py-1 hover:bg-botanical-cream/30 cursor-pointer ${isOld ? 'text-botanical-sage/70' : ''}">
+        <div class="flex items-center gap-2 min-w-0">
+          <span class="text-xs ${isOld ? '' : 'text-botanical-sage'} w-10 shrink-0">${dateLabel}</span>
+          <span class="text-sm truncate">${item.brand}</span>
         </div>
-        <span class="text-sm font-semibold font-serif" ${color === 'botanical-clay' ? 'style="color: ' + (isOld ? 'rgba(200,182,166,0.7)' : '#C8B6A6') + ';"' : ''}>${fmt(item.amount)}<span class="font-sans text-xs text-botanical-sage">원</span></span>
+        <span class="text-sm font-semibold font-serif shrink-0" ${color === 'botanical-clay' ? 'style="color: ' + (isOld ? 'rgba(200,182,166,0.7)' : '#C8B6A6') + ';"' : ''}>${fmt(item.amount)}<span class="font-sans text-xs text-botanical-sage">원</span></span>
       </div>
     `;
   }).join('') || '<p class="text-sm text-botanical-sage">없음</p>';
