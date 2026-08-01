@@ -40,10 +40,17 @@
     .production-form select { height: 38px; box-sizing: border-box; }
     .production-form textarea { box-sizing: border-box; }
     /* iOS Safari/Chrome: date input이 native 렌더링으로 커지는 것 방지 */
+    /* display:block — inline-block이면 값이 빈 칸과 채워진 칸의 베이스라인이 달라져
+       같은 줄에서 박스 높낮이가 어긋난다 (iOS Safari에서 두드러짐) */
     .production-form input[type="date"] {
       -webkit-appearance: none;
       appearance: none;
       line-height: 1;
+      display: block;
+    }
+    /* iOS: 날짜 값 영역의 기본 margin 제거 — 값 유무에 따른 높이 차이 방지 */
+    .production-form input[type="date"]::-webkit-date-and-time-value {
+      margin: 0;
     }
     /* 모바일에서 필드 높이 축소 */
     @media (max-width: 767px) {
