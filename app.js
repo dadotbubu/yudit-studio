@@ -3753,7 +3753,6 @@ function renderContentForm(content) {
           <div class="flex gap-2">
             <button onclick="copyShareLink(${content.id}, 1)" class="px-3 py-1 rounded-full text-xs border border-botanical-stone hover:bg-botanical-cream transition-all">링크1 복사</button>
             <button id="copylink2-${content.id}" onclick="copyShareLink(${content.id}, 2)" class="${content.shareLink2 ? '' : 'hidden'} px-3 py-1 rounded-full text-xs border border-botanical-stone hover:bg-botanical-cream transition-all">링크2 복사</button>
-            <button onclick="copyDM(${content.id})" class="px-3 py-1 rounded-full text-xs border border-botanical-stone hover:bg-botanical-cream transition-all">DM 복사</button>
           </div>
         </div>
         <div class="mb-4 space-y-2">
@@ -3768,7 +3767,10 @@ function renderContentForm(content) {
           <button id="add-sharelink-${content.id}" onclick="addShareLink2(${content.id})" class="${content.shareLink2 ? 'hidden' : ''} w-full text-xs text-botanical-sage hover:text-botanical-fg border border-dashed border-botanical-stone rounded-lg px-3 py-1.5 transition-all">+ 링크 추가 (최대 2개)</button>
         </div>
         <div>
-          <label class="text-xs text-botanical-sage mb-2 block">DM 자동 답변</label>
+          <div class="flex items-center justify-between gap-2 mb-2">
+            <label class="text-xs text-botanical-sage">DM 자동 답변</label>
+            <button onclick="copyDM(${content.id})" class="px-2.5 py-0.5 rounded-full text-[11px] border border-botanical-stone text-botanical-sage hover:bg-botanical-cream transition-all">DM 복사</button>
+          </div>
           <textarea id="dm-${content.id}" rows="4" oninput="autoResize(this);updateContentField(${content.id}, 'dm', this.value)" class="auto-grow unified-text w-full px-3 py-2 rounded-lg border border-botanical-stone focus:outline-none focus:border-botanical-sage resize-none overflow-hidden">${content.dm || '안녕하세요 🙋‍♀️\n버튼 누르시면 👇🏻\n[ ]\n자료 확인하실 수 있어요'}</textarea>
         </div>
 
@@ -3777,10 +3779,7 @@ function renderContentForm(content) {
           const replies = content.commentReplies || [];
           return `
         <div class="mt-4 pt-3 border-t border-botanical-stone">
-          <div class="flex items-center justify-between gap-2 mb-1">
-            <label class="text-xs font-medium text-botanical-fg">댓글 답글</label>
-            <button onclick="copyCommentReplies(${content.id})" class="px-2.5 py-0.5 rounded-full text-[11px] border border-botanical-stone text-botanical-sage hover:bg-botanical-cream transition-all">전체 복사</button>
-          </div>
+          <label class="text-xs font-medium text-botanical-fg block mb-1">댓글 답글</label>
           <div class="space-y-2">
             ${[0, 1, 2, 3, 4].map(i => {
               const isFixed = i < 2;
@@ -4623,13 +4622,6 @@ function copyCommentReply(contentId, idx) {
   const el = document.getElementById(`reply${idx}-${contentId}`);
   if (!el || !el.value.trim()) { alert(`${idx + 1}번 답글이 비어있습니다`); return; }
   navigator.clipboard.writeText(el.value.trim()).then(() => alert(`${idx + 1}번 답글 복사됨`));
-}
-function copyCommentReplies(contentId) {
-  const list = [0, 1, 2, 3, 4]
-    .map(i => (document.getElementById(`reply${i}-${contentId}`)?.value || '').trim())
-    .filter(Boolean);
-  if (!list.length) { alert('복사할 답글이 없습니다'); return; }
-  navigator.clipboard.writeText(list.map((v, i) => `${i + 1}. ${v}`).join('\n')).then(() => alert(`댓글 답글 복사됨 (${list.length}개)`));
 }
 
 
