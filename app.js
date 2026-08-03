@@ -8880,11 +8880,10 @@ ${HM.banned.map(b => `✕ ${b}`).join('\n')}
 ${HM.combos.map(c => `· ${c}`).join('\n')}
 
 [문장 쓸 때 — 순서 5·6에서]
-${HM.writing.map(w => `· ${w}`).join('\n')}
-
-[가설 — 규칙 아님]
-※ ${HM.hypotheses.note}
-${HM.hypotheses.items.map(h => `· ${h}`).join('\n')}`;
+${HM.writing.map(w => `· ${w}`).join('\n')}`;
+  // 가설(hypotheses)은 상품 카피 출처라 정보·공감형에선 늘 '쓰지 마라' 대상이다.
+  // 기획 탭 목적이 정보/공감 둘뿐이라 프롬프트에 실으면 낭비 — 데이터에만 두고
+  // 나중에 광고·협찬용 프롬프트를 만들 때 거기서 꺼내 쓴다.
   const sentBlock = `[문장 전환 원칙 — 순서 6, 문장을 마감할 때]
 ※ ${HSR.core}
 ${HSR.switches.map(s => `- ${s.name}\n   └ ${s.how}`).join('\n')}
