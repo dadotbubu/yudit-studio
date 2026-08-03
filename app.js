@@ -3690,15 +3690,6 @@ function renderContentForm(content) {
           <button onclick="copyCaption(${content.id})" class="self-start px-3 py-1 rounded-full text-xs border border-botanical-stone hover:bg-botanical-cream transition-all">캡션 복사</button>
         </div>
 
-        <div class="mb-3 px-3 py-2 rounded-lg bg-botanical-cream/50 text-[11px] leading-relaxed text-botanical-sage">
-          <span class="font-medium text-botanical-terracotta">캡션은 영상 요약이 아니라 독립된 콘텐츠</span> — 아래 셋 중 <b>하나만</b> 골라서 끝까지
-          <div class="mt-1 flex flex-wrap gap-1">
-            <span class="px-2 py-0.5 rounded-full bg-white border border-botanical-stone">영상에서 못다한 이야기</span>
-            <span class="px-2 py-0.5 rounded-full bg-white border border-botanical-stone">당장 써먹을 수 있는 팁</span>
-            <span class="px-2 py-0.5 rounded-full bg-white border border-botanical-stone">솔직한 내 생각</span>
-          </div>
-        </div>
-
         <!-- 캡션 버전 탭 -->
         <div class="flex flex-wrap items-center gap-2 mb-3 relative">
           ${captionVersions.map((v, i) => {
@@ -3726,20 +3717,19 @@ function renderContentForm(content) {
         // 캡션은 위 3번 섹션이 담당 — 여기는 나머지 4개
         const boxes = [
           { field: 'pinnedComment', el: 'pinned', s: slot('pinned', 2, '고정 댓글'), ph: '시청자가 할 법한 강력한 한 문장 — 첫 댓글로 고정' },
-          { field: 'regramNote', el: 'regram', s: slot('regram', 3, '리그램 한마디'), ph: '반응 좋은 편만 — 아니면 비워두기' },
+          { field: 'regramNote', el: 'regram', s: slot('regram', 3, '리그램 한마디'), ph: '예) 영상 안 보면 진짜 섭섭함' },
           { field: 'storyNote', el: 'storynote', s: slot('story', 4, '스토리 한마디'), ph: '어떤 생각으로 만들었는지 1줄 + 누가 봐줬으면 하는지 1줄' },
           { field: 'storyComment', el: 'storycmt', s: slot('storyReply', 5, '스토리 댓글'), ph: '예) 이거 나만 그런 거 아니죠? ㅇ/ㄴ만 주세요' },
         ];
         return `
       <div class="md:border md:border-botanical-stone md:rounded-xl p-0 md:p-5">
-        <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-2 md:gap-0 mb-2">
+        <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-2 md:gap-0 mb-4">
           <h3 class="font-medium flex items-center gap-2">
             <span class="w-6 h-6 rounded-full bg-botanical-sage/20 text-botanical-sage text-xs flex items-center justify-center">4</span>
             소통 <span class="text-xs text-botanical-sage font-normal">고정댓글 · 리그램 · 스토리</span>
           </h3>
           <button onclick="copyPublishSet(${content.id})" class="self-start px-3 py-1 rounded-full text-xs border border-botanical-sage bg-botanical-sage/10 text-botanical-sage hover:bg-botanical-sage hover:text-white transition-all">세트 전체 복사</button>
         </div>
-        <p class="text-[11px] text-botanical-sage leading-relaxed mb-4">캡션(③)까지 합쳐 접점 5개. 조회수가 아니라 <b class="text-botanical-terracotta">인게이지먼트</b>를 만드는 자리 — 정보가 아니라 사람이 보여야 답장이 온다.</p>
         <div class="space-y-4">
           ${boxes.map(b => `
             <div>
@@ -3747,8 +3737,6 @@ function renderContentForm(content) {
                 <label class="text-xs font-medium text-botanical-fg">${b.s.no ? b.s.no + '. ' : ''}${b.s.name || ''}</label>
                 <button onclick="copyPublishField(${content.id}, '${b.el}', '${b.s.name || ''}')" class="px-2.5 py-0.5 rounded-full text-[11px] border border-botanical-stone text-botanical-sage hover:bg-botanical-cream transition-all">복사</button>
               </div>
-              <p class="text-[11px] text-botanical-sage leading-relaxed mb-1.5">${b.s.what || ''}${b.s.rule ? `<br><span class="text-botanical-stone">↳ ${b.s.rule}</span>` : ''}</p>
-              ${b.s.when ? `<p class="text-[11px] leading-relaxed mb-1.5 px-2 py-1.5 rounded-lg bg-botanical-terracotta/10 text-botanical-terracotta">${b.s.when}</p>` : ''}
               <textarea id="${b.el}-${content.id}" rows="2" oninput="autoResize(this);updateContentField(${content.id}, '${b.field}', this.value)" placeholder="${b.ph}" class="auto-grow unified-text w-full px-3 py-2 rounded-lg border border-botanical-stone focus:outline-none focus:border-botanical-sage resize-none overflow-hidden">${content[b.field] || ''}</textarea>
             </div>
           `).join('')}
@@ -3787,15 +3775,13 @@ function renderContentForm(content) {
 
         <!-- 댓글 답글 5개 (돌려쓰기) -->
         ${(() => {
-          const CR = (typeof PLANNING_DATA !== 'undefined' && PLANNING_DATA.publishSet && PLANNING_DATA.publishSet.commentReplies) || {};
           const replies = content.commentReplies || [];
           return `
         <div class="mt-4 pt-3 border-t border-botanical-stone">
           <div class="flex items-center justify-between gap-2 mb-1">
-            <label class="text-xs font-medium text-botanical-fg">댓글 답글 <span class="text-botanical-sage font-normal">5개 돌려쓰기</span></label>
+            <label class="text-xs font-medium text-botanical-fg">댓글 답글</label>
             <button onclick="copyCommentReplies(${content.id})" class="px-2.5 py-0.5 rounded-full text-[11px] border border-botanical-stone text-botanical-sage hover:bg-botanical-cream transition-all">전체 복사</button>
           </div>
-          <p class="text-[11px] text-botanical-sage leading-relaxed mb-3">${CR.note || 'DM 발송 뒤 그 댓글에 다는 답글. 5개를 돌려가며 쓴다.'}${CR.rule ? `<br><span class="text-botanical-stone">↳ ${CR.rule}</span>` : ''}</p>
           <div class="space-y-2">
             ${[0, 1, 2, 3, 4].map(i => {
               const isFixed = i < 2;
@@ -3803,12 +3789,11 @@ function renderContentForm(content) {
               return `
               <div class="flex items-start gap-2">
                 <span class="shrink-0 mt-2 w-10 text-center text-[10px] px-1 py-0.5 rounded-full ${isFixed ? 'bg-botanical-cream text-botanical-sage' : 'bg-botanical-terracotta/10 text-botanical-terracotta'}">${i + 1} ${isFixed ? '고정' : '맞춤'}</span>
-                <textarea id="reply${i}-${content.id}" rows="1" oninput="autoResize(this);updateCommentReply(${content.id}, ${i}, this.value)" placeholder="${isFixed ? '' : '이 게시물에 맞게 — 영상 내용을 한 조각 얹어서'}" class="auto-grow unified-text flex-1 min-w-0 px-3 py-2 rounded-lg border border-botanical-stone focus:outline-none focus:border-botanical-sage resize-none overflow-hidden">${val}</textarea>
+                <textarea id="reply${i}-${content.id}" rows="1" oninput="autoResize(this);updateCommentReply(${content.id}, ${i}, this.value)" placeholder="" class="auto-grow unified-text flex-1 min-w-0 px-3 py-2 rounded-lg border border-botanical-stone focus:outline-none focus:border-botanical-sage resize-none overflow-hidden">${val}</textarea>
                 <button onclick="copyCommentReply(${content.id}, ${i})" class="shrink-0 mt-1 px-2.5 py-1 rounded-lg text-[11px] border border-botanical-stone text-botanical-sage hover:bg-botanical-cream transition-all">복사</button>
               </div>`;
             }).join('')}
           </div>
-          <p class="text-[11px] text-botanical-stone leading-relaxed mt-2">${CR.custom || '3~5번은 게시물마다 새로 쓴다.'}</p>
         </div>`;
         })()}
       </div>
