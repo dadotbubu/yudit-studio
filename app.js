@@ -3718,15 +3718,15 @@ function renderContentForm(content) {
       </div>`;
       })()}
 
-      <!-- 4. 발행 세트 (리그램·고정댓글·스토리) -->
+      <!-- 4. 소통 (고정댓글·리그램·스토리) -->
       ${(() => {
         // planning_data.js는 app.js와 독립 로드 — 아직 없어도 폼은 그려져야 한다 (라벨만 기본값)
         const PS = (typeof PLANNING_DATA !== 'undefined' && PLANNING_DATA.publishSet && PLANNING_DATA.publishSet.slots) || [];
         const slot = (id, fallbackNo, fallbackName) => PS.find(s => s.id === id) || { no: fallbackNo, name: fallbackName };
         // 캡션은 위 3번 섹션이 담당 — 여기는 나머지 4개
         const boxes = [
-          { field: 'regramNote', el: 'regram', s: slot('regram', 2, '리그램 한마디'), ph: '예) 영상 안 보면 진짜 섭섭함' },
-          { field: 'pinnedComment', el: 'pinned', s: slot('pinned', 3, '고정 댓글'), ph: '시청자가 할 법한 강력한 한 문장 — 첫 댓글로 고정' },
+          { field: 'pinnedComment', el: 'pinned', s: slot('pinned', 2, '고정 댓글'), ph: '시청자가 할 법한 강력한 한 문장 — 첫 댓글로 고정' },
+          { field: 'regramNote', el: 'regram', s: slot('regram', 3, '리그램 한마디'), ph: '반응 좋은 편만 — 아니면 비워두기' },
           { field: 'storyNote', el: 'storynote', s: slot('story', 4, '스토리 한마디'), ph: '어떤 생각으로 만들었는지 1줄 + 누가 봐줬으면 하는지 1줄' },
           { field: 'storyComment', el: 'storycmt', s: slot('storyReply', 5, '스토리 댓글'), ph: '예) 이거 나만 그런 거 아니죠? ㅇ/ㄴ만 주세요' },
         ];
@@ -3735,7 +3735,7 @@ function renderContentForm(content) {
         <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-2 md:gap-0 mb-2">
           <h3 class="font-medium flex items-center gap-2">
             <span class="w-6 h-6 rounded-full bg-botanical-sage/20 text-botanical-sage text-xs flex items-center justify-center">4</span>
-            발행 세트 <span class="text-xs text-botanical-sage font-normal">리그램 · 고정댓글 · 스토리</span>
+            소통 <span class="text-xs text-botanical-sage font-normal">고정댓글 · 리그램 · 스토리</span>
           </h3>
           <button onclick="copyPublishSet(${content.id})" class="self-start px-3 py-1 rounded-full text-xs border border-botanical-sage bg-botanical-sage/10 text-botanical-sage hover:bg-botanical-sage hover:text-white transition-all">세트 전체 복사</button>
         </div>
@@ -3748,6 +3748,7 @@ function renderContentForm(content) {
                 <button onclick="copyPublishField(${content.id}, '${b.el}', '${b.s.name || ''}')" class="px-2.5 py-0.5 rounded-full text-[11px] border border-botanical-stone text-botanical-sage hover:bg-botanical-cream transition-all">복사</button>
               </div>
               <p class="text-[11px] text-botanical-sage leading-relaxed mb-1.5">${b.s.what || ''}${b.s.rule ? `<br><span class="text-botanical-stone">↳ ${b.s.rule}</span>` : ''}</p>
+              ${b.s.when ? `<p class="text-[11px] leading-relaxed mb-1.5 px-2 py-1.5 rounded-lg bg-botanical-terracotta/10 text-botanical-terracotta">${b.s.when}</p>` : ''}
               <textarea id="${b.el}-${content.id}" rows="2" oninput="autoResize(this);updateContentField(${content.id}, '${b.field}', this.value)" placeholder="${b.ph}" class="auto-grow unified-text w-full px-3 py-2 rounded-lg border border-botanical-stone focus:outline-none focus:border-botanical-sage resize-none overflow-hidden">${content[b.field] || ''}</textarea>
             </div>
           `).join('')}
@@ -3783,6 +3784,33 @@ function renderContentForm(content) {
           <label class="text-xs text-botanical-sage mb-2 block">DM 자동 답변</label>
           <textarea id="dm-${content.id}" rows="4" oninput="autoResize(this);updateContentField(${content.id}, 'dm', this.value)" class="auto-grow unified-text w-full px-3 py-2 rounded-lg border border-botanical-stone focus:outline-none focus:border-botanical-sage resize-none overflow-hidden">${content.dm || '안녕하세요 🙋‍♀️\n버튼 누르시면 👇🏻\n[ ]\n자료 확인하실 수 있어요'}</textarea>
         </div>
+
+        <!-- 댓글 답글 5개 (돌려쓰기) -->
+        ${(() => {
+          const CR = (typeof PLANNING_DATA !== 'undefined' && PLANNING_DATA.publishSet && PLANNING_DATA.publishSet.commentReplies) || {};
+          const replies = content.commentReplies || [];
+          return `
+        <div class="mt-4 pt-3 border-t border-botanical-stone">
+          <div class="flex items-center justify-between gap-2 mb-1">
+            <label class="text-xs font-medium text-botanical-fg">댓글 답글 <span class="text-botanical-sage font-normal">5개 돌려쓰기</span></label>
+            <button onclick="copyCommentReplies(${content.id})" class="px-2.5 py-0.5 rounded-full text-[11px] border border-botanical-stone text-botanical-sage hover:bg-botanical-cream transition-all">전체 복사</button>
+          </div>
+          <p class="text-[11px] text-botanical-sage leading-relaxed mb-3">${CR.note || 'DM 발송 뒤 그 댓글에 다는 답글. 5개를 돌려가며 쓴다.'}${CR.rule ? `<br><span class="text-botanical-stone">↳ ${CR.rule}</span>` : ''}</p>
+          <div class="space-y-2">
+            ${[0, 1, 2, 3, 4].map(i => {
+              const isFixed = i < 2;
+              const val = replies[i] ?? (isFixed ? (COMMENT_REPLY_FIXED[i] || '') : '');
+              return `
+              <div class="flex items-start gap-2">
+                <span class="shrink-0 mt-2 w-10 text-center text-[10px] px-1 py-0.5 rounded-full ${isFixed ? 'bg-botanical-cream text-botanical-sage' : 'bg-botanical-terracotta/10 text-botanical-terracotta'}">${i + 1} ${isFixed ? '고정' : '맞춤'}</span>
+                <textarea id="reply${i}-${content.id}" rows="1" oninput="autoResize(this);updateCommentReply(${content.id}, ${i}, this.value)" placeholder="${isFixed ? '' : '이 게시물에 맞게 — 영상 내용을 한 조각 얹어서'}" class="auto-grow unified-text flex-1 min-w-0 px-3 py-2 rounded-lg border border-botanical-stone focus:outline-none focus:border-botanical-sage resize-none overflow-hidden">${val}</textarea>
+                <button onclick="copyCommentReply(${content.id}, ${i})" class="shrink-0 mt-1 px-2.5 py-1 rounded-lg text-[11px] border border-botanical-stone text-botanical-sage hover:bg-botanical-cream transition-all">복사</button>
+              </div>`;
+            }).join('')}
+          </div>
+          <p class="text-[11px] text-botanical-stone leading-relaxed mt-2">${CR.custom || '3~5번은 게시물마다 새로 쓴다.'}</p>
+        </div>`;
+        })()}
       </div>
 
       <!-- Delete Button -->
@@ -4588,8 +4616,8 @@ function copyPinnedComment(contentId) {
 // 폼의 textarea id 접두어 ↔ 라벨. 캡션은 3번 섹션에 따로 있어 여기서 같이 읽어온다.
 const PUBLISH_SET_FIELDS = [
   { el: 'caption', name: '캡션' },
-  { el: 'regram', name: '리그램 한마디' },
   { el: 'pinned', name: '고정 댓글' },
+  { el: 'regram', name: '리그램 한마디' },
   { el: 'storynote', name: '스토리 한마디' },
   { el: 'storycmt', name: '스토리 댓글' },
 ];
@@ -4598,6 +4626,36 @@ function copyPublishField(contentId, elPrefix, label) {
   if (!el || !el.value.trim()) { alert(`복사할 ${label || '내용'}이 없습니다`); return; }
   navigator.clipboard.writeText(el.value.trim()).then(() => alert(`${label || '내용'} 복사됨`));
 }
+// ===== 댓글 답글 5개 (돌려쓰기) =====
+// 1·2번은 고정 문구, 3~5번은 게시물마다 새로. planning_data.js가 아직 없어도 폼은 떠야 한다.
+const COMMENT_REPLY_FIXED = (typeof PLANNING_DATA !== 'undefined' && PLANNING_DATA.publishSet?.commentReplies?.fixed) || [
+  '소중한 관심 감사합니다! 링크 발송 완료입니다 🛫',
+  '발송 완료! 안 보이면 숨김 메시지함도 확인해주세요📩'
+];
+function updateCommentReply(contentId, idx, value) {
+  const content = contentsData.contents.find(c => c.id === contentId);
+  if (!content) return;
+  if (!Array.isArray(content.commentReplies)) {
+    // 저장 전이면 화면에 보이던 고정 문구부터 채워 넣는다 (1·2번이 빈 값으로 굳지 않게)
+    content.commentReplies = [COMMENT_REPLY_FIXED[0] || '', COMMENT_REPLY_FIXED[1] || '', '', '', ''];
+  }
+  content.commentReplies[idx] = value;
+  markDirty('contents');
+  saveAllData();
+}
+function copyCommentReply(contentId, idx) {
+  const el = document.getElementById(`reply${idx}-${contentId}`);
+  if (!el || !el.value.trim()) { alert(`${idx + 1}번 답글이 비어있습니다`); return; }
+  navigator.clipboard.writeText(el.value.trim()).then(() => alert(`${idx + 1}번 답글 복사됨`));
+}
+function copyCommentReplies(contentId) {
+  const list = [0, 1, 2, 3, 4]
+    .map(i => (document.getElementById(`reply${i}-${contentId}`)?.value || '').trim())
+    .filter(Boolean);
+  if (!list.length) { alert('복사할 답글이 없습니다'); return; }
+  navigator.clipboard.writeText(list.map((v, i) => `${i + 1}. ${v}`).join('\n')).then(() => alert(`댓글 답글 복사됨 (${list.length}개)`));
+}
+
 function copyPublishSet(contentId) {
   const blocks = PUBLISH_SET_FIELDS.map(f => {
     const el = document.getElementById(f.el + '-' + contentId);
@@ -6277,6 +6335,7 @@ function saveNewContent(formType) {
     storyNote: '',
     storyComment: '',
     dm: '',
+    commentReplies: [COMMENT_REPLY_FIXED[0] || '', COMMENT_REPLY_FIXED[1] || '', '', '', ''],
     shareLinks: [],
     checklist: [
       {item: '레퍼런스 분석', checked: false},
@@ -8757,7 +8816,7 @@ function plRenderGen() {
         <div class="flex items-center gap-2"><span class="w-5 h-5 rounded-full bg-botanical-terracotta text-white text-[11px] font-bold flex items-center justify-center">4</span><h3 class="font-medium text-sm">발행 세트 뽑기</h3></div>
         <button onclick="plResetPublish()" class="text-[11px] text-botanical-sage hover:text-botanical-terracotta">↺ 초기화</button>
       </div>
-      <p class="text-[11px] text-botanical-sage leading-relaxed mt-2 mb-2">캡션 · 리그램 한마디 · 고정 댓글 · 스토리 한마디 · 스토리 댓글 — 접점 5개를 한 번에. 조회수가 아니라 인게이지먼트를 만드는 자리.</p>
+      <p class="text-[11px] text-botanical-sage leading-relaxed mt-2 mb-2">캡션 · 고정 댓글 · 리그램 한마디 · 스토리 한마디 · 스토리 댓글 + 댓글 답글 — 한 번에. 조회수가 아니라 인게이지먼트를 만드는 자리.</p>
       <label class="block text-xs text-botanical-sage mb-1">최종 대본 붙여넣기 <span class="text-botanical-stone">(③까지 거쳐 확정된 대사)</span></label>
       <textarea id="pl-pub" rows="6" class="${PL_INPUT_CLS}" style="resize:none;overflow:hidden;min-height:120px" placeholder="확정된 대본을 통째로 붙여넣으세요" oninput="plAutoGrow(this);plSaveState()"></textarea>
       <div class="flex gap-2 mt-4">
@@ -9143,13 +9202,20 @@ function plBuildPublishPrompt(mode = 'chat') {
   const slotBlock = PS.slots.map(s => {
     const lines = [`${s.no}. ${s.name} — ${s.what}`];
     if (s.pick) lines.push(`   · 아래 셋 중 하나만 골라 끝까지: ${s.pick.join(' / ')}`);
+    if (s.when) lines.push(`   · ${s.when}`);
     if (s.rule) lines.push(`   · ${s.rule}`);
     if (s.ex) lines.push(`   · 톤 예시: ${s.ex.map(e => `"${e}"`).join(' / ')}`);
     if (s.bad) lines.push(`   ✕ ${s.bad}`);
     return lines.join('\n');
   }).join('\n\n');
   const sentSwitch = HSR.switches.map(s => s.name).join(' · ');
-  if (mode === 'code') return `앤, 대본은 끝났고 이제 발행 세트다. 접점 5개(캡션·리그램 한마디·고정 댓글·스토리 한마디·스토리 댓글)를 뽑아줘.
+  const CR = PS.commentReplies || {};
+  const replyBlock = `[댓글 답글 — 3~5번만 쓴다]
+${CR.note || ''}
+· 1·2번은 고정이라 건드리지 마라: ${(CR.fixed || []).map(f => `"${f}"`).join(' / ')}
+· ${CR.custom || ''}
+· ${CR.rule || ''}`;
+  if (mode === 'code') return `앤, 대본은 끝났고 이제 발행 세트다. 접점 5개(캡션·고정 댓글·리그램 한마디·스토리 한마디·스토리 댓글) + 댓글 답글을 뽑아줘.
 
 ★ 먼저 \`릴스-대본\` 스킬의 「시작 전에 찍는 것」을 찍어라 (세계관·말투). 기억으로 쓰지 마라.
    (planning_data.js 통째로 Read 금지 — 157KB.)
@@ -9163,6 +9229,8 @@ ${slotBlock}
 ${sentSwitch}
 → ${HSR.selfCheck}
 
+${replyBlock}
+
 [점검]
 ${PS.checks.map(c => `☑ ${c}`).join('\n')}
 
@@ -9170,7 +9238,7 @@ ${PS.checks.map(c => `☑ ${c}`).join('\n')}
 [확정 대본]
 ${script || '(대본 붙여넣기)'}
 
-[출력] 5개를 이 순서로, 라벨 + 본문만 깔끔하게. 스토리 댓글은 답장이 실제로 올 만한 것으로 2~3개 후보를 내라.`;
+[출력] 5개를 이 순서로, 라벨 + 본문만 깔끔하게. 스토리 댓글은 답장이 실제로 올 만한 것으로 2~3개 후보를 내라. 마지막에 댓글 답글 3~5번(3개)을 덧붙여라.`;
   return `너는 인스타그램 릴스 발행 담당이다. 아래 확정 대본을 가지고, 영상 업로드 뒤에 붙는 접점 5개를 쓴다.
 
 [계정 컨텍스트]
@@ -9190,6 +9258,8 @@ ${HSR.switches.map(s => `- ${s.name}: ${s.how}`).join('\n')}
 ${HSR.pairs.slice(0, 3).map(p => `  ✕ ${p.x} → ○ ${p.o}`).join('\n')}
 → ${HSR.selfCheck}
 
+${replyBlock}
+
 [말투] 유디트 말투 — ~예요/~거든요/~더라고요, 1인칭 경험. 단 리그램 한마디·스토리 댓글은 반말·혼잣말 OK.
 
 [주제] ${topic || '(주제)'}
@@ -9202,7 +9272,8 @@ ${script || '(대본 붙여넣기)'}
 ③ 고정 댓글
 ④ 스토리 한마디
 ⑤ 스토리 댓글 — 답장이 실제로 올 만한 후보 2~3개
-⑥ 점검 한 줄: 부탁 문장 없음 / 5개가 서로 다른 말 / 사람이 보임 / 문장 전환 원칙 통과 — 넷 다 ○인지`;
+⑥ 댓글 답글 3~5번 (3개, 1·2번 고정 문구는 빼고)
+⑦ 점검 한 줄: 부탁 문장 없음 / 5개가 서로 다른 말 / 사람이 보임 / 문장 전환 원칙 통과 — 넷 다 ○인지`;
 }
 function plGenPublish(mode = 'chat') {
   const txt = (document.getElementById('pl-pub').value || '').trim();
