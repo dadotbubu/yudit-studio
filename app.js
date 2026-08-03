@@ -8866,6 +8866,10 @@ function plBuildHookPrompt(mode = 'chat') {
   const methodBlock = `[훅 짜는 순서 — 이 순서를 건너뛰지 마라]
 ${HM.steps.join('\n')}
 
+[말투 — 스킬을 못 열었어도 이건 지켜라]
+유디트 말투: ~예요 / ~거든요 / ~더라고요, 1인칭 경험, 생동감 있는 추임새. 훅(첫 3초)은 반말도 OK.
+✕ 딱딱한 '~습니다' 문어체로 8개를 도배하는 것 — 그건 유디트 문장이 아니다.
+
 [역할 분담 — 훅에 다 넣으려다 훅이 망가진다]
 ${Object.entries(HM.roles).map(([k, v]) => `- ${k}: ${v}`).join('\n')}
 
@@ -8889,6 +8893,7 @@ ${HM.writing.map(w => `· ${w}`).join('\n')}`;
 ${HSR.switches.map(s => `- ${s.name}\n   └ ${s.how}`).join('\n')}
 ${HSR.pairs.map(p => `  ✕ ${p.x}  →  ○ ${p.o}`).join('\n')}
 → ${HSR.selfCheck}
+※ ${HSR.tone}
 ※ ${HSR.note.split('★')[1] || ''}`;
   const gateBody = plSel.purpose === 'empathy'
     ? '이 주제가 공감되고 곱씹게 만드나 (공감 상황 / 나만의 인사이트 / 솔직한 감정) — ○/△/✕ + 한 줄'
