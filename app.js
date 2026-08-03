@@ -8874,7 +8874,14 @@ ${HM.facts5.map((f, i) => `${i + 1}. ${f}`).join('\n')}
 ${HM.banned.map(b => `✕ ${b}`).join('\n')}
 
 [겹치면 세지는 조합]
-${HM.combos.map(c => `· ${c}`).join('\n')}`;
+${HM.combos.map(c => `· ${c}`).join('\n')}
+
+[문장 쓸 때 — 순서 5·6에서]
+${HM.writing.map(w => `· ${w}`).join('\n')}
+
+[가설 — 규칙 아님]
+※ ${HM.hypotheses.note}
+${HM.hypotheses.items.map(h => `· ${h}`).join('\n')}`;
   const sentBlock = `[문장 전환 원칙 — 순서 6, 문장을 마감할 때]
 ※ ${HSR.core}
 ${HSR.switches.map(s => `- ${s.name}\n   └ ${s.how}`).join('\n')}
@@ -8918,7 +8925,7 @@ ${outBlock}
     const why = (r.viral || '').split('\n').filter(Boolean)[0] || '';
     return `  · ${r.hook}${why ? '\n    → ' + why : ''}`;
   }).join('\n');
-  const angles = D.hookAngles.map(a => `- ${a.name} — ${a.desc}${a.pattern ? '\n   └ 공식: ' + a.pattern : ''}`).join('\n');
+  const angles = D.hookAngles.map(a => `- ${a.name} — ${a.desc}${a.pattern ? '\n   └ 공식: ' + a.pattern : ''}${a.how ? '\n   └ ' + a.how : ''}`).join('\n');
   return `너는 인스타그램 릴스 훅 기획 에이전트다. 주어진 주제로 스크롤을 멈추게 하는 첫 3초 훅을 만든다. 앵글에서 출발하지 말고 사실에서 출발하라.
 
 [계정 컨텍스트]
