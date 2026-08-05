@@ -8559,7 +8559,7 @@ function editCategoryGoal(category) {
 
 // ========== Planning Tab (기획) ==========
 // 데이터: data/planning_data.js (PLANNING_DATA) — 레퍼 50개 분석 기반
-let plSel = { len: '30초 내외', purpose: 'info', prod: 'speak', section: 'gen' };
+let plSel = { len: '30초 내외', purpose: 'info', prod: 'speak', section: 'gen', format: '릴스' };
 let plCustomHooks = null; // Supabase에서 로드 (planning_hooks)
 const PL_DRAFT_LS = 'yudit_planning_draft'; // localStorage 키 (기기별 자동저장)
 const PL_DRAFT_CLOUD = 'planning_draft';    // Supabase 키 (기기 연동 임시저장)
@@ -8694,6 +8694,11 @@ function plUseIdea(ideaId) {
     cat.value = idea.category;
     plFillPreset();
   }
+  const fmt = document.getElementById('pl-format');
+  if (fmt && idea.format && [...fmt.options].some(o => o.value === idea.format)) {
+    fmt.value = idea.format;
+    plSel.format = idea.format;
+  }
   const topic = document.getElementById('pl-topic');
   if (topic) {
     topic.value = idea.title + (idea.description ? '\n' + idea.description : '');
@@ -8727,6 +8732,12 @@ function plRenderGen() {
       <label class="block text-xs text-botanical-sage mb-1">카테고리</label>
       <select id="pl-cat" class="${PL_INPUT_CLS}" onchange="plFillPreset();plSaveState()">
         ${Object.keys(D.presets).map(c => `<option>${c}</option>`).join('')}<option>직접 입력</option>
+      </select>
+      <label class="block text-xs text-botanical-sage mb-1 mt-3">형식</label>
+      <select id="pl-format" class="${PL_INPUT_CLS}" onchange="plSel.format=this.value;plSaveState()">
+        <option value="릴스" ${plSel.format === '릴스' ? 'selected' : ''}>릴스</option>
+        <option value="캐러셀" ${plSel.format === '캐러셀' ? 'selected' : ''}>캐러셀</option>
+        <option value="인스타툰" ${plSel.format === '인스타툰' ? 'selected' : ''}>인스타툰</option>
       </select>
       <label class="block text-xs text-botanical-sage mb-1 mt-3">포지셔닝</label>
       <input type="text" id="pl-pos" class="${PL_INPUT_CLS}" oninput="plSaveState()">
@@ -9224,7 +9235,7 @@ function plCollectState() {
   const g = id => { const e = document.getElementById(id); return e ? e.value : ''; };
   const o = id => { const e = document.getElementById(id); return e ? e.textContent : ''; };
   return {
-    cat: g('pl-cat'), pos: g('pl-pos'), tar: g('pl-tar'), msg: g('pl-msg'),
+    cat: g('pl-cat'), format: g('pl-format'), pos: g('pl-pos'), tar: g('pl-tar'), msg: g('pl-msg'),
     refkw: g('pl-refkw'), out0: o('pl-out0'),
     topic: g('pl-topic'), cover: g('pl-cover'), hook: g('pl-hook'), skel: g('pl-skel'), exp: g('pl-exp'),
     purpose: plSel.purpose, len: plSel.len, prod: plSel.prod,
@@ -9258,8 +9269,9 @@ function plRestoreState() {
   try { st = JSON.parse(localStorage.getItem(PL_DRAFT_LS) || 'null'); } catch (e) { st = null; }
   if (!st) return;
   const set = (id, v) => { const el = document.getElementById(id); if (el != null && v != null) el.value = v; };
-  set('pl-cat', st.cat); set('pl-pos', st.pos); set('pl-tar', st.tar); set('pl-msg', st.msg);
+  set('pl-cat', st.cat); set('pl-format', st.format); set('pl-pos', st.pos); set('pl-tar', st.tar); set('pl-msg', st.msg);
   set('pl-refkw', st.refkw);
+  if (st.format) plSel.format = st.format;
   set('pl-topic', st.topic); set('pl-cover', st.cover); set('pl-hook', st.hook); set('pl-skel', st.skel); set('pl-exp', st.exp);
   set('pl-polish', st.polish); set('pl-pub', st.pub);
   ['pl-topic', 'pl-exp', 'pl-polish', 'pl-pub'].forEach(id => plAutoGrow(document.getElementById(id))); // 복원된 긴 내용도 펼치기
