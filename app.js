@@ -8916,7 +8916,8 @@ function plBuildScriptPrompt(mode = 'chat') {
 [내 경험] ${exp || '(없음)'}
 [길이] ${lenGuide}
 [연출] ${plSel.prod === 'dialogue' ? '대화형(부부/동료, 얼굴 미노출)' : '발표형(보이스오버+자막, 얼굴 미노출)'}
-[CTA — ${cta}] ${ctaBlock}`;
+[CTA — ${cta}] ${ctaBlock}
+[자막톤] 메타의 「자막톤」·「아웃트로 폰트」도 네가 채운다 — PD는 고르지 않고 읽어서 얹기만 한다. 규칙은 스킬 §자막톤 (직전 편과 똑같이 가지 않되, 카테고리가 같으면 같은 계열 안에서).`;
   const bodyLine = `[${struct.split(' → ').join('] → [')}]`;
   const exRefs = D.refs.filter(r => r.skeleton === skel.id).sort(() => Math.random() - 0.5).slice(0, 2);
   const refEx = exRefs.map(r => `  · ${r.hook}`).join('\n');
@@ -8961,7 +8962,11 @@ ${refEx}
    ${bodyLine}
    각 단계마다 대사 + 화면·보조영상 메모${plSel.prod === 'dialogue' ? ' (화자별 대사 분리)' : ''}
 ② 캡션 초안: 본문 + 해시태그 5개
-③ HUMAN CHECK: 유디트가 직접 확인·수정할 포인트 2~3개 (경험·숫자 자리, 사실 확인 필요)`;
+③ HUMAN CHECK: 유디트가 직접 확인·수정할 포인트 2~3개 (경험·숫자 자리, 사실 확인 필요)
+④ 자막톤 1개 — 이 대본의 톤에 맞는 자막 폰트 계열을 골라라 (편집자가 아니라 대본작가가 정한다):
+   · 차분·재테크  · 정보·또박  · 밝음·라이프  · 손글씨
+   아웃트로·CTA 는 따로 하나 (IM_Hyemin-Bold 또는 SUITE-ExtraBold).
+   ※ 한 편은 하나로 통일. 매번 딴 데로 튀지 말고 카테고리에 맞는 계열 안에서 고를 것.`;
 }
 
 function plGenHook(mode = 'chat') {
