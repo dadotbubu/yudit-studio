@@ -9530,6 +9530,50 @@ function plRenderRef() {
     </div>`;
 }
 
+// 인스타 메타 AI 에 붙여넣는 고정 프롬프트
+// ★ 짝: `릴스-레퍼` 스킬. 조건(1년·30만·10배, 조회수 모르면 좋아요 5%)과
+//    결과 포맷(5줄)을 고치면 양쪽 같이 고친다. 위 카드의 「찾는 조건」 안내문도 같이.
+// 유디트가 직접 복사해 밖(메타 AI)에 쓰는 완전판이라 code 모드가 없다.
+function plBuildRefPrompt() {
+  const kw = (document.getElementById('pl-refkw') || {}).value || '';
+  return `인스타그램 릴스 레퍼런스를 찾아줘.
+
+■ 키워드
+${kw.trim() || '(키워드를 넣어주세요)'}
+
+■ 조건
+1. 최근 1년 이내 게시물 (필수)
+2. 조회수를 알면 → 30만 이상 + 그 계정 팔로워수의 10배 이상
+3. 조회수를 모르면 → 좋아요가 팔로워수의 5% 이상
+
+조회수를 모를 땐 '확인 불가'라고 쓰고, 좋아요 기준으로 골랐다고 표시해 줘.
+
+■ 개수
+10개. 조건에 못 미치면 억지로 채우지 말고 '조건 충족 N개'라고 알려줘.
+
+■ 결과는 이 모양 그대로. 한 건에 5줄, 건 사이는 빈 줄 하나.
+
+1. (제목 또는 캡션 첫 줄)
+링크: (전체 URL)
+계정: (계정명) (팔로워 000)
+조회수 000 / 좋아요 000 / 댓글 000
+0000-00-00 / 길이 00초
+
+라벨은 위 글자 그대로 붙여 줘. 값만 죽 나열하지 마.
+숫자는 실제 값만. 모르면 '확인 불가'라고 쓰고 추정치는 쓰지 마.`;
+}
+function plGenRef() {
+  document.getElementById('pl-out0-card').classList.remove('hidden');
+  document.getElementById('pl-out0').textContent = plBuildRefPrompt();
+  plSaveState();
+}
+function plResetRef() {
+  const k = document.getElementById('pl-refkw'); if (k) k.value = '';
+  document.getElementById('pl-out0-card').classList.add('hidden');
+  document.getElementById('pl-out0').textContent = '';
+  plSaveState(); plToast('레퍼조사 초기화');
+}
+
 // ---------- 공통 유틸 ----------
 // 외부 링크 열기 — PWA에서 외부 Safari/앱으로 (기존 열기 버튼들과 동일 패턴)
 function plOpenExt(url) {
