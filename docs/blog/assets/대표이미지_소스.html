@@ -1,0 +1,63 @@
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { background:#888; font-family:'Pretendard', sans-serif; }
+  .card {
+    width:1000px; height:1000px; position:relative;
+    display:flex; flex-direction:column; justify-content:center;
+    padding:110px 90px; overflow:hidden;
+  }
+  .hl { background:linear-gradient(transparent 55%, #FFE14D 55%); padding:0 4px; }
+  .tag {
+    display:inline-block; align-self:flex-start;
+    font-size:34px; font-weight:700; letter-spacing:-.02em;
+    padding:16px 34px; border-radius:100px; margin-bottom:44px;
+  }
+  h1 { font-size:118px; font-weight:900; letter-spacing:-.045em; line-height:1.18; }
+  .sub { font-size:44px; font-weight:600; letter-spacing:-.03em; line-height:1.45; margin-top:40px; }
+  .foot {
+    position:absolute; left:90px; bottom:80px;
+    font-size:32px; font-weight:600; letter-spacing:-.02em;
+  }
+
+  /* A — 흰 배경 에디토리얼 */
+  #a { background:#fff; }
+  #a .tag { background:#F1ECFF; color:#6D28D9; }
+  #a h1 { color:#16162B; }
+  #a .sub { color:#7C3AED; }
+  #a .foot { color:#9C9CB0; }
+
+  /* B — 보라 배경 */
+  #b { background:linear-gradient(160deg,#7C3AED 0%,#5B21B6 100%); }
+  #b .tag { background:rgba(255,255,255,.2); color:#fff; }
+  #b h1 { color:#fff; }
+  #b .sub { color:#E4D9FF; }
+  #b .foot { color:rgba(255,255,255,.65); }
+
+  /* C — 연보라 배경 */
+  #c { background:#F4F1FE; }
+  #c .tag { background:#6D28D9; color:#fff; }
+  #c h1 { color:#16162B; }
+  #c .sub { color:#5B21B6; }
+  #c .foot { color:#9C9CB0; }
+</style>
+
+<div class="card" id="a">
+  <span class="tag">대기업 5번 합격 · 현직 면접관</span>
+  <h1>자소서 30번<br>다 떨어졌다면</h1>
+  <p class="sub">문제는 <span class="hl">스펙이 아니었어요</span></p>
+  <p class="foot">yudit</p>
+</div>
+
+<div class="card" id="b">
+  <span class="tag">면접관 5년차가 말하는</span>
+  <h1>스펙이 부족해서<br>떨어진 게<br>아니에요</h1>
+  <p class="sub">나를 보여주는 방법을 몰랐을 뿐</p>
+  <p class="foot">yudit</p>
+</div>
+
+<div class="card" id="c">
+  <span class="tag">면접관이 말합니다</span>
+  <h1>떨어지는<br>자소서의<br>공통점</h1>
+  <p class="sub"><span class="hl">"성실하게 임했습니다"</span></p>
+  <p class="foot">yudit</p>
+</div>
