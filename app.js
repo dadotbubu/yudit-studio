@@ -3350,6 +3350,27 @@ function renderContentForm(content) {
                 </td>
               </tr>
               <tr class="border-b border-botanical-stone">
+                <td class="px-2 md:px-4 py-2 md:py-3 bg-botanical-cream/40 font-medium w-24 md:w-40 text-xs md:text-sm break-keep align-middle">계약 기간</td>
+                <td class="px-2 md:px-4 py-2">
+                  <div class="space-y-1.5 md:space-y-0 md:grid md:grid-cols-3 md:gap-2 md:items-center">
+                    <label class="flex items-center gap-1.5 md:block">
+                      <span class="md:hidden text-[10px] text-botanical-sage w-[4.2rem] shrink-0">게시 유지</span>
+                      <input type="number" min="0" id="adterm-post-${content.id}" value="${content.adInfo?.postMonths || ''}" oninput="updateAdTerm(${content.id})" placeholder="0" class="flex-1 min-w-0 md:w-full px-2 md:px-3 text-sm rounded-lg border border-botanical-stone focus:outline-none" style="height:38px;">
+                      <span class="md:hidden text-[9px] text-botanical-sage/70 w-7 shrink-0 text-right">개월</span>
+                    </label>
+                    <label class="flex items-center gap-1.5 md:block">
+                      <span class="md:hidden text-[10px] text-botanical-sage w-[4.2rem] shrink-0">2차 활용</span>
+                      <input type="number" min="0" id="adterm-sec-${content.id}" value="${content.adInfo?.secondaryMonths || ''}" oninput="updateAdTerm(${content.id})" placeholder="0" class="flex-1 min-w-0 md:w-full px-2 md:px-3 text-sm rounded-lg border border-botanical-stone focus:outline-none" style="height:38px;">
+                      <span class="md:hidden text-[9px] text-botanical-sage/70 w-7 shrink-0 text-right">개월</span>
+                    </label>
+                    <div class="text-[11px] md:text-xs text-botanical-sage pt-1.5 md:pt-0 border-t md:border-0 border-botanical-stone/50" id="adterm-end-${content.id}">${adTermText(content)}</div>
+                  </div>
+                  <div class="hidden md:grid md:grid-cols-3 gap-2 mt-1 text-[10px] text-botanical-sage text-center">
+                    <span>게시 유지(개월)</span><span>2차 활용(개월)</span><span></span>
+                  </div>
+                </td>
+              </tr>
+              <tr class="border-b border-botanical-stone">
                 <td class="px-2 md:px-4 py-2 md:py-3 bg-botanical-cream/40 font-medium w-24 md:w-40 text-xs md:text-sm break-keep align-middle">제작 가이드</td>
                 <td class="px-2 md:px-4 py-2">
                   <div class="flex gap-1.5 md:gap-2">
@@ -5728,6 +5749,41 @@ function updateAdFee(contentId) {
   if (totalEl) totalEl.textContent = fmt(total);
   saveAllData();
   syncRevenueFromContent(content);
+}
+
+// 계약 기간: 기준일(업로드완료 > 예정일)에 개월을 더해 종료일 계산. 말일 넘어가면 그 달 말일로 당김.
+function adTermEnd(refDate, months) {
+  if (!refDate || !months || !/^\d{4}-\d{2}-\d{2}/.test(refDate)) return '';
+  const d = new Date(refDate.slice(0, 10) + 'T00:00:00');
+  if (isNaN(d.getTime())) return '';
+  const day = d.getDate();
+  d.setMonth(d.getMonth() + months);
+  if (d.getDate() < day) d.setDate(0); // 1/31 + 1개월 → 2/28
+  const p = n => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
+}
+
+function adTermText(content) {
+  const pm = content.adInfo?.postMonths || 0;
+  const sm = content.adInfo?.secondaryMonths || 0;
+  if (!pm && !sm) return '<span class="text-botanical-terracotta">기간 미기재</span>';
+  const ref = getContentRefDate(content);
+  if (!ref) return '업로드일이 있어야 종료일이 나와요';
+  const parts = [];
+  if (pm) parts.push(`게시 ~${adTermEnd(ref, pm) || '?'}`);
+  if (sm) parts.push(`2차 ~${adTermEnd(ref, sm) || '?'}`);
+  return parts.join(' · ');
+}
+
+function updateAdTerm(contentId) {
+  const content = contentsData.contents.find(c => c.id === contentId);
+  if (!content) return;
+  if (!content.adInfo) content.adInfo = {};
+  content.adInfo.postMonths = parseInt(document.getElementById('adterm-post-' + contentId).value) || 0;
+  content.adInfo.secondaryMonths = parseInt(document.getElementById('adterm-sec-' + contentId).value) || 0;
+  const el = document.getElementById('adterm-end-' + contentId);
+  if (el) el.innerHTML = adTermText(content);
+  saveAllData();
 }
 
 function updateAdRefLink(contentId, idx, value) {
