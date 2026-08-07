@@ -5728,7 +5728,7 @@ function adFeeBlock(content, where) {
   const lines = adFeeItems(content).map(it => `
     <div class="flex items-center gap-1 py-1">
       <span class="text-[11px] text-botanical-sage w-[5.4rem] shrink-0 break-keep leading-tight">${it.label}</span>
-      <input type="number" min="0" id="${p}-${it.key}-${content.id}" value="${a[it.key] || ''}" placeholder="0"
+      <input type="number" min="0" step="10000" id="${p}-${it.key}-${content.id}" value="${a[it.key] || ''}" placeholder="0"
              onchange="updateAdFeeField(${content.id}, '${it.key}', this.value)" ${IN} style="height:34px;flex:1 1 0;">
       <span class="text-[10px] text-botanical-sage/70 w-9 shrink-0">${it.feeUnit}</span>
       <span class="text-[10px] text-botanical-sage/50 w-2.5 shrink-0 text-center">${it.mult ? '×' : ''}</span>
