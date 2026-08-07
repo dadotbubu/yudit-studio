@@ -6874,6 +6874,45 @@ function mkAddBrand(){ if(!window._mkEdit.brands) window._mkEdit.brands=[]; wind
 function mkDelBrand(i){ window._mkEdit.brands.splice(i,1); renderMediakitEditor(); }
 function mkAddRate(lang){ if(!window._mkEdit.rates) window._mkEdit.rates={noteKo:'3.3% 공제',noteEn:'USD',ko:[],en:[]}; if(!window._mkEdit.rates[lang]) window._mkEdit.rates[lang]=[]; window._mkEdit.rates[lang].push({label:'', amount:''}); renderMediakitEditor(); }
 function mkDelRate(lang,i){ window._mkEdit.rates[lang].splice(i,1); renderMediakitEditor(); }
+// 단가 줄 ⠿ 드래그 정렬 (활동 채널 chDrag* 와 같은 방식)
+var _mkRateDrag = null;
+function mkRateDragStart(e, lang){
+  var row = e.currentTarget.closest('[data-mkrate-row]');
+  if(!row) return;
+  e.preventDefault();
+  _mkRateDrag = { lang: lang, list: row.parentElement, row: row };
+  row.style.opacity = '0.5';
+  try { e.currentTarget.setPointerCapture(e.pointerId); } catch(_) {}
+  window.addEventListener('pointermove', mkRateDragMove, { passive: false });
+  window.addEventListener('pointerup', mkRateDragEnd);
+  window.addEventListener('pointercancel', mkRateDragEnd);
+}
+function mkRateDragMove(e){
+  if(!_mkRateDrag) return;
+  e.preventDefault();
+  var list = _mkRateDrag.list, row = _mkRateDrag.row;
+  var others = Array.from(list.children).filter(function(el){ return el !== row && el.hasAttribute('data-mkrate-row'); });
+  var placed = false;
+  for(var k=0;k<others.length;k++){
+    var r = others[k].getBoundingClientRect();
+    if(e.clientY < r.top + r.height/2){ list.insertBefore(row, others[k]); placed = true; break; }
+  }
+  if(!placed) list.appendChild(row);
+}
+function mkRateDragEnd(){
+  if(!_mkRateDrag) return;
+  var list = _mkRateDrag.list, row = _mkRateDrag.row, lang = _mkRateDrag.lang;
+  row.style.opacity = '';
+  window.removeEventListener('pointermove', mkRateDragMove);
+  window.removeEventListener('pointerup', mkRateDragEnd);
+  window.removeEventListener('pointercancel', mkRateDragEnd);
+  var order = Array.from(list.children).filter(function(el){ return el.hasAttribute('data-mkrate-row'); })
+                   .map(function(el){ return parseInt(el.getAttribute('data-mkrate-i'),10); });
+  var arr = (window._mkEdit.rates && window._mkEdit.rates[lang]) || [];
+  window._mkEdit.rates[lang] = order.map(function(i){ return arr[i]; }).filter(Boolean);
+  _mkRateDrag = null;
+  renderMediakitEditor();
+}
 
 function mkFetch(){ return fetch(SUPABASE_URL+'/rest/v1/'+SUPABASE_TABLE+'?key=eq.mediakit&select=data,updated_at&order=updated_at.desc&limit=1',{headers:{apikey:SUPABASE_KEY,Authorization:'Bearer '+SUPABASE_KEY}}).then(function(r){return r.ok?r.json():[];}).then(function(rows){return rows[0]?rows[0].data:{};}).catch(function(){return {};}); }
 
@@ -6950,7 +6989,11 @@ function mkFormHtml(d){
     '<p class="text-xs text-botanical-sage mb-2">비어있으면 미디어킷에서 자동 숨김돼요</p><button onclick="mkAddBrand()" class="px-3 py-2 rounded-lg text-sm border border-botanical-sage text-botanical-fg">＋ 브랜드 추가</button>';
 
   // 단가
-  function rateRows(lang){ var arr=d.rates[lang]||[]; return arr.map(function(r,i){ return '<div class="grid grid-cols-2 gap-2 mb-1"><input '+I+' value="'+mkAttr(r.label)+'" placeholder="항목" onchange="mkSet(\'rates.'+lang+'.'+i+'.label\',this.value)"><div class="flex gap-2"><input '+I+' value="'+mkAttr(r.amount)+'" placeholder="금액" onchange="mkSet(\'rates.'+lang+'.'+i+'.amount\',this.value)"><button onclick="mkDelRate(\''+lang+'\','+i+')" class="text-xs text-botanical-terracotta underline">삭제</button></div></div>'; }).join(''); }
+  var GRIP='class="text-botanical-stone shrink-0 select-none leading-none" style="touch-action:none;cursor:grab;font-size:15px" title="끌어서 순서 변경"';
+  function rateRows(lang){ var arr=d.rates[lang]||[]; return '<div data-mkrate-list="'+lang+'">'+arr.map(function(r,i){ return '<div data-mkrate-row data-mkrate-i="'+i+'" class="grid grid-cols-2 gap-2 mb-1">'+
+      '<div class="flex gap-2 items-center"><span onpointerdown="mkRateDragStart(event,\''+lang+'\')" '+GRIP+'>⠿</span><input '+I+' value="'+mkAttr(r.label)+'" placeholder="항목" onchange="mkSet(\'rates.'+lang+'.'+i+'.label\',this.value)"></div>'+
+      '<div class="flex gap-2 items-center"><input '+I+' value="'+mkAttr(r.amount)+'" placeholder="금액" onchange="mkSet(\'rates.'+lang+'.'+i+'.amount\',this.value)"><button onclick="mkDelRate(\''+lang+'\','+i+')" class="text-xs text-botanical-terracotta underline">삭제</button></div>'+
+      '</div>'; }).join('')+'</div>'; }
   var rate =
     '<label '+LB+'>🇰🇷 단가 (항목 / 금액)</label>'+rateRows('ko') +
     '<button onclick="mkAddRate(\'ko\')" class="mt-1 px-3 py-2 rounded-lg text-sm border border-botanical-sage text-botanical-fg">＋ 단가 추가</button>' +
