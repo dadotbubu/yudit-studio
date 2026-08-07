@@ -3373,11 +3373,16 @@ function renderContentForm(content) {
                       <input type="number" min="0" id="adterm-sec-${content.id}" value="${content.adInfo?.secondaryMonths || ''}" oninput="updateAdTerm(${content.id})" placeholder="0" class="flex-1 min-w-0 md:w-full px-2 md:px-3 text-sm rounded-lg border border-botanical-stone focus:outline-none" style="height:38px;">
                       <span class="md:hidden text-[9px] text-botanical-sage/70 w-7 shrink-0 text-right">개월</span>
                     </label>
-                    <div class="text-[11px] md:text-xs text-botanical-sage pt-1.5 md:pt-0 border-t md:border-0 border-botanical-stone/50" id="adterm-end-${content.id}">${adTermText(content)}</div>
+                    <label class="flex items-center gap-1.5 md:block">
+                      <span class="md:hidden text-[10px] text-botanical-sage w-[4.2rem] shrink-0">링크·DM</span>
+                      <input type="number" min="0" id="adterm-link-${content.id}" value="${content.adInfo?.linkDays || ''}" oninput="updateAdTerm(${content.id})" placeholder="0" class="flex-1 min-w-0 md:w-full px-2 md:px-3 text-sm rounded-lg border border-botanical-stone focus:outline-none" style="height:38px;">
+                      <span class="md:hidden text-[9px] text-botanical-sage/70 w-7 shrink-0 text-right">일</span>
+                    </label>
                   </div>
                   <div class="hidden md:grid md:grid-cols-3 gap-2 mt-1 text-[10px] text-botanical-sage text-center">
-                    <span>게시 유지(개월)</span><span>2차 활용(개월)</span><span></span>
+                    <span>게시 유지(개월)</span><span>2차 활용(개월)</span><span>링크·DM(일)</span>
                   </div>
+                  <div class="text-[11px] md:text-xs text-botanical-sage mt-1.5 pt-1.5 border-t border-botanical-stone/50" id="adterm-end-${content.id}">${adTermText(content)}</div>
                 </td>
               </tr>
               <tr class="border-b border-botanical-stone">
@@ -5773,15 +5778,29 @@ function adTermEnd(refDate, months) {
   return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
 }
 
+// 링크(바이오·자동 DM) 기간은 일 단위. 업로드일로부터 N일.
+function adTermEndDays(refDate, days) {
+  if (!refDate || !days || !/^\d{4}-\d{2}-\d{2}/.test(refDate)) return '';
+  const d = new Date(refDate.slice(0, 10) + 'T00:00:00');
+  if (isNaN(d.getTime())) return '';
+  d.setDate(d.getDate() + days);
+  const p = n => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
+}
+
 function adTermText(content) {
   const pm = content.adInfo?.postMonths || 0;
   const sm = content.adInfo?.secondaryMonths || 0;
-  if (!pm && !sm) return '<span class="text-botanical-terracotta">기간 미기재</span>';
+  const ld = content.adInfo?.linkDays || 0;
   const ref = getContentRefDate(content);
+  if (!pm && !sm && !ld) return '<span class="text-botanical-terracotta">기간 미기재</span>';
   if (!ref) return '업로드일이 있어야 종료일이 나와요';
-  const parts = [];
+  const parts = [`<span class="text-botanical-sage/80">시작 ${ref}</span>`];
   if (pm) parts.push(`게시 ~${adTermEnd(ref, pm) || '?'}`);
   if (sm) parts.push(`2차 ~${adTermEnd(ref, sm) || '?'}`);
+  if (ld) parts.push(`링크 ~${adTermEndDays(ref, ld) || '?'}`);
+  // 계약서에 링크 기간이 없으면 게시 기간과 동일하게 본다 (값은 안 채운다 — 「명시됨」과 구분)
+  else if (pm) parts.push(`<span class="text-botanical-sage/70">링크 ~${adTermEnd(ref, pm)} (명시 없음·게시와 동일)</span>`);
   return parts.join(' · ');
 }
 
@@ -5791,6 +5810,7 @@ function updateAdTerm(contentId) {
   if (!content.adInfo) content.adInfo = {};
   content.adInfo.postMonths = parseInt(document.getElementById('adterm-post-' + contentId).value) || 0;
   content.adInfo.secondaryMonths = parseInt(document.getElementById('adterm-sec-' + contentId).value) || 0;
+  content.adInfo.linkDays = parseInt(document.getElementById('adterm-link-' + contentId).value) || 0;
   const el = document.getElementById('adterm-end-' + contentId);
   if (el) el.innerHTML = adTermText(content);
   saveAllData();
@@ -7522,17 +7542,30 @@ function updateContractField(contentId, field, value) {
   const content = contentsData.contents.find(c => c.id === contentId);
   if (!content) return;
   if (!content.adInfo) content.adInfo = {};
-  const nums = ['reelsFee', 'contentFee', 'secondaryFee', 'postMonths', 'secondaryMonths'];
+  const nums = ['reelsFee', 'contentFee', 'secondaryFee', 'postMonths', 'secondaryMonths', 'linkDays'];
   content.adInfo[field] = nums.includes(field)
     ? (parseInt(String(value).replace(/[^0-9]/g, '')) || 0)
     : value;
   // 파생값만 갈아끼운다 (전체 리렌더하면 스크롤이 튐)
   const total = document.getElementById('ct-total-' + contentId);
-  if (total) total.textContent = fmt((content.adInfo.reelsFee || 0) + (content.adInfo.contentFee || 0) + (content.adInfo.secondaryFee || 0));
+  if (total) total.innerHTML = contractTotalText((content.adInfo.reelsFee || 0) + (content.adInfo.contentFee || 0) + (content.adInfo.secondaryFee || 0));
   const term = document.getElementById('ct-term-' + contentId);
   if (term) term.innerHTML = adTermText(content);
   saveAllData();
   syncRevenueFromContent(content);
+}
+
+// 원천징수 3.3% 뗀 실수령액 (소득세 3% + 지방소득세 0.3%, 원 단위 절사)
+function netFee(gross) {
+  const g = gross || 0;
+  if (!g) return 0;
+  const income = Math.floor(g * 0.03 / 10) * 10;
+  const local = Math.floor(income * 0.1 / 10) * 10;
+  return g - income - local;
+}
+
+function contractTotalText(total) {
+  return `계약 <span class="font-serif text-sm text-botanical-fg">${fmt(total)}</span>원 · 실수령 <span class="font-serif font-semibold text-sm text-botanical-fg">${fmt(netFee(total))}</span>원`;
 }
 
 function contractDday(endStr) {
@@ -7555,7 +7588,8 @@ function renderRevContracts() {
     if (!ref) return;
     const pd = contractDday(adTermEnd(ref, c.adInfo?.postMonths || 0));
     const sd = contractDday(adTermEnd(ref, c.adInfo?.secondaryMonths || 0));
-    if ((pd !== null && pd >= 0) || (sd !== null && sd >= 0)) live.push({ c, pd, sd });
+    const ld = contractDday(adTermEndDays(ref, c.adInfo?.linkDays || 0));
+    if ([pd, sd, ld].some(d => d !== null && d >= 0)) live.push({ c, pd, sd, ld });
   });
   live.sort((a, b) => (a.pd ?? 99999) - (b.pd ?? 99999));
 
@@ -7604,15 +7638,17 @@ function renderRevContracts() {
         <label><span class="block text-[10px] text-botanical-sage mb-0.5">2차활용비(월)</span>
           <input type="number" min="0" value="${a.secondaryFee || ''}" onchange="updateContractField(${c.id}, 'secondaryFee', this.value)" placeholder="0" ${NUM}></label>
       </div>
-      <div class="text-right text-xs text-botanical-sage mb-2">합계 <span class="font-serif font-semibold text-sm text-botanical-fg" id="ct-total-${c.id}">${fmt(total)}</span>원</div>
+      <div class="text-right text-xs text-botanical-sage mb-2" id="ct-total-${c.id}">${contractTotalText(total)}</div>
 
-      <div class="grid grid-cols-3 gap-1.5 items-end">
+      <div class="grid grid-cols-3 gap-1.5 mb-1">
         <label><span class="block text-[10px] text-botanical-sage mb-0.5">게시 유지(개월)</span>
           <input type="number" min="0" value="${a.postMonths || ''}" onchange="updateContractField(${c.id}, 'postMonths', this.value)" placeholder="0" ${NUM}></label>
         <label><span class="block text-[10px] text-botanical-sage mb-0.5">2차 활용(개월)</span>
           <input type="number" min="0" value="${a.secondaryMonths || ''}" onchange="updateContractField(${c.id}, 'secondaryMonths', this.value)" placeholder="0" ${NUM}></label>
-        <div class="text-[11px] text-botanical-sage pb-1.5" id="ct-term-${c.id}">${adTermText(c)}</div>
+        <label><span class="block text-[10px] text-botanical-sage mb-0.5">링크·DM(일)</span>
+          <input type="number" min="0" value="${a.linkDays || ''}" onchange="updateContractField(${c.id}, 'linkDays', this.value)" placeholder="0" ${NUM}></label>
       </div>
+      <div class="text-[11px] text-botanical-sage" id="ct-term-${c.id}">${adTermText(c)}</div>
     </div>`;
   };
 
