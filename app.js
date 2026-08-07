@@ -2082,7 +2082,15 @@ function goToContentExpanded(contentId) {
 }
 
 function goToPerformance(contentId) {
+  // 다른 달 콘텐츠면 월 상세를 그 콘텐츠 월로 먼저 옮긴다 (안 그러면 줄이 없어서 못 찾음)
+  let monthChanged = false;
+  if (contentId) {
+    const c = contentsData?.contents?.find(x => x.id === contentId);
+    const m = (c ? getUploadDate(c) : '').slice(0, 7);
+    if (m && m !== perfSelectedMonth) { perfSelectedMonth = m; monthChanged = true; }
+  }
   switchTab('performance');
+  if (monthChanged) renderPerformance(); // switchTab은 첫 방문에만 렌더함
   setTimeout(() => {
     if (contentId) {
       const row = document.querySelector(`[data-perf-row="${contentId}"]`);
@@ -2090,6 +2098,7 @@ function goToPerformance(contentId) {
         row.scrollIntoView({ behavior: 'smooth', block: 'center' });
         row.classList.add('ring-2', 'ring-botanical-terracotta', 'bg-botanical-terracotta/10');
         setTimeout(() => row.classList.remove('ring-2', 'ring-botanical-terracotta', 'bg-botanical-terracotta/10'), 2200);
+        row.querySelector('input')?.focus(); // 조회수 칸에 바로 커서
       }
     } else {
       document.getElementById('performance-tab')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -6534,7 +6543,7 @@ function renderPerformance() {
         <div class="space-y-1">
           ${needsPerfList.map(c => `
           <div class="flex items-center justify-between gap-2 bg-white/60 rounded-lg pl-3 pr-1.5 py-1.5">
-            <span onclick="goToContentExpanded(${c.id})" class="text-xs text-botanical-fg cursor-pointer hover:text-botanical-terracotta hover:underline truncate">${c.title || '무제'}</span>
+            <span onclick="goToPerformance(${c.id})" class="text-xs text-botanical-fg cursor-pointer hover:text-botanical-terracotta hover:underline truncate">${c.title || '무제'}</span>
             <button onclick="dismissPerfReminder(${c.id})" title="이 항목 알림 끄기" class="shrink-0 w-5 h-5 rounded-full text-botanical-sage hover:bg-botanical-terracotta/20 hover:text-botanical-terracotta flex items-center justify-center text-xs leading-none transition-all">✕</button>
           </div>
           `).join('')}
