@@ -7571,49 +7571,9 @@ function contractTotalText(total) {
   return `계약 <span class="font-serif text-sm text-botanical-fg">${fmt(total)}</span>원 · 실수령 <span class="font-serif font-semibold text-sm text-botanical-fg">${fmt(netFee(total))}</span>원`;
 }
 
-function contractDday(endStr) {
-  if (!endStr) return null;
-  const e = new Date(endStr + 'T00:00:00');
-  if (isNaN(e.getTime())) return null;
-  const t = new Date();
-  t.setHours(0, 0, 0, 0);
-  return Math.round((e - t) / 86400000);
-}
-
 function renderRevContracts() {
   const ads = (contentsData.contents || []).filter(c => c.category === '광고');
   const NUM = 'class="w-full px-2 text-sm text-right rounded-lg border border-botanical-stone focus:outline-none focus:border-botanical-sage" style="height:34px;"';
-
-  // ── 진행 중인 계약: 게시 또는 2차 활용 기간이 아직 안 끝난 건
-  const live = [];
-  ads.forEach(c => {
-    const ref = getContentRefDate(c);
-    if (!ref) return;
-    const pd = contractDday(adTermEnd(ref, c.adInfo?.postMonths || 0));
-    const sd = contractDday(adTermEnd(ref, c.adInfo?.secondaryMonths || 0));
-    const ld = contractDday(adTermEndDays(ref, c.adInfo?.linkDays || 0));
-    if ([pd, sd, ld].some(d => d !== null && d >= 0)) live.push({ c, pd, sd, ld });
-  });
-  live.sort((a, b) => (a.pd ?? 99999) - (b.pd ?? 99999));
-
-  const ddayTag = (label, d) => {
-    if (d === null) return '';
-    const cls = d < 0 ? 'text-botanical-sage line-through' : (d <= 14 ? 'text-botanical-terracotta font-medium' : 'text-botanical-fg');
-    return `<span class="${cls}">${label} ${d < 0 ? '만료' : 'D-' + d}</span>`;
-  };
-
-  const liveBox = `
-    <div class="bg-white rounded-2xl p-5 shadow-sm mb-4">
-      <h3 class="font-medium mb-3">진행 중인 계약 <span class="text-xs text-botanical-sage font-normal ml-1">${live.length}건</span></h3>
-      ${live.length === 0
-        ? '<p class="text-xs text-botanical-sage">기간이 남아 있는 계약이 없어요. 아래에서 게시·2차 활용 개월을 넣으면 여기에 떠요.</p>'
-        : live.map(({ c, pd, sd }) => `
-        <div class="flex flex-wrap items-center gap-x-3 gap-y-1 py-2 border-b border-botanical-stone/40 text-xs">
-          <span class="font-medium">${c.adInfo?.productName || c.title || '무제'}</span>
-          ${ddayTag('게시', pd)}
-          ${ddayTag('2차', sd)}
-        </div>`).join('')}
-    </div>`;
 
   // ── 월별 계약 목록 (기준일 = 업로드완료 마일스톤 > 예정일)
   const monthAds = ads.filter(c => (getContentRefDate(c) || '').startsWith(contractSelectedMonth));
@@ -7655,7 +7615,7 @@ function renderRevContracts() {
     </div>`;
   };
 
-  return liveBox + `
+  return `
     <div class="bg-white rounded-2xl p-5 shadow-sm">
       <div class="flex items-center gap-3 mb-4">
         ${renderMonthSelect('contract-month-select', contractSelectedMonth, 'changeContractMonth')}
