@@ -3333,7 +3333,7 @@ function renderContentForm(content) {
                   <!-- 모바일: 항목 1줄씩, PC: 4컬럼 -->
                   <div class="space-y-1.5 md:space-y-0 md:grid md:grid-cols-4 md:gap-2 md:items-center">
                     <label class="flex items-center gap-1.5 md:block">
-                      <span class="md:hidden text-[10px] text-botanical-sage w-[4.2rem] shrink-0">릴스업로드비</span>
+                      <span class="md:hidden text-[10px] text-botanical-sage w-[4.2rem] shrink-0">${feeUploadLabel(content.type)}</span>
                       <input type="number" id="adfee-reels-${content.id}" value="${content.adInfo?.reelsFee || ''}" oninput="updateAdFee(${content.id})" placeholder="0" class="flex-1 min-w-0 md:w-full px-2 md:px-3 text-sm rounded-lg border border-botanical-stone focus:outline-none" style="height:38px;">
                       <span class="md:hidden text-[9px] text-botanical-sage/70 w-5 shrink-0 text-right">원</span>
                     </label>
@@ -3355,7 +3355,7 @@ function renderContentForm(content) {
                   </div>
                   <!-- PC 라벨 (모바일은 각 줄에 라벨이 이미 있음) -->
                   <div class="hidden md:grid md:grid-cols-4 gap-2 mt-1 text-[10px] text-botanical-sage text-center">
-                    <span>릴스업로드비</span><span>컨텐츠제작비</span><span>2차활용비(월)</span><span></span>
+                    <span>${feeUploadLabel(content.type)}</span><span>컨텐츠제작비</span><span>2차활용비(월)</span><span></span>
                   </div>
                 </td>
               </tr>
@@ -7564,6 +7564,9 @@ function netFee(gross) {
   return g - income - local;
 }
 
+// 업로드비 라벨은 콘텐츠 형식을 따라간다 (데이터 키는 reelsFee 그대로 — 바꾸면 넣어둔 금액이 끊긴다)
+function feeUploadLabel(type) { return (type || '릴스') + '업로드비'; }
+
 function contractTotalText(total) {
   return `계약 <span class="font-serif text-sm text-botanical-fg">${fmt(total)}</span>원 · 실수령 <span class="font-serif font-semibold text-sm text-botanical-fg">${fmt(netFee(total))}</span>원`;
 }
@@ -7631,7 +7634,7 @@ function renderRevContracts() {
       <p onclick="goToContentExpanded(${c.id})" class="text-xs text-botanical-sage mb-2 cursor-pointer hover:text-botanical-terracotta hover:underline truncate">${c.title || '무제'} · ${getContentRefDate(c) || '날짜 없음'}</p>
 
       <div class="grid grid-cols-3 gap-1.5 mb-1">
-        <label><span class="block text-[10px] text-botanical-sage mb-0.5">릴스업로드비</span>
+        <label><span class="block text-[10px] text-botanical-sage mb-0.5">${feeUploadLabel(c.type)}</span>
           <input type="number" min="0" value="${a.reelsFee || ''}" onchange="updateContractField(${c.id}, 'reelsFee', this.value)" placeholder="0" ${NUM}></label>
         <label><span class="block text-[10px] text-botanical-sage mb-0.5">컨텐츠제작비</span>
           <input type="number" min="0" value="${a.contentFee || ''}" onchange="updateContractField(${c.id}, 'contentFee', this.value)" placeholder="0" ${NUM}></label>
@@ -7661,7 +7664,6 @@ function renderRevContracts() {
       ${monthAds.length === 0
         ? '<p class="text-xs text-botanical-sage">이 달에 광고 콘텐츠가 없어요.</p>'
         : monthAds.map(card).join('')}
-      <p class="text-xs text-botanical-sage mt-3">여기서 고치면 콘텐츠 탭 광고 상세에도 그대로 반영돼요.</p>
     </div>`;
 }
 
