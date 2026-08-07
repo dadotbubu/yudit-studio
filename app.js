@@ -7076,9 +7076,9 @@ function mkFormHtml(d){
 
   // 단가
   var GRIP='class="text-botanical-stone shrink-0 select-none leading-none" style="touch-action:none;cursor:grab;font-size:15px" title="끌어서 순서 변경"';
-  function rateRows(lang){ var arr=d.rates[lang]||[]; return '<div data-mkrate-list="'+lang+'">'+arr.map(function(r,i){ return '<div data-mkrate-row data-mkrate-i="'+i+'" class="grid grid-cols-2 gap-2 mb-1">'+
-      '<div class="flex gap-2 items-center"><span onpointerdown="mkRateDragStart(event,\''+lang+'\')" '+GRIP+'>⠿</span><input '+I+' value="'+mkAttr(r.label)+'" placeholder="항목" onchange="mkSet(\'rates.'+lang+'.'+i+'.label\',this.value)"></div>'+
-      '<div class="flex gap-2 items-center"><input '+I+' value="'+mkAttr(r.amount)+'" placeholder="금액" onchange="mkSet(\'rates.'+lang+'.'+i+'.amount\',this.value)"><button onclick="mkDelRate(\''+lang+'\','+i+')" class="text-xs text-botanical-terracotta underline">삭제</button></div>'+
+  function rateRows(lang){ var arr=d.rates[lang]||[]; return '<div data-mkrate-list="'+lang+'">'+arr.map(function(r,i){ return '<div data-mkrate-row data-mkrate-i="'+i+'" class="grid grid-cols-5 gap-2 mb-1">'+
+      '<div class="col-span-3 flex gap-2 items-center"><span onpointerdown="mkRateDragStart(event,\''+lang+'\')" '+GRIP+'>⠿</span><input '+I+' value="'+mkAttr(r.label)+'" placeholder="항목" onchange="mkSet(\'rates.'+lang+'.'+i+'.label\',this.value)"></div>'+
+      '<div class="col-span-2 flex gap-2 items-center"><input '+I+' value="'+mkAttr(r.amount)+'" placeholder="금액" onchange="mkSet(\'rates.'+lang+'.'+i+'.amount\',this.value)"><button onclick="mkDelRate(\''+lang+'\','+i+')" class="text-xs text-botanical-terracotta underline">삭제</button></div>'+
       '</div>'; }).join('')+'</div>'; }
   var rate =
     '<label '+LB+'>🇰🇷 단가 (항목 / 금액)</label>'+rateRows('ko') +
