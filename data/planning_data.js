@@ -488,10 +488,16 @@ const PLANNING_DATA = {
    "own": true,
    "sub": false,
    "skeleton": "claim",
+   "devices": [
+    "hide"
+   ],
    "entry": "authority",
    "cta": "caption",
    "purpose": "info",
-   "production": "speak"
+   "production": "speak",
+   "deviceEx": {
+    "hide": "저만의 합격 보장 꿀팁이 있는데"
+   }
   },
   {
    "no": 2,
@@ -521,10 +527,20 @@ const PLANNING_DATA = {
    "own": false,
    "sub": false,
    "skeleton": "list",
+   "devices": [
+    "convert",
+    "mechanism",
+    "mychoice"
+   ],
    "entry": "result",
    "cta": "none",
    "purpose": "info",
-   "production": "speak"
+   "production": "speak",
+   "deviceEx": {
+    "convert": "그리고 결과는 9억에서 15억",
+    "mechanism": "집은 바뀌어도 입지는 안 바뀌어요",
+    "mychoice": "신축 컨디션 좋아도 저는 입지 좋은 구축 골랐어요"
+   }
   },
   {
    "no": 3,
@@ -553,10 +569,22 @@ const PLANNING_DATA = {
    "own": false,
    "sub": false,
    "skeleton": "claim",
+   "devices": [
+    "convert",
+    "mechanism",
+    "preempt",
+    "hide"
+   ],
    "entry": "blank",
    "cta": "comment",
    "purpose": "info",
-   "production": "speak"
+   "production": "speak",
+   "deviceEx": {
+    "convert": "최소 15억은 있어야 청약이 가능해서 … 1만 원대로 투자 가능하고",
+    "mechanism": "스페이스X 상장하면 같이 오르는 ETF를 사면 되는데",
+    "preempt": "우주항공 기업에 분산 투자하는 거라 초보도 안전하게 할 수 있어요",
+    "hide": "스페이스X 상장하면 폭등할 ETF 탑3"
+   }
   },
   {
    "no": 4,
@@ -584,11 +612,21 @@ const PLANNING_DATA = {
    "script": "자소서에 이 표현 절대 쓰지 마세요.\n취준생 컨설팅을 하다보면 자기소개서를 한 문장만 읽어도\nAI 티가 바로 나는 경우가 꽤 많아요.\nAI를 쓰는 게 문제는 아니지만\n이미 현직자들 사이에서는 AI 티 난다고 소문난 표현들이라\n신뢰도를 확 낮추는 감점 요인이 될 수 있어요.\n그래서 준비한 자기소개서에 쓰면\n티나는 챗GPT 표현 6가지와\nAI 느낌을 줄이는 꿀팁까지 한 장에 정리한 이 자료\n필요하시면 댓글에 AI라고 남겨주세요.\n바로 DM으로 전달드릴게요.\n자소서 제출하기 전에 한번 꼭 체크해보세요.",
    "own": false,
    "sub": false,
-   "skeleton": "list",
+   "skeleton": "claim",
+   "devices": [
+    "mechanism",
+    "preempt",
+    "hide"
+   ],
    "entry": "blank",
    "cta": "comment",
    "purpose": "info",
-   "production": "speak"
+   "production": "speak",
+   "deviceEx": {
+    "mechanism": "이미 현직자들 사이에서는 AI 티 난다고 소문난 표현들이라 신뢰도를 확 낮추는 감점 요인이 될 수 있어요",
+    "preempt": "AI를 쓰는 게 문제는 아니지만",
+    "hide": "티나는 챗GPT 표현 6가지"
+   }
   },
   {
    "no": 5,
@@ -617,11 +655,23 @@ const PLANNING_DATA = {
    "own": false,
    "sub": false,
    "skeleton": "story",
+   "devices": [
+    "blueprint",
+    "scene",
+    "mychoice",
+    "redefine"
+   ],
    "entry": "situation",
    "cta": "save",
    "purpose": "info",
    "curve": "before_after",
-   "production": "speak"
+   "production": "speak",
+   "deviceEx": {
+    "blueprint": "첫 번째, 책을 읽은 후에는 딱 한 가지 행동 변화를 만들기 / 두 번째, 책에서 배운 내용을 노션에 간단히 기록하기",
+    "scene": "시간 관리에 대한 책을 읽으면 책에서 배운 한 가지 시간 관리 방법을 바로 적용을 해보는 거죠",
+    "mychoice": "저는 예전에는 그냥 책을 읽기만 했거든요 … 그래서 저는 두 가지를 하기 시작했습니다",
+    "redefine": "많이 읽는 게 중요한 게 아니라 한 권을 읽더라도 내 삶에 적용할 수 있는 독서"
+   }
   },
   {
    "no": 6,
@@ -651,10 +701,18 @@ const PLANNING_DATA = {
    "own": false,
    "sub": false,
    "skeleton": "claim",
+   "devices": [
+    "mechanism",
+    "mychoice"
+   ],
    "entry": "situation",
    "cta": "none",
    "purpose": "empathy",
-   "production": "speak"
+   "production": "speak",
+   "deviceEx": {
+    "mechanism": "컴퓨터 열기까지 더해지면 에어컨 없이는 꽤 불편해져요",
+    "mychoice": "그래서 저희는 과감하게 컴퓨터 존을 거실로 뺐습니다"
+   }
   },
   {
    "no": 7,
@@ -683,11 +741,19 @@ const PLANNING_DATA = {
    "script": "스벅 직원분들 자꾸 가격 깎아서 죄송해요.\n텀블러 하나만 들고 가면 스벅 모든 음료 그냥 4,350원이던데?\n네이버에 스벅 텀블러 쿠폰 검색해서 구매하면 바로 문자로 날아오는데\n스벅 앱에 등록 가능하고 엑스트라도 하나 공짜니까\n민경언니 최애 불글라 레시피 7,300원인데\n나는 3,600원에 먹었네?",
    "own": false,
    "sub": false,
-   "skeleton": "claim",
+   "skeleton": "step",
+   "devices": [
+    "convert",
+    "blueprint"
+   ],
    "entry": "situation",
    "cta": "none",
    "purpose": "info",
-   "production": "speak"
+   "production": "speak",
+   "deviceEx": {
+    "convert": "민경언니 최애 불글라 레시피 7,300원인데 나는 3,600원에 먹었네?",
+    "blueprint": "네이버에 스벅 텀블러 쿠폰 검색해서 구매하면 바로 문자로 날아오는데 스벅 앱에 등록 가능하고"
+   }
   },
   {
    "no": 8,
@@ -716,10 +782,20 @@ const PLANNING_DATA = {
    "own": false,
    "sub": false,
    "skeleton": "list",
+   "devices": [
+    "convert",
+    "blueprint",
+    "hide"
+   ],
    "entry": "result",
    "cta": "comment",
    "purpose": "info",
-   "production": "speak"
+   "production": "speak",
+   "deviceEx": {
+    "convert": "월급 200만원 직장인이 1억 빠르게 모으는 법 3가지",
+    "blueprint": "월급은 매일 밥값 들어오는 통장으로 / 여유 돈은 이자 80배 주는 통장에 / 투자는 세금 지원 통장으로",
+    "hide": "이자 80배 주는 통장"
+   }
   },
   {
    "no": 9,
@@ -749,10 +825,22 @@ const PLANNING_DATA = {
    "own": false,
    "sub": false,
    "skeleton": "claim",
+   "devices": [
+    "mechanism",
+    "mychoice",
+    "preempt",
+    "hide"
+   ],
    "entry": "blank",
    "cta": "comment",
    "purpose": "info",
-   "production": "speak"
+   "production": "speak",
+   "deviceEx": {
+    "mechanism": "실제로 혼인신고 잘못했을 경우 세금 역으로 맞는 경우도 있다는 거 아시나요?",
+    "mychoice": "저희는 이것 때문에 혼인신고 안했는데요",
+    "preempt": "혼인신고 페널티가 많이 개선되었다고는 하지만",
+    "hide": "이거 모르고 무턱대고 혼인신고 먼저 하면 손해봅니다"
+   }
   },
   {
    "no": 10,
@@ -780,10 +868,16 @@ const PLANNING_DATA = {
    "own": false,
    "sub": false,
    "skeleton": "claim",
+   "devices": [
+    "hide"
+   ],
    "entry": "blank",
    "cta": "caption",
    "purpose": "info",
-   "production": "speak"
+   "production": "speak",
+   "deviceEx": {
+    "hide": "면접에서 무조건 거짓말해야 하는 3가지 (내용은 캡션으로)"
+   }
   },
   {
    "no": 11,
@@ -814,10 +908,16 @@ const PLANNING_DATA = {
    "own": false,
    "sub": false,
    "skeleton": "claim",
+   "devices": [
+    "hide"
+   ],
    "entry": "authority",
    "cta": "caption",
    "purpose": "info",
-   "production": "speak"
+   "production": "speak",
+   "deviceEx": {
+    "hide": "면접 전날, 당일에 하는 저만의 루틴이 있어요"
+   }
   },
   {
    "no": 12,
@@ -846,12 +946,20 @@ const PLANNING_DATA = {
    "script": "경력 이직 후 알게 된 절망편 3가지\n제가 LG에서 삼성으로 이직한지도 어느덧 2년이 넘었는데요\n이직 생각 중이시라면 꼭 저장하고 끝까지 봐주세요\n그놈이 그놈이다\n솔직히 이직 준비할 땐 LG 단점, 삼성 장점만 보였었는데\n이것저것 다 따지고 보면 둘 다 좋은 회사고 비슷하더라고요\n첫 회사의 울타리는 강력하다\n저는 LG 신입사원 공채로 입사했는데요\n그러다 보니 온보딩 프로그램, 선배들, 동기들까지 다 당연했어요\n근데 이직은 맨땅에 헤딩하는 것이기 때문에 정말 잘 생각하셔야 합니다\n회사는 즉시 전력감을 원한다\n이직러들이 초반에 가장 힘들어하는 부분인데요\n아무래도 채용 목적이 즉시 실무 투입이다 보니\n회사 입장에서는 즉각적인 성과를 기대하게 됩니다\n아무것도 없이 성과내기가 쉽지가 않으니 스트레스가 장난 아닙니다\n근데 또 경력이 쌓이려고 합니다\n다음번에 희망편으로 올게요",
    "own": false,
    "sub": false,
-   "skeleton": "story",
+   "skeleton": "list",
+   "devices": [
+    "mechanism",
+    "redefine"
+   ],
    "entry": "situation",
    "cta": "none",
    "purpose": "info",
-   "curve": "before_after",
-   "production": "speak"
+   "curve": "",
+   "production": "speak",
+   "deviceEx": {
+    "mechanism": "채용 목적이 즉시 실무 투입이다 보니 회사 입장에서는 즉각적인 성과를 기대하게 됩니다",
+    "redefine": "이직 준비할 땐 LG 단점, 삼성 장점만 보였었는데 다 따지고 보면 둘 다 좋은 회사고 비슷하더라고요"
+   }
   },
   {
    "no": 13,
@@ -879,10 +987,16 @@ const PLANNING_DATA = {
    "own": false,
    "sub": false,
    "skeleton": "list",
+   "devices": [
+    "hide"
+   ],
    "entry": "blank",
    "cta": "comment",
    "purpose": "info",
-   "production": "speak"
+   "production": "speak",
+   "deviceEx": {
+    "hide": "체크카드인데 공항 마일리지 적립에 공항 라운지 무료 입장 되는 곳도 있어요"
+   }
   },
   {
    "no": 14,
@@ -910,10 +1024,22 @@ const PLANNING_DATA = {
    "own": false,
    "sub": false,
    "skeleton": "claim",
+   "devices": [
+    "convert",
+    "mechanism",
+    "blueprint",
+    "preempt"
+   ],
    "entry": "situation",
    "cta": "none",
    "purpose": "info",
-   "production": "speak"
+   "production": "speak",
+   "deviceEx": {
+    "convert": "모르고 50년 내봐. 150만 원이다",
+    "mechanism": "직접 해지 안 하면 이 돈은 고지서에 그대로 합쳐져서 나와",
+    "blueprint": "한전에 전화하거나 KBS 사이트에서 바로 해지 신청 가능하고 아파트는 관리 사무실에 연락해야 돼",
+    "preempt": "가입이 있다고? 그래도 안 내도 돼"
+   }
   },
   {
    "no": 15,
@@ -942,10 +1068,18 @@ const PLANNING_DATA = {
    "own": false,
    "sub": false,
    "skeleton": "claim",
+   "devices": [
+    "mychoice",
+    "preempt"
+   ],
    "entry": "situation",
    "cta": "none",
    "purpose": "empathy",
-   "production": "speak"
+   "production": "speak",
+   "deviceEx": {
+    "mychoice": "대신 햄퍼에 다 때려넣고 수건 개는 시간을 완전히 없앴어요",
+    "preempt": "근데 고향에 있는 집은 고민 좀 해보세요"
+   }
   },
   {
    "no": 16,
@@ -974,10 +1108,20 @@ const PLANNING_DATA = {
    "own": false,
    "sub": false,
    "skeleton": "list",
+   "devices": [
+    "convert",
+    "mechanism",
+    "blueprint"
+   ],
    "entry": "situation",
    "cta": "comment",
    "purpose": "info",
-   "production": "speak"
+   "production": "speak",
+   "deviceEx": {
+    "convert": "월급처럼 배당금을 주는 QQQI나 SPYI 같은 거 사두면",
+    "mechanism": "1등부터 500등까지 다 모아둔 거니까 마음 편하게 돈 넣어두면 돼",
+    "blueprint": "20만원 S&P500 / 20만원 나스닥100 / 남은 10만원은 고배당주"
+   }
   },
   {
    "no": 17,
@@ -999,10 +1143,20 @@ const PLANNING_DATA = {
    "own": false,
    "sub": false,
    "skeleton": "list",
+   "devices": [
+    "mechanism",
+    "scene",
+    "redefine"
+   ],
    "entry": "situation",
    "cta": "save",
    "purpose": "info",
-   "production": "speak"
+   "production": "speak",
+   "deviceEx": {
+    "mechanism": "타인에게 베푸는 친절은 곧 나에게 하는 위로로 착각하여 도파민을 분비를 합니다",
+    "scene": "계획이 틀어졌을 때 뇌는 위기신호를 보내지만 이때 이 한마디를 내뱉으면",
+    "redefine": "가난한 뇌는 문제를 보지만 성공한 뇌는 가능성에 포커스를 맞추죠"
+   }
   },
   {
    "no": 18,
@@ -1032,10 +1186,18 @@ const PLANNING_DATA = {
    "own": false,
    "sub": false,
    "skeleton": "claim",
+   "devices": [
+    "mechanism",
+    "preempt"
+   ],
    "entry": "situation",
    "cta": "caption",
    "purpose": "info",
-   "production": "speak"
+   "production": "speak",
+   "deviceEx": {
+    "mechanism": "수익이 반으로 쪼개져서 세금이 확 줄어듭니다",
+    "preempt": "부부 중 한 명이 사업자거나 외벌이가 된다면 공동 명의 했다가 건보료 폭탄 맞습니다"
+   }
   },
   {
    "no": 19,
@@ -1064,10 +1226,20 @@ const PLANNING_DATA = {
    "own": false,
    "sub": false,
    "skeleton": "list",
+   "devices": [
+    "convert",
+    "mychoice",
+    "redefine"
+   ],
    "entry": "result",
    "cta": "none",
    "purpose": "info",
-   "production": "speak"
+   "production": "speak",
+   "deviceEx": {
+    "convert": "신혼집 꾸미는데 얼마 들었냐고요? 100만원도 안 들었어요. 이 침대도 소파도 테이블도 식탁도 드레스룸도요",
+    "mychoice": "처음에는 가성비 좋은 가구로 채우고 취향을 찾아가는 것도 현명한 방법 같아요",
+    "redefine": "좋은 거 합리적인 거 같이 써요 우리"
+   }
   },
   {
    "no": 20,
@@ -1096,10 +1268,18 @@ const PLANNING_DATA = {
    "own": false,
    "sub": false,
    "skeleton": "list",
+   "devices": [
+    "convert",
+    "preempt"
+   ],
    "entry": "result",
    "cta": "comment",
    "purpose": "info",
-   "production": "speak"
+   "production": "speak",
+   "deviceEx": {
+    "convert": "총 결제가 2263만원, 체감가 1596만원",
+    "preempt": "근데 저 진짜 싸게 사긴 했어요"
+   }
   },
   {
    "no": 21,
@@ -1127,11 +1307,23 @@ const PLANNING_DATA = {
    "own": false,
    "sub": false,
    "skeleton": "story",
+   "devices": [
+    "convert",
+    "mechanism",
+    "blueprint",
+    "mychoice"
+   ],
    "entry": "situation",
    "cta": "none",
    "purpose": "info",
    "curve": "crisis",
-   "production": "speak"
+   "production": "speak",
+   "deviceEx": {
+    "convert": "이거 몰랐으면 300만 원 날릴 뻔했어요 … 이 말 덕분에 300만 원을 지켰습니다",
+    "mechanism": "가계약도 계약이니까 계약금 반환 조건을 걸고 문자를 보내라",
+    "blueprint": "가계약금 걸기 전에 이 내용을 꼭 문자에 보내놓으세요",
+    "mychoice": "부동산 사장님한테는 티를 전혀 안 냈죠. 마음에 안 드는 척하며"
+   }
   },
   {
    "no": 22,
@@ -1160,10 +1352,20 @@ const PLANNING_DATA = {
    "own": false,
    "sub": false,
    "skeleton": "list",
+   "devices": [
+    "mechanism",
+    "blueprint",
+    "hide"
+   ],
    "entry": "timely",
    "cta": "none",
    "purpose": "info",
-   "production": "speak"
+   "production": "speak",
+   "deviceEx": {
+    "mechanism": "이 회사들은 실적이 너무 좋아서 주가가 그만큼 올라간 거거든요",
+    "blueprint": "반도체 / 데이터 센터 / 전력 인프라 / 통신망 / 피지컬 AI / 사이버보안 — 이 모든 걸 나눠 담을 수 있는 기회",
+    "hide": "지금 당장 사야하는 AI 반도체 주식 탑5"
+   }
   },
   {
    "no": 23,
@@ -1192,10 +1394,16 @@ const PLANNING_DATA = {
    "own": false,
    "sub": false,
    "skeleton": "list",
+   "devices": [
+    "scene"
+   ],
    "entry": "authority",
    "cta": "none",
    "purpose": "info",
-   "production": "speak"
+   "production": "speak",
+   "deviceEx": {
+    "scene": "휴대용 도어락 — 호텔 갈 때 가지고 있으면 진짜 든든 / 물에 녹는 티슈 — 공중화장실 갈 때 이거 없으면 안 돼요"
+   }
   },
   {
    "no": 24,
@@ -1223,10 +1431,22 @@ const PLANNING_DATA = {
    "own": false,
    "sub": false,
    "skeleton": "claim",
+   "devices": [
+    "convert",
+    "scene",
+    "hide",
+    "redefine"
+   ],
    "entry": "situation",
    "cta": "comment",
    "purpose": "info",
-   "production": "speak"
+   "production": "speak",
+   "deviceEx": {
+    "convert": "캐나다 가는 비즈니스 좌석 편도 130만 원인데 마일리지 쓰면 이코노미 가격에 탈 수 있어요",
+    "scene": "다리 쭉 뻗고 누워서 가니까 10시간 비행이 하나도 안 힘들었어요",
+    "hide": "저는 딱 카드 2개 쓰는데요",
+    "redefine": "사실 저 부자예요! 돈은 없고 마일리지 부자예요"
+   }
   },
   {
    "no": 25,
@@ -1255,10 +1475,20 @@ const PLANNING_DATA = {
    "own": false,
    "sub": false,
    "skeleton": "step",
+   "devices": [
+    "mechanism",
+    "blueprint",
+    "scene"
+   ],
    "entry": "situation",
    "cta": "save",
    "purpose": "info",
-   "production": "speak"
+   "production": "speak",
+   "deviceEx": {
+    "mechanism": "도난당한 기기 보호 켜두면 핸드폰 분실 시 내 얼굴 없이는 금융 설정 등 중요 정보는 못 엽니다",
+    "blueprint": "설정 → 페이스 아이디 및 암호 → 번역 앱 언어 다운 → 일반 → 백그라운드 앱 새로고침 → 계산기 변환",
+    "scene": "데이터 없이도 사진만 찍으면 바로바로 번역돼서 편리해요"
+   }
   },
   {
    "no": 26,
@@ -1287,10 +1517,22 @@ const PLANNING_DATA = {
    "own": false,
    "sub": false,
    "skeleton": "list",
+   "devices": [
+    "convert",
+    "blueprint",
+    "preempt",
+    "hide"
+   ],
    "entry": "timely",
    "cta": "full",
    "purpose": "info",
-   "production": "speak"
+   "production": "speak",
+   "deviceEx": {
+    "convert": "여행 경비를 반이나 아껴줄 거거든",
+    "blueprint": "그냥 이 사이트 들어가서 이미지 저장하고 보여주면 돼",
+    "preempt": "여기저기 흩어진 쿠폰 찾느라 고생할 필요 없어",
+    "hide": "일본 호텔 최대 50% 할인되는 쿠폰도 있으니까"
+   }
   },
   {
    "no": 27,
@@ -1319,10 +1561,18 @@ const PLANNING_DATA = {
    "own": false,
    "sub": false,
    "skeleton": "list",
+   "devices": [
+    "scene",
+    "preempt"
+   ],
    "entry": "situation",
    "cta": "none",
    "purpose": "info",
-   "production": "speak"
+   "production": "speak",
+   "deviceEx": {
+    "scene": "여행 가서 술 먹고 이거 먹으면 다음날 산도 걸을 수 있어요",
+    "preempt": "가루로 된 칼슘 마그네슘인데 변비랑 근육통에 좋더라고요. 근데 맛은..."
+   }
   },
   {
    "no": 28,
@@ -1352,10 +1602,18 @@ const PLANNING_DATA = {
    "own": false,
    "sub": true,
    "skeleton": "list",
+   "devices": [
+    "convert",
+    "mechanism"
+   ],
    "entry": "result",
    "cta": "comment",
    "purpose": "info",
-   "production": "speak"
+   "production": "speak",
+   "deviceEx": {
+    "convert": "백화점 180~300만원대 40만원대 매입 가능",
+    "mechanism": "백화점선 예전부터 물량 없었는데 여긴 반년도 안 돼서 바로 들어옴"
+   }
   },
   {
    "no": 29,
@@ -1382,11 +1640,19 @@ const PLANNING_DATA = {
    "script": "따라만 하면 뽀뽀 100번 받는 상수 데이트 코스 알려드릴게요.\n상수역에서 4분만 가면 장인이 만들어주는 소바 맛집이 있는데\n지금까지 제가 경험해본 소바랑 진짜 달라서\n여긴 제가 전 메뉴를 다 먹어봤을 정도로 찐맛집입니다.\n배 다 채웠으면 상수 팝업 돌아다니며 럭키드로우도 하고 선물도 받고\n인생네컷까지 찍어줍니다.\n팝업 다 돌고 음악감상실에서\n연인과 같은 LP를 들으며 감상까지 해주면\n인당 2만원대의 이 체험형 데이트가 완성인데요.",
    "own": false,
    "sub": false,
-   "skeleton": "list",
+   "skeleton": "step",
+   "devices": [
+    "convert",
+    "blueprint"
+   ],
    "entry": "situation",
    "cta": "none",
    "purpose": "info",
-   "production": "speak"
+   "production": "speak",
+   "deviceEx": {
+    "convert": "인당 2만원대의 이 체험형 데이트가 완성",
+    "blueprint": "상수역 4분 소바 → 팝업 럭키드로우 → 인생네컷 → 음악감상실 LP"
+   }
   },
   {
    "no": 30,
@@ -1414,10 +1680,18 @@ const PLANNING_DATA = {
    "own": false,
    "sub": false,
    "skeleton": "claim",
+   "devices": [
+    "scene",
+    "preempt"
+   ],
    "entry": "situation",
    "cta": "none",
    "purpose": "info",
-   "production": "speak"
+   "production": "speak",
+   "deviceEx": {
+    "scene": "크록스, MLB키즈, 골프웨어까지 온가족 쇼핑이 가능한데요",
+    "preempt": "브랜드 찾다가 끝나는 대형 아울렛 돌아다니기 너무 힘들잖아요"
+   }
   },
   {
    "no": 31,
@@ -1447,10 +1721,18 @@ const PLANNING_DATA = {
    "own": false,
    "sub": false,
    "skeleton": "list",
+   "devices": [
+    "scene",
+    "preempt"
+   ],
    "entry": "situation",
    "cta": "none",
    "purpose": "info",
-   "production": "speak"
+   "production": "speak",
+   "deviceEx": {
+    "scene": "튀지 않는 디자인이라 단독으로 해도 좋고 레이어드도 쉬워요",
+    "preempt": "이 돈 쓰고 후회하면 어떡하지? 걱정하지 마세요"
+   }
   },
   {
    "no": 32,
@@ -1478,10 +1760,16 @@ const PLANNING_DATA = {
    "own": false,
    "sub": false,
    "skeleton": "list",
+   "devices": [
+    "scene"
+   ],
    "entry": "authority",
    "cta": "comment",
    "purpose": "info",
-   "production": "speak"
+   "production": "speak",
+   "deviceEx": {
+    "scene": "저는 주로 점심시간을 활용해서 운동을 해요 / 사내식당에 들러서 점심 도시락을 포장해서 사무실 복귀해요"
+   }
   },
   {
    "no": 33,
@@ -1510,11 +1798,21 @@ const PLANNING_DATA = {
    "own": false,
    "sub": false,
    "skeleton": "story",
+   "devices": [
+    "mechanism",
+    "mychoice",
+    "redefine"
+   ],
    "entry": "situation",
    "cta": "none",
    "purpose": "info",
    "curve": "declare",
-   "production": "speak"
+   "production": "speak",
+   "deviceEx": {
+    "mechanism": "회사를 나오는 리스크보다 안정 속에서 경쟁력을 잃는 리스크가 더 크다는 계산",
+    "mychoice": "정말 잘 다니고 있던 카카오 본사를 퇴사하기로 결심했을 때 저는 딱 한 가지 질문만 했습니다",
+    "redefine": "저에게 카카오 퇴사는 도전이 아니라 리스크 관리에 가까운 것이었고"
+   }
   },
   {
    "no": 34,
@@ -1543,10 +1841,16 @@ const PLANNING_DATA = {
    "own": false,
    "sub": false,
    "skeleton": "list",
+   "devices": [
+    "scene"
+   ],
    "entry": "situation",
    "cta": "comment",
    "purpose": "info",
-   "production": "speak"
+   "production": "speak",
+   "deviceEx": {
+    "scene": "PPT 디자인 감각 없어서 막막하다면 감마 / 복잡한 데이터 인포그래픽으로 뚝딱 만들어주길 원한다면 냅킨"
+   }
   },
   {
    "no": 35,
@@ -1574,10 +1878,20 @@ const PLANNING_DATA = {
    "own": false,
    "sub": false,
    "skeleton": "step",
+   "devices": [
+    "mechanism",
+    "blueprint",
+    "hide"
+   ],
    "entry": "situation",
    "cta": "comment",
    "purpose": "info",
-   "production": "speak"
+   "production": "speak",
+   "deviceEx": {
+    "mechanism": "한 번에 3명 이상의 전문가가 10번 이상 검증하고 체계적으로 답하게 만드는 거라 거의 교수님급 GPT가 됩니다",
+    "blueprint": "챗GPT 메뉴 → 맨 아래 프로필 → 개인 맞춤 설정 → 맞춤형 지침에 복붙",
+    "hide": "맞춤형 지침에 이걸 복붙하면 끝"
+   }
   },
   {
    "no": 36,
@@ -1605,10 +1919,20 @@ const PLANNING_DATA = {
    "own": false,
    "sub": false,
    "skeleton": "step",
+   "devices": [
+    "mechanism",
+    "blueprint",
+    "hide"
+   ],
    "entry": "situation",
    "cta": "comment",
    "purpose": "info",
-   "production": "speak"
+   "production": "speak",
+   "deviceEx": {
+    "mechanism": "개소리를 해도 그거 멋진걸? 와 너 천재야? 하고 헛소리를 해요. 얘 말 믿고 그대로 하면 그냥 바보 되는 거죠",
+    "blueprint": "설정 → 개인 맞춤 설정 → 맞춤형 지침에 적힌 거 지우고 이렇게 적어보세요",
+    "hide": "월클 CEO들의 뇌를 해킹해주는 AI 프롬프트 받는 법"
+   }
   },
   {
    "no": 37,
@@ -1636,10 +1960,18 @@ const PLANNING_DATA = {
    "own": false,
    "sub": false,
    "skeleton": "list",
+   "devices": [
+    "blueprint",
+    "scene"
+   ],
    "entry": "situation",
    "cta": "save",
    "purpose": "info",
-   "production": "speak"
+   "production": "speak",
+   "deviceEx": {
+    "blueprint": "결과 전달 = 보고 / 검토·승인 요청 = 확인 / 업무 요청 = 요청",
+    "scene": "지금 팀장님 이사님께 보고자료를 메일로 전달드려야 돼요"
+   }
   },
   {
    "no": 38,
@@ -1667,10 +1999,18 @@ const PLANNING_DATA = {
    "own": false,
    "sub": false,
    "skeleton": "claim",
+   "devices": [
+    "mechanism",
+    "hide"
+   ],
    "entry": "timely",
    "cta": "comment",
    "purpose": "info",
-   "production": "speak"
+   "production": "speak",
+   "deviceEx": {
+    "mechanism": "실제로 옛날에 이라크전 끝났을 때도 건설주 200%까지 뛰었던 거 알지?",
+    "hide": "가장 먼저 봐야 될 건설주 3개 알려줄게"
+   }
   },
   {
    "no": 39,
@@ -1699,10 +2039,20 @@ const PLANNING_DATA = {
    "own": false,
    "sub": false,
    "skeleton": "claim",
+   "devices": [
+    "mechanism",
+    "scene",
+    "preempt"
+   ],
    "entry": "situation",
    "cta": "none",
    "purpose": "empathy",
-   "production": "speak"
+   "production": "speak",
+   "deviceEx": {
+    "mechanism": "같이 살기 시작하면 꾸미지 않은 모습들을 서로 많이 보게 되잖아요",
+    "scene": "오늘은 같이 미술관 전시 보러 갔다가 예쁜 카페에서 차 마시면서 데이트했어요",
+    "preempt": "자연스러운 모습도 좋지만"
+   }
   },
   {
    "no": 40,
@@ -1730,10 +2080,18 @@ const PLANNING_DATA = {
    "own": false,
    "sub": false,
    "skeleton": "step",
+   "devices": [
+    "blueprint",
+    "hide"
+   ],
    "entry": "result",
    "cta": "caption",
    "purpose": "info",
-   "production": "speak"
+   "production": "speak",
+   "deviceEx": {
+    "blueprint": "구글 제미나이 → 사고 모델 → 이미지 만들기 → 제품 사진 넣고 프롬프트 그대로",
+    "hide": "이 프롬프트를 그대로 넣어주세요 (프롬프트는 캡션에)"
+   }
   },
   {
    "no": 41,
@@ -1761,10 +2119,20 @@ const PLANNING_DATA = {
    "own": false,
    "sub": false,
    "skeleton": "step",
+   "devices": [
+    "convert",
+    "mechanism",
+    "blueprint"
+   ],
    "entry": "result",
    "cta": "none",
    "purpose": "info",
-   "production": "speak"
+   "production": "speak",
+   "deviceEx": {
+    "convert": "일반 통장은 이자가 거의 0원이지만 CMA 통장은 매일매일 복리로 돈이 쌓여요",
+    "mechanism": "돈이 제 손을 거치기도 전에 갈 길을 찾아가게 만들었어요",
+    "blueprint": "월급날 자동이체 → 저축·투자 → 고정비 통장 → 남은 돈은 CMA"
+   }
   },
   {
    "no": 42,
@@ -1793,10 +2161,20 @@ const PLANNING_DATA = {
    "own": false,
    "sub": false,
    "skeleton": "claim",
+   "devices": [
+    "convert",
+    "mechanism",
+    "mychoice"
+   ],
    "entry": "authority",
    "cta": "comment",
    "purpose": "info",
-   "production": "speak"
+   "production": "speak",
+   "deviceEx": {
+    "convert": "2025년 내로 100만원만 입금해도 확정 수익 16만 5천원",
+    "mechanism": "연금 받는 기간에도 남은 금액이 복리로 돌아감",
+    "mychoice": "7년차 은행원인 저도 처음엔 회사에서 의무가입하는 IRP 막 해지해버리고 그랬어요"
+   }
   },
   {
    "no": 43,
@@ -1825,10 +2203,20 @@ const PLANNING_DATA = {
    "own": false,
    "sub": false,
    "skeleton": "claim",
+   "devices": [
+    "convert",
+    "mechanism",
+    "scene"
+   ],
    "entry": "blank",
    "cta": "save",
    "purpose": "info",
-   "production": "speak"
+   "production": "speak",
+   "deviceEx": {
+    "convert": "국토부 전자계약으로 400만원 아꼈어요",
+    "mechanism": "국토부 공식 사이트라 부동산 이중계약도 원천차단",
+    "scene": "저장해두고 부동산 계약할 때 전자계약 요청하세요"
+   }
   },
   {
    "no": 44,
@@ -1857,10 +2245,18 @@ const PLANNING_DATA = {
    "own": false,
    "sub": false,
    "skeleton": "claim",
+   "devices": [
+    "convert",
+    "hide"
+   ],
    "entry": "situation",
    "cta": "comment",
    "purpose": "info",
-   "production": "speak"
+   "production": "speak",
+   "deviceEx": {
+    "convert": "8시간 기획할 거 10분만에 아무도 모르게 끝낼 수 있어요",
+    "hide": "어색한 GPT 기획안 말투부터 바꿔보세요. 바로 복사 붙여넣기만 하면 끝!"
+   }
   },
   {
    "no": 45,
@@ -1889,10 +2285,18 @@ const PLANNING_DATA = {
    "own": false,
    "sub": false,
    "skeleton": "step",
+   "devices": [
+    "blueprint",
+    "scene"
+   ],
    "entry": "situation",
    "cta": "none",
    "purpose": "info",
-   "production": "speak"
+   "production": "speak",
+   "deviceEx": {
+    "blueprint": "①되고 싶은 삶 다 적기 → ②미래의 하루 스토리 써줘 → ③그 삶에 도달할 하루 스케줄 설계해줘",
+    "scene": "월 천만 원 벌고 싶어, 강남에 집 한 채 사고 싶어 — 다 이루어진다고 생각하고 전부"
+   }
   },
   {
    "no": 46,
@@ -1921,10 +2325,18 @@ const PLANNING_DATA = {
    "own": false,
    "sub": false,
    "skeleton": "list",
+   "devices": [
+    "scene",
+    "hide"
+   ],
    "entry": "blank",
    "cta": "comment",
    "purpose": "info",
-   "production": "speak"
+   "production": "speak",
+   "deviceEx": {
+    "scene": "고스트를 붙이면 AI 티를 전부 삭제 — 자기소개서·보고서 쓰실 때",
+    "hide": "이런 상황별 명령어가 50개가 넘는데"
+   }
   },
   {
    "no": 47,
@@ -1948,14 +2360,26 @@ const PLANNING_DATA = {
    "template": "[기존 포맷] 대신 오늘은 [새 포맷] 해볼게요",
    "templateEx": "시리즈 전환·실험 예고용",
    "viral": "남의 책상 구경 수요 (데스크템 장르) — 정보보다 관음 욕구 기반의 고정 수요\n힘 뺀 수다 톤 (귀여우니까 / 이 친구가 물건이다) — 광고 없는 진짜 내 물건 느낌\n현실 디테일 (촬영 남은 소품 / 길 가다 산 안경 / 직장인 필수템 약들) — 꾸미지 않은 일상감\n시리즈 예고 (시리즈물로 만들고 싶으니 관심 부탁) — 반응 보고 시리즈화하는 실험 구조",
-   "script": "(아이템 나열형 — 위 메인 참고. 전체 원문은 데스크탑 래퍼런스 47번)",
+   "script": "브이로그 대신에 사무실 꿀템, 아이템\n그런 거 소개해드리도록 하겠습니다\n먼저 만년 달력\n그냥 날짜 맞춰서 요리조리 옮겨가면서 쓸 수 있는 거라\n진짜 평생 쓸 수 있어요\n다음으로는 별의 커비\n이거는 다른 팀 촬영하고 남은 소품을 받아온 건데요\n너무 귀여워서 모니터 앞에 두고 보고 있습니다\n다음으로는 블루구틀 텀블러\n이거 진짜 굉장히 작은데 굉장히 비싸요\n그렇지만 귀여우니까\n그 다음으로는 코스터\n이건 전시보고 너무 귀여워서 살 수밖에 없었던 굿즈인데요\n얼음 녹으면서 생기는 물 같은 걸 이 친구가 다 흡수해줍니다\n코스터 추천\n그 다음으로 해남에서 만든 반시고구마\n이 친구가 굉장히 물건이다 이 말이에요\n이 친구가 나의 허기를 달래준다\n다음으로는 안경 안경닦기\n안경닦기는 며칠 전에 강릉에서 사온 기념품이고요\n안경은 그냥 길 가다가 샀습니다\n다음으로는 약\n약들\n직장인의 필수 템이라고 할 수 있죠\n제일 왼쪽이 Q&P 골드 알파\n일본 기념품 추천합니다\n다음으로는 네일 관련 템들인데요\n제가 손을 진짜 많이 씻어서 핸드크림 완전 필수이고\n큐티클 오일은 조금 비싸잖아요\n그래서 공병에 바디오일 넣어서 다니면 됩니다\n제가 이거를 시리즈물로 만들고 싶으니까\n많은 관심 부탁드립니다\n감사합니다\n감사합니다",
    "own": false,
    "sub": false,
    "skeleton": "list",
+   "devices": [
+    "mechanism",
+    "scene",
+    "mychoice",
+    "preempt"
+   ],
    "entry": "situation",
    "cta": "none",
    "purpose": "info",
-   "production": "speak"
+   "production": "speak",
+   "deviceEx": {
+    "mechanism": "얼음 녹으면서 생기는 물 같은 걸 이 친구가 다 흡수해줍니다",
+    "scene": "날짜 맞춰서 요리조리 옮겨가면서 쓸 수 있는 거라 / 너무 귀여워서 모니터 앞에 두고 보고 있습니다",
+    "mychoice": "큐티클 오일은 조금 비싸잖아요. 그래서 공병에 바디오일 넣어서 다니면 됩니다",
+    "preempt": "이거 진짜 굉장히 작은데 굉장히 비싸요. 그렇지만 귀여우니까"
+   }
   },
   {
    "no": 48,
@@ -1983,10 +2407,20 @@ const PLANNING_DATA = {
    "own": false,
    "sub": false,
    "skeleton": "list",
+   "devices": [
+    "convert",
+    "preempt",
+    "redefine"
+   ],
    "entry": "result",
    "cta": "none",
    "purpose": "info",
-   "production": "speak"
+   "production": "speak",
+   "deviceEx": {
+    "convert": "초봉 180만원, 주식 계좌 1억에서 3억",
+    "preempt": "마이너스 4천만원 견딜 수 있어요?",
+    "redefine": "미국 주식은 결국 마인드예요"
+   }
   },
   {
    "no": 49,
@@ -2016,10 +2450,22 @@ const PLANNING_DATA = {
    "own": false,
    "sub": false,
    "skeleton": "claim",
+   "devices": [
+    "convert",
+    "mechanism",
+    "mychoice",
+    "preempt"
+   ],
    "entry": "result",
    "cta": "none",
    "purpose": "info",
-   "production": "speak"
+   "production": "speak",
+   "deviceEx": {
+    "convert": "분양가 8.1억 / 내 돈 1억 / 남편 1.5억 / 대출 5.6억 → 월이자 300만원",
+    "mechanism": "6억 초과라 보금자리론·디딤돌은 못 받고 농협 일반 주담대",
+    "mychoice": "혼인신고는 안 하고 남편 명의로 대출, 생애최초라 70% 가능했어요",
+    "preempt": "다들 저희 보고 영끌 대출이라며 걱정해주셨는데, 걱정해주셔서 감사합니다"
+   }
   },
   {
    "no": 50,
@@ -2047,10 +2493,18 @@ const PLANNING_DATA = {
    "own": false,
    "sub": false,
    "skeleton": "claim",
+   "devices": [
+    "hide",
+    "redefine"
+   ],
    "entry": "authority",
    "cta": "caption",
    "purpose": "info",
-   "production": "speak"
+   "production": "speak",
+   "deviceEx": {
+    "hide": "무조건 거르는 회사 특징 3가지 본문에 적어둘게요",
+    "redefine": "좋은 회사 보는 법도 중요하지만 아닌 것 같은 회사를 거르는 게 더 중요하더라고요"
+   }
   },
   {
    "no": 51,
@@ -2072,10 +2526,20 @@ const PLANNING_DATA = {
    "own": false,
    "sub": false,
    "skeleton": "list",
+   "devices": [
+    "mechanism",
+    "preempt",
+    "redefine"
+   ],
    "entry": "situation",
    "cta": "none",
    "purpose": "empathy",
-   "production": "speak"
+   "production": "speak",
+   "deviceEx": {
+    "mechanism": "그래야 같이 동무이고 현실적으로 결혼 준비하죠",
+    "preempt": "호텔에서 명품 가방 가지고 하라는 게 아니에요",
+    "redefine": "나랑 결혼해줄래? 이 한마디를 정식으로 하란 거예요"
+   }
   },
   {
    "no": 52,
@@ -2096,11 +2560,21 @@ const PLANNING_DATA = {
    "script": "저희 안 싸우냐고요?\n저는 회사 동료 3명과 함께 살고 있어요.\n부산에서부터 함께 올라왔는데 팀 전체가 스카웃 됐거든요.\n함께 산 지 4개월 동안 서로 부딪히는 부분도 있었지만 다들 배려하고 양보하면서 살고 있어요.\n월세는 넓은 방 쓰는 사람이 더 내고, 식비는 각자 알아서 사고 나눠 먹어요.\n청소는 필받은 사람이 몰아서 하는 편이고, 깔끔 떠는 사람이 좀 더 하는 것 같긴 해요.\n같이 사주 보러 갔었는데 우리는 서로가 서로에게 귀인이고 용신이래요.\n우리는 각자 목표가 있어요. 불편해도 함께 있을 때 즐거운 게 훨씬 많아요.",
    "own": false,
    "sub": false,
-   "skeleton": "list",
+   "skeleton": "confess",
+   "devices": [
+    "blueprint",
+    "preempt",
+    "redefine"
+   ],
    "entry": "situation",
    "cta": "none",
    "purpose": "empathy",
-   "production": "speak"
+   "production": "speak",
+   "deviceEx": {
+    "blueprint": "월세는 넓은 방 쓰는 사람이 더 내고, 식비는 각자 알아서 사고 나눠 먹어요. 청소는 필받은 사람이 몰아서",
+    "preempt": "함께 산 지 4개월 동안 서로 부딪히는 부분도 있었지만",
+    "redefine": "불편해도 함께 있을 때 즐거운 게 훨씬 많아요"
+   }
   },
   {
    "no": 53,
@@ -2122,11 +2596,17 @@ const PLANNING_DATA = {
    "own": false,
    "sub": false,
    "skeleton": "story",
+   "devices": [
+    "redefine"
+   ],
    "entry": "situation",
    "cta": "none",
    "purpose": "empathy",
    "curve": "reversal",
-   "production": "speak"
+   "production": "speak",
+   "deviceEx": {
+    "redefine": "모든 걸 완벽하게 기획하며 살았다고 자부했는데, 엄마가 기획한 이 따뜻함 앞에 저는 속절없이 무너지네요"
+   }
   },
   {
    "no": 55,
@@ -2147,11 +2627,21 @@ const PLANNING_DATA = {
    "script": "넌 왜 이렇게 빡빡하게 살아? 퇴근하고 안 피곤해? 넌 왜 쉬질 못해?\n제가 주변에서 정말 많이 듣는 말이에요. 맞아요 저 쉴 줄 몰라요. 근데 이게 그냥 저예요.\n사실은 저 원래 게을렀어요. 계획만 쩔고 다 안 지켰어요. 게으른 완벽주의자였어요.\n근데 사회생활 시작하고 어느 날 현타가 왔어요. 자고 출근, 자고 출근. 기계랑 다를 게 없었어요.\n그때부터 날 위한 시간을 만들자 하면서 시간을 쪼개 쓰기 시작했어요.\n그렇게 몇 년 살았더니 강철 체력이 됐어요. 주변에서 갓생 소리 듣게 됐어요.\n근데 저 갓생 아니에요. 시간이 의미 없이 가는 게 아까워서 뭐라도 할 뿐이에요.\n저도 매일 개 힘들어요. 그래도 이렇게 살 거예요. 재밌으니까.",
    "own": false,
    "sub": false,
-   "skeleton": "claim",
+   "skeleton": "confess",
+   "devices": [
+    "mechanism",
+    "preempt",
+    "redefine"
+   ],
    "entry": "situation",
    "cta": "none",
    "purpose": "empathy",
-   "production": "speak"
+   "production": "speak",
+   "deviceEx": {
+    "mechanism": "자고 출근, 자고 출근. 기계랑 다를 게 없었어요. 그때부터 날 위한 시간을 만들자 하면서 시간을 쪼개 쓰기 시작했어요",
+    "preempt": "사실은 저 원래 게을렀어요. 계획만 쩔고 다 안 지켰어요",
+    "redefine": "근데 저 갓생 아니에요. 시간이 의미 없이 가는 게 아까워서 뭐라도 할 뿐이에요"
+   }
   },
   {
    "no": 56,
@@ -2178,11 +2668,21 @@ const PLANNING_DATA = {
    "script": "여러분 전 사실 24kg 뺀 프로 다이어터에요.\n먹는 걸 너무 좋아했던 60kg에서 바디 프로필로 48kg까지 뺐었고요.\n그 뒤 요요가 와서 65kg까지 쪘었는데 결혼 준비를 하면서 53kg까지 감량할 수 있었어요.\n그런 제가 이번엔 75kg에서 20kg 감량 다이어트 시작할 거예요.\n제가 그동안 다이어트에 성공했던 감량 루틴 적어놓을게요.\n같이 하실 분?",
    "own": false,
    "sub": false,
-   "skeleton": "claim",
+   "skeleton": "confess",
+   "devices": [
+    "convert",
+    "preempt",
+    "hide"
+   ],
    "entry": "result",
    "cta": "comment",
    "purpose": "info",
-   "production": "speak"
+   "production": "speak",
+   "deviceEx": {
+    "convert": "60kg에서 48kg → 요요로 65kg → 결혼 준비하며 53kg",
+    "preempt": "그 뒤 요요가 와서 65kg까지 쪘었는데",
+    "hide": "제가 그동안 다이어트에 성공했던 감량 루틴 적어놓을게요"
+   }
   },
   {
    "no": 57,
@@ -2211,10 +2711,20 @@ const PLANNING_DATA = {
    "own": false,
    "sub": false,
    "skeleton": "list",
+   "devices": [
+    "convert",
+    "blueprint",
+    "mychoice"
+   ],
    "entry": "result",
    "cta": "none",
    "purpose": "info",
-   "production": "speak"
+   "production": "speak",
+   "deviceEx": {
+    "convert": "연봉 3억인데 다 합치면 평균 한 달에 4,500불",
+    "blueprint": "렌트 2,400불 / 유틸리티·폰·관리비 230불 / 헬스장·교정기 240불 / 장보기 250~300불",
+    "mychoice": "평소엔 아낀 소비 습관을 갖다가 쓸 땐 행복하게 쓰려고 해요"
+   }
   },
   {
    "no": 58,
@@ -2242,10 +2752,20 @@ const PLANNING_DATA = {
    "own": false,
    "sub": false,
    "skeleton": "claim",
+   "devices": [
+    "convert",
+    "blueprint",
+    "mychoice"
+   ],
    "entry": "situation",
    "cta": "none",
    "purpose": "info",
-   "production": "dialogue"
+   "production": "dialogue",
+   "deviceEx": {
+    "convert": "17만 4천원. 명절 때 받은 돈 30만원 넘을 텐데 다 어디 갔어?",
+    "blueprint": "용돈을 쓸 돈이랑 저금할 돈으로 분리해 놔. 저금한 돈은 절대 안 꺼내",
+    "mychoice": "아빠는 3만원 받으면 두 개는 저금, 한 개만 쓸 돈에. 그것도 안 썼어"
+   }
   },
   {
    "no": 59,
@@ -2266,11 +2786,19 @@ const PLANNING_DATA = {
    "script": "여러분 30대 미혼 특징 중에 가장 위험한 게 뭔지 아세요?\n좋은 사람 만나면 언젠가는 결혼하겠지. 바로 이 생각이에요.\n저도 예전에는 그렇게 생각했거든요. 좋은 사람 생기면 자연스럽게 결혼하겠지?\n근데 시간이 지나 보니까 생각보다 그렇게 흘러가지는 않더라고요.\n좋은 사람을 만나는 것도 쉽지 않고 타이밍도 진짜 중요한 것 같아요.\n그래서 요즘은 막연하게 기다리기보다 내 삶 잘 살면서 사람도 적극적으로 만나보는 게 중요한 것 같아요.\n30대 되니까 연애도 결혼도 타이밍이라는 걸 더 절실히 느끼게 되더라고요. 여러분은 어떻게 생각하세요?",
    "own": false,
    "sub": false,
-   "skeleton": "claim",
+   "skeleton": "confess",
+   "devices": [
+    "mechanism",
+    "redefine"
+   ],
    "entry": "situation",
    "cta": "none",
    "purpose": "empathy",
-   "production": "speak"
+   "production": "speak",
+   "deviceEx": {
+    "mechanism": "좋은 사람을 만나는 것도 쉽지 않고 타이밍도 진짜 중요한 것 같아요",
+    "redefine": "좋은 사람 만나면 언젠가는 결혼하겠지 — 바로 이 생각이 제일 위험해요"
+   }
   },
   {
    "no": 60,
@@ -2292,10 +2820,24 @@ const PLANNING_DATA = {
    "own": false,
    "sub": false,
    "skeleton": "claim",
+   "devices": [
+    "mechanism",
+    "mychoice",
+    "preempt",
+    "hide",
+    "redefine"
+   ],
    "entry": "result",
    "cta": "caption",
    "purpose": "empathy",
-   "production": "speak"
+   "production": "speak",
+   "deviceEx": {
+    "mechanism": "IT 직군으로 입행했는데 1년 반 이상 영업점 근무하라는 거예요 / 은행은 결국 영업이다",
+    "mychoice": "하지만 전 돌아가도 또 그만둘 거예요",
+    "preempt": "초봉 6천 이상, 워라밸도 좋고 정년까지 보장되는데 다들 미쳤냐고 하더라고요",
+    "hide": "본인이랑 맞을지 판단법은 캡션에 넣어둘게요",
+    "redefine": "왜 내 인생을 남이 결정해? 저는 제 삶의 결정권은 제가 가지고 싶었어요"
+   }
   },
   {
    "no": 61,
@@ -2316,11 +2858,24 @@ const PLANNING_DATA = {
    "script": "남들은 내가 미쳤다고 한다. 너가 나 왜 아냐고.\n내 브랜드 자본금 내 몸으로 벌고 싶었다.\n나는 의지 박약인 놈이다. 그래서 어중간한 마음으로 하고 싶지 않았다.\n내 피와 땀이 담긴 내 브랜드를 만들고 싶었다. 이게 나, 그리고 내 브랜드의 가치관이다.\n내가 갖고 있는 건 아무것도 없다. 그냥 꾸준하게 계속 일할 거다.",
    "own": false,
    "sub": false,
-   "skeleton": "claim",
+   "skeleton": "story",
+   "curve": "declare",
+   "devices": [
+    "mechanism",
+    "mychoice",
+    "preempt",
+    "redefine"
+   ],
    "entry": "situation",
    "cta": "none",
    "purpose": "empathy",
-   "production": "speak"
+   "production": "speak",
+   "deviceEx": {
+    "mechanism": "나는 의지 박약인 놈이다. 그래서 어중간한 마음으로 하고 싶지 않았다",
+    "mychoice": "내 브랜드 자본금 내 몸으로 벌고 싶었다",
+    "preempt": "남들은 내가 미쳤다고 한다",
+    "redefine": "내 피와 땀이 담긴 내 브랜드를 만들고 싶었다. 이게 나, 그리고 내 브랜드의 가치관이다"
+   }
   },
   {
    "no": 62,
@@ -2342,10 +2897,18 @@ const PLANNING_DATA = {
    "own": false,
    "sub": false,
    "skeleton": "list",
+   "devices": [
+    "preempt",
+    "redefine"
+   ],
    "entry": "situation",
    "cta": "none",
    "purpose": "empathy",
-   "production": "speak"
+   "production": "speak",
+   "deviceEx": {
+    "preempt": "너무 늦었나 생각할 수 있는데 아닙니다",
+    "redefine": "30살 됐다고 The End of the World처럼 생각할 필요 전혀 없어요. 이제 시작이에요"
+   }
   },
   {
    "no": 63,
@@ -2367,10 +2930,20 @@ const PLANNING_DATA = {
    "own": false,
    "sub": false,
    "skeleton": "claim",
+   "devices": [
+    "mechanism",
+    "preempt",
+    "redefine"
+   ],
    "entry": "situation",
    "cta": "none",
    "purpose": "empathy",
-   "production": "speak"
+   "production": "speak",
+   "deviceEx": {
+    "mechanism": "회사에 있는 동안 긴장하고 눈치 보고 버티는 방어 에너지를 엄청 많이 써요",
+    "preempt": "나 오늘 뭐 한 게 있다고 이렇게 피곤하지? 나 너무 게으른 거 아니야?",
+    "redefine": "이건 게으름이 아니라 신경계가 스스로를 지키려고 들어간 최소 전력 모드예요"
+   }
   },
   {
    "no": 64,
@@ -2392,10 +2965,20 @@ const PLANNING_DATA = {
    "own": false,
    "sub": false,
    "skeleton": "claim",
+   "devices": [
+    "scene",
+    "preempt",
+    "redefine"
+   ],
    "entry": "situation",
    "cta": "none",
    "purpose": "empathy",
-   "production": "speak"
+   "production": "speak",
+   "deviceEx": {
+    "scene": "교통사고가 나거나 가벼운 사고가 나서 며칠이라도 병원에 누워있고 싶다",
+    "preempt": "실제로 입원해서 일주일 쉬고 온다고 이 넓은 지구에 별일 안 일어납니다",
+    "redefine": "그건 게으름이 아니라 자기 자신을 돌봐야 한다는 신호입니다"
+   }
   },
   {
    "no": 65,
@@ -2417,10 +3000,20 @@ const PLANNING_DATA = {
    "own": false,
    "sub": false,
    "skeleton": "claim",
+   "devices": [
+    "mechanism",
+    "blueprint",
+    "redefine"
+   ],
    "entry": "situation",
    "cta": "none",
    "purpose": "empathy",
-   "production": "speak"
+   "production": "speak",
+   "deviceEx": {
+    "mechanism": "나를 방어하는 논리에 급급하거나 토론의 기술을 적용하면 대화할수록 미궁에 빠져요",
+    "blueprint": "내 마음이 이래 / 너 기분이 그렇구나 / 내가 이것 때문에 속상했어 / 내가 잘못한 것 같아",
+    "redefine": "배우자는 내 상사도 고객도 아니에요. 내가 나여도 되는 유일한 사람이에요"
+   }
   },
   {
    "no": 66,
@@ -2441,11 +3034,21 @@ const PLANNING_DATA = {
    "script": "10년 연애하고 25살에 결혼했다. 결혼 현실편.\n결혼하고 나서 알게 된 현실이 있다. 우리는 퇴근하면 저녁은 같이 먹는다.\n근데 그 다음부터는 각자 논다. 나는 거실에서 쉬고 남편은 게임방에서 게임한다. 같은 집에 있는데 각자 자기 할 일 하면서 논다.\n근데 그게 싫냐고? 오히려 그게 더 편하다. 물론 남편이 게임을 3시간 넘게 하면 그땐 살짝 짜증나긴 한다.\n그래도 각자 쉴 시간을 존중해주니까 결혼 생활이 더 편해진 것 같다.\n근데 사실 이게 다가 아니다. 진짜 현실은 다음번에 말해보겠다.",
    "own": false,
    "sub": false,
-   "skeleton": "claim",
+   "skeleton": "confess",
+   "devices": [
+    "scene",
+    "preempt",
+    "redefine"
+   ],
    "entry": "situation",
    "cta": "none",
    "purpose": "empathy",
-   "production": "speak"
+   "production": "speak",
+   "deviceEx": {
+    "scene": "나는 거실에서 쉬고 남편은 게임방에서 게임한다",
+    "preempt": "물론 남편이 게임을 3시간 넘게 하면 그땐 살짝 짜증나긴 한다",
+    "redefine": "근데 그게 싫냐고? 오히려 그게 더 편하다"
+   }
   },
   {
    "no": 67,
@@ -2466,11 +3069,21 @@ const PLANNING_DATA = {
    "script": "저희는 올해 5월에 결혼했는데 아직도 8평 월세집에서 함께 살고 있습니다.\n좁은 공간 신혼생활 릴스를 많은 분들이 공감해주시더라고요. 좁지 않냐는 말도 듣지만 정말 행복하게 2년을 보내고 있어요.\n저희는 왜 더 넓은 곳에서 살지 못할까가 아니라, 둘이 있을 수 있는 공간이 있다는 사실에 집중했어요.\n가끔 물건 둘 데 없어 열받을 때도 있지만, 저렴한 월세에 둘이 붙어 있을 수 있음에 감사해요.\n신혼집 구했냐는 질문 받을 때마다 저희 8평에 살아요 하면서 당당하게 웃어 넘겼어요.\n형편에 맞게 작은 곳에서 시작하는 것도 괜찮아요. 야금야금 넓혀 나가자고요.\n결론은 둘만 있으면 장소가 어디든 행복하다. 진짜 빨리 이사 가고 싶다.",
    "own": false,
    "sub": false,
-   "skeleton": "claim",
+   "skeleton": "confess",
+   "devices": [
+    "mychoice",
+    "preempt",
+    "redefine"
+   ],
    "entry": "situation",
    "cta": "none",
    "purpose": "empathy",
-   "production": "speak"
+   "production": "speak",
+   "deviceEx": {
+    "mychoice": "저희는 왜 더 넓은 곳에서 살지 못할까가 아니라, 둘이 있을 수 있는 공간이 있다는 사실에 집중했어요",
+    "preempt": "좁지 않냐는 말도 듣지만 정말 행복하게 2년을 보내고 있어요",
+    "redefine": "형편에 맞게 작은 곳에서 시작하는 것도 괜찮아요"
+   }
   },
   {
    "no": 68,
@@ -2500,10 +3113,20 @@ const PLANNING_DATA = {
    "own": false,
    "sub": false,
    "skeleton": "list",
+   "devices": [
+    "convert",
+    "scene",
+    "hide"
+   ],
    "entry": "result",
    "cta": "comment",
    "purpose": "info",
-   "production": "speak"
+   "production": "speak",
+   "deviceEx": {
+    "convert": "이코노미 유럽 왕복이 7만 마일. 1년 만에 21만 모았으니 유럽 3번 왕복",
+    "scene": "좌석이 정말 넓고 기내식에 간식까지 잘 나와서 먹고 쉬다 보니 10시간이 금방 지나가더라고요",
+    "hide": "정리했더니 방법이 10가지나 되더라고요"
+   }
   },
   {
    "no": 69,
@@ -2525,10 +3148,22 @@ const PLANNING_DATA = {
    "own": false,
    "sub": false,
    "skeleton": "claim",
+   "devices": [
+    "mechanism",
+    "blueprint",
+    "preempt",
+    "redefine"
+   ],
    "entry": "situation",
    "cta": "caption",
    "purpose": "info",
-   "production": "speak"
+   "production": "speak",
+   "deviceEx": {
+    "mechanism": "원래 세금이 붙어야 할 수익이 계속 그대로 계좌에 남아서 복리로 굴러가기 때문이야",
+    "blueprint": "미국 ETF를 추종하는 한국상장 ETF를 매수해야 돼",
+    "preempt": "ISA 안에서 한국 주식을 산다? 그건 별로 의미가 없어. 한국 주식은 원래 양도세가 없거든",
+    "redefine": "ISA는 그냥 투자 계좌가 아니고 세금을 줄이고 복리의 효과를 극대화하는 계좌"
+   }
   },
   {
    "no": 70,
@@ -2550,10 +3185,22 @@ const PLANNING_DATA = {
    "own": false,
    "sub": false,
    "skeleton": "claim",
+   "devices": [
+    "convert",
+    "mechanism",
+    "blueprint",
+    "preempt"
+   ],
    "entry": "timely",
    "cta": "caption",
    "purpose": "info",
-   "production": "speak"
+   "production": "speak",
+   "deviceEx": {
+    "convert": "매해 166만 원씩 또는 한 번에 2천만 원",
+    "mechanism": "매해 2천 안 넣으면 1억까지 혜택을 다 못 받는다는 거예요",
+    "blueprint": "ISA 기존 혜택 지키려면 할 수 있는 건 딱 하나, 계좌 만기일을 연장하는 거예요",
+    "preempt": "솔직히 매해 166만 원씩 넣을 수 있는 청년이 얼마나 되겠어요"
+   }
   }
  ],
  "skeletons": [
@@ -2637,7 +3284,7 @@ const PLANNING_DATA = {
   {
    "id": "confess",
    "name": "고백형",
-   "body": "안 하던 얘기를 꺼내 감정으로 붙잡고 인사이트 하나로 닫는다 (감정형 전용)",
+   "body": "안 하던 얘기를 꺼내 감정으로 붙잡고 인사이트 하나로 닫는다",
    "structure": "훅(예상 밖 고백) → 감정선(그때 내 상황·취약함) → 공감 요소(친한 친구한테 말하듯 속 얘기) → 테이크어웨이(A가 아니라 B다) → 되묻기",
    "validEntry": [
     "authority",
@@ -2645,9 +3292,76 @@ const PLANNING_DATA = {
     "situation",
     "timely"
    ],
-   "note": "정보를 나르는 골격이 아니다 — CTA 를 붙이지 않고 되묻기로 닫는다. 테이크어웨이는 반드시 「A가 아니라 B다」 재정의여야 한다 (소통형 레퍼 13편 전부 이 자리를 갖고 있다). 2026-08-08 신설"
+   "note": "테이크어웨이는 반드시 「A가 아니라 B다」 재정의여야 한다 — 이게 없으면 그냥 신변잡기다. 닫기는 CTA 가 아니라 되묻기. ★성과형·정보형에도 쓴다 (2026-08-08 전수 재판정에서 풀었다 — 「24kg 뺀 프로 다이어터」가 정보를 나르면서 고백 껍데기를 썼고, 유디트 재테크·커리어 편에 제일 잘 맞는 모양이 이것이다). 정보형으로 쓸 땐 되묻기 뒤에 CTA 한 줄까지는 붙여도 된다. 2026-08-08 신설"
   }
  ],
+ "devices": [
+  {
+   "id": "convert",
+   "no": 1,
+   "name": "환산",
+   "body": "숫자를 혼자 두지 않는다 — 둘을 붙여야 이득이 된다",
+   "ex": "7,300원인데 나는 3,600원 · 모르고 50년 내면 150만원 · 21만 마일 = 유럽 왕복 3번",
+   "warn": "내 총액만 말하면 자랑이다. 시청자가 쓰는 단위로 바꾼다 (3억 모았어요 ✕ → 매해 166만원씩이면 5년에 1억 ○)"
+  },
+  {
+   "id": "mechanism",
+   "no": 2,
+   "name": "메커니즘",
+   "body": "주장 뒤엔 「~때문이에요」",
+   "ex": "세금 붙어야 할 수익이 계좌에 남아서 복리로 굴러가거든요 · 이라크전 끝났을 때 건설주 200% 뛰었어요",
+   "warn": "이유가 붙으면 저장된다 — 레퍼 분석에 그대로 적혀 있는 말이다"
+  },
+  {
+   "id": "blueprint",
+   "no": 3,
+   "name": "설계도",
+   "body": "행동 경로를 끝까지",
+   "ex": "20만 S&P / 20만 나스닥 / 10만 배당 · 자동이체 → 고정비통장 → CMA · 한전에 전화하고 KBS 사이트 들어가서",
+   "warn": "「하세요」가 아니라 어디를 눌러서 뭘 하는지까지"
+  },
+  {
+   "id": "scene",
+   "no": 4,
+   "name": "사용 장면",
+   "body": "항목마다 「언제 쓰는지」",
+   "ex": "호텔 갈 때 / 공중화장실 갈 때 · 디자인 감각 없으면 이거 · 저장해뒀다 계약할 때 요청하세요",
+   "warn": "나열형에서 특히 — 항목 이름만 있으면 내 얘기가 안 된다"
+  },
+  {
+   "id": "mychoice",
+   "no": 5,
+   "name": "내 선택이 증거",
+   "body": "저희는 ~때문에 이렇게 했어요",
+   "ex": "저희는 이것 때문에 혼인신고 안 했는데요 · 컴퓨터 존을 거실로 뺐습니다 · 저도 IRP 막 해지했었어요",
+   "warn": "★「때문에」가 없으면 이 장치는 작동하지 않는다 (0807 ISA 가 여기서 걸렸다). 아키타입이 「언니」라 이게 채널 기본값이다"
+  },
+  {
+   "id": "preempt",
+   "no": 6,
+   "name": "반론 선차단",
+   "body": "핑계·단점을 내가 먼저 말한다",
+   "ex": "근데 건보료 폭탄이 와요 · 1만원대라 초보도 돼요 · 근데 맛은요…",
+   "warn": "시청자가 다음에 할 생각을 한 발 앞서 막는다. 단점 하나가 나머지를 보증한다"
+  },
+  {
+   "id": "hide",
+   "no": 7,
+   "name": "빈칸",
+   "body": "효용은 다 주고 이름만 가린다 (리드수집형의 핵심)",
+   "ex": "이자 80배 주는 통장 · 공항 라운지 무료 되는 카드 · 방법이 열 가지나 되더라고요",
+   "warn": "★순서가 규칙이다 — 혜택·이유를 끝까지 말한 뒤에 정체만 가린다. 설명이 얇은 채로 개수만 던지면 안 궁금해진다"
+  },
+  {
+   "id": "redefine",
+   "no": 8,
+   "name": "재정의",
+   "body": "A 가 아니라 B 다",
+   "ex": "저 갓생 아니에요, 시간이 아까울 뿐 · 안 한 게 아니라 하루를 버텨낸 거예요 · 배우자는 상사도 고객도 아니에요",
+   "warn": "가르보 대본 공식의 테이크어웨이가 정확히 이 자리 → 골격 고백형"
+  }
+ ],
+ "deviceRule": "정보형 = ①~⑦ 중 최소 3개 · 감정형 = ⑧ 필수 · 숫자가 나오면 ① 무조건. 죽은 세 편(마일리지 0728·ISA 0806·ISA 0807)은 채점하면 셋 다 0개였다. 정본 = 릴스/대본/_양식.md §본론 설계",
  "entries": [
   {
    "id": "authority",
@@ -2784,7 +3498,7 @@ const PLANNING_DATA = {
    "name": "의외 고백·선언",
    "desc": "사실 나 ~예요 (실수·실패 고백 포함)",
    "pattern": "[좋은 조건]인데 [나쁜 결과]였다, 왜? (예: 연봉 2억인데 잔고는 제자리였습니다)",
-   "rec": "story"
+   "rec": "confess"
   },
   {
    "id": "timely",

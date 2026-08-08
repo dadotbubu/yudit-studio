@@ -9631,10 +9631,19 @@ function plResetStep2() {
 }
 
 // ---------- 레퍼 보관함 ----------
+// 본론 장치 id 배열 → 「①환산 · ②메커니즘」 표기 (정본: 릴스/대본/_양식.md §본론 설계)
+function plDevMark(ids) {
+  const C = '①②③④⑤⑥⑦⑧';
+  const devs = PLANNING_DATA.devices || [];
+  return (ids || []).map(id => {
+    const d = devs.find(x => x.id === id);
+    return d ? (C[d.no - 1] || '') + d.name : id;
+  }).join(' · ');
+}
 function plLibEntries() {
   const D = PLANNING_DATA;
   const skName = id => (D.skeletons.find(s => s.id === id) || {}).name || '';
-  const refs = D.refs.map(r => ({ type: 'ref', no: r.no, hook: r.hook, cover: r.cover, cat: r.category, len: r.length, fmt: r.format, skel: r.skeleton, skelName: skName(r.skeleton), kw: r.keywords, own: r.own, sub: r.sub, script: r.script }));
+  const refs = D.refs.map(r => ({ type: 'ref', no: r.no, hook: r.hook, cover: r.cover, cat: r.category, len: r.length, fmt: r.format, skel: r.skeleton, skelName: skName(r.skeleton), devs: r.devices || [], devEx: r.deviceEx || {}, kw: r.keywords, own: r.own, sub: r.sub, script: r.script }));
   const hooks = D.hookBank.concat(plCustomHooks || []).map((h, i) => ({ type: 'hook', no: h.id, hNo: 'H' + (i + 1), hook: h.hook, cat: '', len: '', fmt: '', kw: [], pattern: h.pattern || '', template: h.template || '' }));
   const fbs = (plFeedbacks || []).slice().sort((a, b) => (b.date || '').localeCompare(a.date || ''))
     .map(f => ({ type: 'fb', no: f.id, hook: f.topic || '(제목 없음)', cat: '', len: '', fmt: '', kw: [], date: f.date || '', script: f.body || '' }));
@@ -9665,6 +9674,10 @@ function plRenderLib() {
           <option value="">골격 전체</option>
           ${D.skeletons.map(s => `<option value="${s.id}">${s.name}</option>`).join('')}
         </select>
+        <select id="pl-lib-dev" class="px-2 py-2 border border-botanical-stone rounded-lg text-xs bg-white" onchange="plLibList()" title="본론 장치">
+          <option value="">장치 전체</option>
+          ${(D.devices || []).map(d => `<option value="${d.id}">${d.no}.${d.name}</option>`).join('')}
+        </select>
         <select id="pl-lib-cat" class="px-2 py-2 border border-botanical-stone rounded-lg text-xs bg-white" onchange="plLibList()">
           <option value="">카테고리 전체</option>
           ${['커리어&자기계발', '재테크&부동산', 'AI', '라이프', '기타'].map(c => `<option>${c}</option>`).join('')}
@@ -9686,12 +9699,14 @@ function plSetLibView(v, btn) {
   // 훅·피드백 뷰에서는 포맷·카테고리 필터 숨김 (해당 없음)
   const hide = v === 'hook' || v === 'fb';
   document.getElementById('pl-lib-skel').classList.toggle('hidden', hide);
+  document.getElementById('pl-lib-dev').classList.toggle('hidden', hide);
   document.getElementById('pl-lib-cat').classList.toggle('hidden', hide);
   plLibList();
 }
 function plLibReset() {
   document.getElementById('pl-lib-q').value = '';
   document.getElementById('pl-lib-skel').value = '';
+  document.getElementById('pl-lib-dev').value = '';
   document.getElementById('pl-lib-cat').value = '';
   plLibList();
 }
@@ -9699,27 +9714,32 @@ function plLibList() {
   const D = PLANNING_DATA;
   const q = document.getElementById('pl-lib-q').value.trim();
   const skel = document.getElementById('pl-lib-skel').value;
+  const dev = document.getElementById('pl-lib-dev').value;
   const cat = document.getElementById('pl-lib-cat').value;
   const view = plSel.libView || 'all';
   let list = plLibEntries();
   if (view !== 'all') list = list.filter(e => e.type === view); // view 값이 곧 entry.type (hook/ref/fb)
   if (view === 'all' || view === 'ref') {
     if (skel) list = list.filter(e => e.type === 'ref' && e.skel === skel);
+    if (dev) list = list.filter(e => e.type === 'ref' && (e.devs || []).includes(dev));
     if (cat) list = list.filter(e => e.type !== 'ref' || e.cat === cat);
   }
-  if (q) list = list.filter(e => e.hook.includes(q) || (e.kw || []).some(k => k.includes(q)) || (e.script || '').includes(q));
+  if (q) list = list.filter(e => e.hook.includes(q) || (e.kw || []).some(k => k.includes(q)) || (e.script || '').includes(q) || Object.values(e.devEx || {}).some(v => v.includes(q)));
   const tag = (txt, cls) => `<span class="inline-block whitespace-nowrap shrink-0 px-2 py-0.5 rounded-full bg-botanical-cream border border-botanical-stone text-[10px] ${cls || 'text-botanical-sage'} mr-1">${txt}</span>`;
   document.getElementById('pl-lib-items').innerHTML = list.map(e => `
     <div class="py-3 cursor-pointer hover:bg-botanical-cream/40 transition-all" onclick="plOpenDetail('${e.type}','${e.no}')">
       <div class="flex items-center gap-1 mb-0.5">
         ${e.type === 'hook' ? tag('훅만', 'text-botanical-terracotta font-bold')
           : e.type === 'fb' ? tag('피드백', 'text-botanical-fg font-bold')
-          : tag(e.cat) + (e.own ? tag('★유디트', 'text-botanical-terracotta font-bold') : '') + (e.sub ? tag('자막만') : '')}
+          : tag(e.cat) + (e.skelName ? tag(e.skelName, 'text-botanical-fg font-bold') : '') + (e.own ? tag('★유디트', 'text-botanical-terracotta font-bold') : '') + (e.sub ? tag('자막만') : '')}
         ${e.type === 'ref'
           ? (e.cover ? `<span class="text-xs text-botanical-sage truncate min-w-0">표지 · ${e.cover}</span>` : '')
           : `<span class="text-sm leading-snug truncate min-w-0">${e.hook}</span>`}
       </div>
       ${e.type === 'ref' ? `<div class="text-sm leading-snug truncate">훅 · ${e.hook}</div>` : ''}
+      ${e.type !== 'ref' ? ''
+        : dev && (e.devEx || {})[dev] ? `<div class="text-[11px] text-botanical-fg mt-1 leading-relaxed">「${e.devEx[dev]}」</div>`
+        : (e.devs || []).length ? `<div class="text-[11px] text-botanical-sage mt-0.5 truncate">장치 ${plDevMark(e.devs)}</div>` : ''}
     </div>`).join('') || '<div class="py-8 text-center text-sm text-botanical-sage">검색 결과 없음</div>';
 }
 // 피드백 본문을 구간별 카드로 렌더 — 원본(연한 줄) / 수정(진한 배경 줄) / 이유(작은 줄)
@@ -9783,18 +9803,29 @@ function plOpenDetail(type, no) {
     return;
   }
   const r = D.refs.find(x => x.no === +no);
+  const sk = D.skeletons.find(s => s.id === r.skeleton);
+  const curve = sk && r.curve ? (sk.curves || []).find(c => c.id === r.curve) : null;
+  // 장치는 이름표만 보면 안 읽힌다 — 그 편의 실제 문장을 근거로 같이 보여준다
+  const devBody = (r.devices || []).map(id => {
+    const d = (D.devices || []).find(x => x.id === id);
+    const ex = (r.deviceEx || {})[id];
+    const head = d ? `${'①②③④⑤⑥⑦⑧'[d.no - 1]} ${d.name}` : id;
+    return ex ? `${head}\n「${ex}」` : `${head} — ${d ? d.body : ''}`;
+  }).join('\n\n');
   el.innerHTML = `
     <span class="text-xs text-botanical-terracotta cursor-pointer" onclick="plCloseDetail()">← 목록으로</span>
     <h3 class="font-medium text-base mt-3">${r.no}. ${r.title}</h3>
     <div class="mt-1.5 mb-2">
       <span class="inline-block px-2 py-0.5 rounded-full bg-botanical-cream border border-botanical-stone text-[10px] text-botanical-sage mr-1">${r.category}</span>
       <span class="inline-block px-2 py-0.5 rounded-full bg-botanical-cream border border-botanical-stone text-[10px] text-botanical-sage mr-1">${r.length}</span>
+      ${sk ? `<span class="inline-block px-2 py-0.5 rounded-full bg-botanical-cream border border-botanical-stone text-[10px] text-botanical-fg font-bold mr-1">골격 · ${sk.name}${curve ? ' / ' + curve.name : ''}</span>` : ''}
       <span class="inline-block px-2 py-0.5 rounded-full bg-botanical-cream border border-botanical-stone text-[10px] text-botanical-sage">${r.hookType}</span>
     </div>
     ${r.link ? `<a href="${r.link}" target="_blank" class="inline-block px-4 py-2 bg-botanical-terracotta text-white rounded-full text-xs font-bold">▶ 원본 릴스 보기</a>` : ''}
     ${sect('표지 카피 (썸네일)', r.cover)}
     ${sect('훅 응용 템플릿', r.template + (r.templateEx ? '\n→ 예: ' + r.templateEx : ''))}
     ${sect('훅 패턴', r.hookPattern || r.hookType)}
+    ${sect('본론 장치', devBody)}
     ${sect('터진 이유', r.viral)}
     ${sect('원본 대본', r.script)}`;
 }
