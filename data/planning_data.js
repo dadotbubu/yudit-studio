@@ -3300,7 +3300,7 @@ const PLANNING_DATA = {
    "group": "성과형",
    "length": "",
    "format": "동기 고백 훅 + 맨몸 권위 → 가격 반전(유료→무료) → 아무 댓글 CTA",
-   "category": "커리어&자기계발",
+   "category": "AI",
    "hookType": "동기 고백 (남 도와주다 답답해서 만들었다)",
    "keywords": [
     "자소서",
