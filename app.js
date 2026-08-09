@@ -9822,7 +9822,8 @@ function plDevMark(ids) {
 function plLibEntries() {
   const D = PLANNING_DATA;
   const skName = id => (D.skeletons.find(s => s.id === id) || {}).name || '';
-  const refs = D.refs.map(r => ({ type: 'ref', no: r.no, hook: r.hook, cover: r.cover, cat: r.category, len: r.length, fmt: r.format, skel: r.skeleton, skelName: skName(r.skeleton), devs: r.devices || [], devEx: r.deviceEx || {}, kw: r.keywords, own: r.own, sub: r.sub, script: r.script }));
+  // 유디트 것(own)은 항상 맨 아래 — 남의 레퍼가 먼저 보여야 한다
+  const refs = D.refs.slice().sort((a, b) => (a.own ? 1 : 0) - (b.own ? 1 : 0) || a.no - b.no).map(r => ({ type: 'ref', no: r.no, hook: r.hook, cover: r.cover, cat: r.category, len: r.length, fmt: r.format, skel: r.skeleton, skelName: skName(r.skeleton), devs: r.devices || [], devEx: r.deviceEx || {}, kw: r.keywords, own: r.own, sub: r.sub, script: r.script }));
   const hooks = D.hookBank.concat(plCustomHooks || []).map((h, i) => ({ type: 'hook', no: h.id, hNo: 'H' + (i + 1), hook: h.hook, cat: '', len: '', fmt: '', kw: [], pattern: h.pattern || '', template: h.template || '' }));
   const fbs = (plFeedbacks || []).slice().sort((a, b) => (b.date || '').localeCompare(a.date || ''))
     .map(f => ({ type: 'fb', no: f.id, hook: f.topic || '(제목 없음)', cat: '', len: '', fmt: '', kw: [], date: f.date || '', script: f.body || '' }));
