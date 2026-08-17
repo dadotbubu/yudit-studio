@@ -121,8 +121,9 @@ let perfSelectedMonth = getDefaultSelectedMonth();
 let contractSelectedMonth = getDefaultSelectedMonth();
 let contentSelectedMonth = getDefaultSelectedMonth();
 
-// 콘텐츠의 기준 날짜: 업로드완료 마일스톤 > 예정일(uploadDate 메모). 둘 다 없으면 null.
+// 콘텐츠의 기준 날짜: 보류일 > 업로드완료 마일스톤 > 예정일(uploadDate 메모). 둘 다 없으면 null.
 function getContentRefDate(content) {
+  if (content?.status === '보류' && content.holdDate) return content.holdDate; // 보류한 달에 남긴다
   const upload = getUploadDate(content); // 업로드완료 마일스톤 날짜
   if (upload) return upload;
   if (content.uploadDate) return content.uploadDate; // 예정일 메모
@@ -139,6 +140,13 @@ const categoryColors = {
   '광고': '#9B6B8C',
   '판매': '#6B8E8E',
   '협찬': '#C8B6A6'
+};
+
+// 콘텐츠 타입 알약 — 흰 바탕 + 색 테두리·색 글자 (상태 알약은 꽉 찬 파스텔이라 형태로도 구분된다)
+const TYPE_COLORS = {
+  '릴스': '#6E8B63',      // 세이지 초록
+  '캐러셀': '#C27B66',    // 테라코타
+  '인스타툰': '#7B6BA7'   // 연보라
 };
 
 // 한글 → 영어 카테고리 일회성 마이그레이션 매핑 (대기업라이프+쇼핑/여행 → Life Style)
@@ -225,6 +233,21 @@ const AD_STAGES = ['계약완료', '기획안1차공유', '영상1차공유', '�
 const GENERAL_STAGES = ['기획중', '업로드완료'];
 const AD_STAGE_SHORT = { '계약완료': '계약', '기획안1차공유': '기획안', '영상1차공유': '영상', '업로드완료': '업로드' };
 
+// 보류 — 진행 단계가 아니라 «옆으로 빼두는» 상태. 어느 흐름에서든 고를 수 있고 마일스톤은 갖지 않는다.
+// 보류로 바꾼 날짜(holdDate)가 기준일이 되어 그 달에 남고, 다음 달 목록엔 안 뜬다.
+const HOLD_STATUS = '보류';
+const isHeld = (c) => c?.status === HOLD_STATUS;
+// 보류로 바꾸면 그날을 남겨 그 달에 묶어 두고, 보류를 풀면 지운다
+function applyHoldDate(content, newStatus) {
+  if (newStatus === HOLD_STATUS) {
+    if (!content.holdDate) content.holdDate = new Date().toISOString().slice(0, 10);
+  } else {
+    delete content.holdDate;
+  }
+}
+// 목록에서 아래로 내려가고 월이 지나면 접히는 «마무리된» 상태
+const isSettled = (c) => c?.status === '업로드완료' || c?.status === '완료' || isHeld(c);
+
 // 광고 흐름을 쓰는지 판단 — 판매/협찬은 일반과 동일한 흐름
 const usesAdFlow = (c) => !!(c && c.isRevenue && c.category === '광고');
 const getStages = (c) => (usesAdFlow(c) ? AD_STAGES : GENERAL_STAGES);
@@ -233,7 +256,7 @@ const defaultStatusFor = (cat) => stagesForCategory(cat)[0];
 
 // <select> 옵션 HTML 생성 (상태 드롭다운 공통)
 function statusOptionsHTML(stages, selected) {
-  return stages.map(s => `<option value="${s}" ${selected === s ? 'selected' : ''}>${statusText(s)}</option>`).join('');
+  return [...stages, HOLD_STATUS].map(s => `<option value="${s}" ${selected === s ? 'selected' : ''}>${statusText(s)}</option>`).join('');
 }
 
 // 폐지된 진행 단계 → 남은 단계 매핑 (일회성 마이그레이션)
@@ -245,6 +268,7 @@ const AD_STAGE_MIGRATION = {
 
 function mapLegacyStatus(status, category, isRevenue) {
   if (!status) return status;
+  if (status === HOLD_STATUS) return status; // 보류는 어느 흐름에서도 그대로 유지
   const stages = stagesForCategory(isRevenue ? category : null);
   if (stages.includes(status)) return status; // '업로드완료'는 양쪽 모두에 있음
   if (stages === AD_STAGES) return AD_STAGE_MIGRATION[status] || AD_STAGES[0];
@@ -2942,7 +2966,7 @@ function renderContentList() {
     filteredContents = contentsData.contents.filter(c => c.isRevenue);
   }
 
-  // 2) 월 필터: 업로드완료 마일스톤 우선, 없으면 예정일. 둘 다 없으면 항상 표시.
+  // 2) 월 필터: 보류일 > 업로드완료 마일스톤 > 예정일. 셋 다 없으면 항상 표시.
   const monthStr = contentSelectedMonth;
   const today = new Date();
   const currentMonth = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}`;
@@ -2950,9 +2974,9 @@ function renderContentList() {
 
   filteredContents = filteredContents.filter(c => {
     const ref = getContentRefDate(c);
-    // 과거월 선택 시: 업로드완료만 표시
+    // 과거월 선택 시: 마무리된 것(업로드완료·보류)만 표시
     if (isPastMonth) {
-      if (c.status !== '업로드완료') return false;
+      if (!isSettled(c)) return false;
       if (!ref) return false;
       return ref.startsWith(monthStr);
     }
@@ -2961,15 +2985,15 @@ function renderContentList() {
     return ref.startsWith(monthStr);
   });
 
-  // 3) 정렬: 업로드 완료된 것은 맨 아래로, 업로드 완료끼리는 최신순 (위로), 나머지는 등록 순
+  // 3) 정렬: 마무리된 것(업로드완료·보류)은 맨 아래로, 그 안에서는 최신순 (위로), 나머지는 등록 순
   filteredContents.sort((a, b) => {
-    const aCompleted = a.status === '업로드완료' ? 1 : 0;
-    const bCompleted = b.status === '업로드완료' ? 1 : 0;
-    if (aCompleted !== bCompleted) return aCompleted - bCompleted; // 완료된 것이 아래로
-    // 업로드 완료끼리는 uploadDate 최신순 (위로)
+    const aCompleted = isSettled(a) ? 1 : 0;
+    const bCompleted = isSettled(b) ? 1 : 0;
+    if (aCompleted !== bCompleted) return aCompleted - bCompleted; // 마무리된 것이 아래로
+    // 마무리된 것끼리는 기준일 최신순 (위로)
     if (aCompleted && bCompleted) {
-      const aDate = getUploadDate(a) || '';
-      const bDate = getUploadDate(b) || '';
+      const aDate = getContentRefDate(a) || '';
+      const bDate = getContentRefDate(b) || '';
       if (aDate !== bDate) return bDate.localeCompare(aDate); // 내림차순
     }
     // 나머지는 id 순서 유지 (등록 순)
@@ -3018,22 +3042,25 @@ function renderContentList() {
       // 광고 상태
       '계약완료': { bg: '#FCE7F3', text: '#9D174D' },
       '기획안1차공유': { bg: '#FFEDD5', text: '#9A3412' },
-      '영상1차공유': { bg: '#DBEAFE', text: '#1E40AF' }
+      '영상1차공유': { bg: '#DBEAFE', text: '#1E40AF' },
+      // 보류 — 진행도 완료도 아니라 무채색
+      '보류': { bg: '#E5E7EB', text: '#4B5563' }
     };
     const statusStyle = statusColors[content.status] || statusColors['기획중'];
     const isCompleted = content.status === '완료' || content.status === '업로드완료';
+    const typeStyle = TYPE_COLORS[content.type] || TYPE_COLORS['릴스'];
     const categoryColor = categoryColors[content.category] || '#8C9A84';
     const uploadedAt = getUploadDate(content);
 
     html += `
-      <div class="bg-white rounded-2xl shadow-sm overflow-hidden ${isCompleted ? 'border-l-4 border-botanical-sage' : ''}">
+      <div class="bg-white rounded-2xl shadow-sm overflow-hidden ${isCompleted ? 'border-l-4 border-botanical-sage' : ''}${isHeld(content) ? 'border-l-4 border-gray-300' : ''}">
         <div onclick="toggleContentForm(${content.id})" class="px-3 md:px-5 py-3 md:py-4 cursor-pointer hover:bg-botanical-cream/30 transition-all">
           <!-- Mobile: 2-row stack (업로드/URL까지만, 성과 제거) -->
           <div class="md:hidden space-y-1.5">
             <div class="flex items-center gap-2 text-xs flex-wrap">
               <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full flex-shrink-0" style="background-color: ${categoryColor};"></span><span class="text-botanical-sage">${content.category}</span></span>
               <span class="px-2 py-0.5 rounded-full text-[10px] whitespace-nowrap" style="background-color: ${statusStyle.bg}; color: ${statusStyle.text};">${statusText(content.status)}</span>
-              <span class="px-2 py-0.5 rounded-full text-[10px] font-medium whitespace-nowrap bg-botanical-sage/20 text-botanical-sage">${content.type}</span>
+              <span class="px-2 py-0.5 rounded-full text-[10px] font-medium whitespace-nowrap bg-white border" style="border-color: ${typeStyle}; color: ${typeStyle};">${content.type}</span>
               <span class="ml-auto text-botanical-sage text-[10px]">업로드 ${uploadedAt ? uploadedAt.slice(5).replace('-', '/') : '-'}</span>
             </div>
             <div class="flex items-center gap-2">
@@ -3045,7 +3072,7 @@ function renderContentList() {
           <div class="hidden md:flex items-center gap-3 text-sm">
             <span class="w-32 shrink-0"><span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full flex-shrink-0" style="background-color: ${categoryColor};"></span><span class="text-xs text-botanical-sage">${content.category}</span></span></span>
             <span class="w-24 shrink-0"><span class="px-2 py-1 rounded-full text-xs whitespace-nowrap" style="background-color: ${statusStyle.bg}; color: ${statusStyle.text};">${statusText(content.status)}</span></span>
-            <span class="w-20 shrink-0"><span class="px-2 py-1 rounded-full text-xs font-medium whitespace-nowrap bg-botanical-sage/20 text-botanical-sage">${content.type}</span></span>
+            <span class="w-20 shrink-0"><span class="px-2 py-1 rounded-full text-xs font-medium whitespace-nowrap bg-white border" style="border-color: ${typeStyle}; color: ${typeStyle};">${content.type}</span></span>
             <span class="font-medium flex-1 min-w-0"><span data-content-title="${content.id}" class="truncate block">${content.title || '무제'}</span></span>
             <span class="w-16 shrink-0 text-botanical-sage text-xs text-center" data-upload-cell="${content.id}">${uploadedAt ? uploadedAt.slice(5).replace('-', '/') : '-'}</span>
             <span class="w-12 shrink-0 text-xs text-center">${content.url ? `<a href="${content.url}" target="_blank" class="text-blue-500 underline" onclick="event.stopPropagation()">링크</a>` : '<span class="text-botanical-sage">-</span>'}</span>
@@ -5458,6 +5485,7 @@ function autoSaveTopField(el, contentId) {
     content.performance[key] = isNaN(num) ? 0 : num;
   } else if (field === 'status') {
     content.status = val;
+    applyHoldDate(content, val);
     // 마일스톤 항목은 각자의 단계를 들고 있으므로 건드리지 않음
     calendarData.items.forEach(item => {
       if (item.contentId === contentId && !item.isMilestone) item.status = val;
@@ -5590,6 +5618,7 @@ function saveTopInfo(contentId) {
       content.performance[key] = isNaN(num) ? 0 : num;
     } else if (field === 'status') {
       content.status = val;
+      applyHoldDate(content, val);
       calendarData.items.forEach(item => {
         if (item.contentId === contentId && !item.isMilestone) item.status = val;
       });
@@ -6356,8 +6385,8 @@ function saveNewContent(formType) {
     return;
   }
 
-  // 상태 + 날짜 둘 다 있으면 마일스톤으로 등록
-  if (selectedStatus && selectedDate) {
+  // 상태 + 날짜 둘 다 있으면 마일스톤으로 등록 (보류는 진행 단계가 아니라 마일스톤을 만들지 않는다)
+  if (selectedStatus && selectedDate && selectedStatus !== HOLD_STATUS) {
     milestones.push({ status: selectedStatus, date: selectedDate });
   }
 
@@ -6371,6 +6400,7 @@ function saveNewContent(formType) {
     type: type,
     category: category,
     status: currentStatus,
+    holdDate: currentStatus === HOLD_STATUS ? (selectedDate || new Date().toISOString().slice(0, 10)) : undefined,
     uploadDate: '',
     isRevenue: formType === 'revenue',
     milestones: milestones,
@@ -9063,14 +9093,17 @@ function plBuildHookPrompt(mode = 'chat') {
 [주제] ${topic}
 [내 경험] ${exp || '(없음)'}`;
   // 같은 목적 레퍼 훅 5개 + 터진 이유 (원리 학습용)
-  const exRefs = D.refs.filter(r => r.purpose === plSel.purpose && r.viral).sort(() => Math.random() - 0.5).slice(0, 5);
+  // ★ own(유디트 편)은 뺀다 — 내 것을 근거·그릇으로 삼으면 자가복제 (2026-08-16 유디트)
+  const exRefs = D.refs.filter(r => !r.own && r.purpose === plSel.purpose && r.viral).sort(() => Math.random() - 0.5).slice(0, 5);
   const refEx = exRefs.map(r => {
     const why = (r.viral || '').split('\n').filter(Boolean)[0] || '';
     return `  · ${r.hook}${why ? '\n    → ' + why : ''}`;
   }).join('\n');
   const angles = D.hookAngles.map((a, i) => `${i + 1}. ${a.name} — ${a.desc}${a.pattern ? '\n   └ 공식: ' + a.pattern : ''}`).join('\n');
   // 그릇 창고 — 훅 원문 전수. 카테고리로 거르지 않는다(문형은 소재를 안 탄다). 정본: 후킹 가이드 §이식
-  const bowls = D.refs.filter(r => r.hook).map(r => `  [${String(r.no).padStart(2, '0')}] ${r.hook}`).join('\n');
+  // ★ 단 own(유디트 편)은 «뺀다» — 내 훅에서 빌리면 그 톤으로 수렴한다 = 자가복제 (2026-08-16 유디트
+  //   「레퍼 따올 때는 내 건 무시해」). 짝 = scripts/훅모음.py --원문
+  const bowls = D.refs.filter(r => r.hook && !r.own).map(r => `  [${String(r.no).padStart(2, '0')}] ${r.hook}`).join('\n');
   const gateBody = plSel.purpose === 'empathy'
     ? '이 주제가 공감되고 곱씹게 만드나 (공감 상황 / 나만의 인사이트 / 솔직한 감정) — ○/△/✕ + 한 줄'
     : '이 주제가 저장될 무기가 있나 (실제 경험 / 남들 모르는 디테일 / 진짜 통증) — ○/△/✕ + 한 줄';
