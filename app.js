@@ -2316,7 +2316,9 @@ function renderDashboard() {
         ${[1, 2, 3, 4].map(week => {
           const weekPlans = plansByWeek[week] || [];
           const weekStart = (week - 1) * 7 + 1;
-          const weekEnd = Math.min(week * 7, new Date(dashY, dashM, 0).getDate());
+          const lastDay = new Date(dashY, dashM, 0).getDate();
+          // 4주차는 29~31일까지 안고 있으므로 머리 표기도 월말까지 (syncPlanFromUpload 참고)
+          const weekEnd = week === 4 ? lastDay : Math.min(week * 7, lastDay);
           return `
             <div class="bg-white rounded-2xl p-4 shadow-sm">
               <h3 class="text-sm font-semibold text-botanical-sage mb-3 flex items-center justify-between gap-2">
