@@ -369,6 +369,77 @@ function syncTitleToPlan(contentId, title) {
   }
 }
 
+// 업로드완료 → 플래너 자동 등록 (콘텐츠 → 플랜, 역방향 연동)
+// 기획중·보류는 만들지 않는다. 날짜(업로드완료 마일스톤)가 없으면 만들지 않는다.
+function syncPlanFromUpload(content) {
+  if (!content || content.linkedPlanId) return;   // 이미 붙어 있으면 안 건드림
+  if (content.status !== '업로드완료') return;
+  const date = getUploadDate(content);
+  if (!date) return;
+
+  const monthStr = date.slice(0, 7);
+  // 29~31일은 계산상 5주차인데 플래너는 1~4주차만 그린다 → 4주차로 당김
+  const week = Math.min(4, Math.max(1, Math.ceil(Number(date.slice(8, 10)) / 7)));
+
+  if (!plansData) plansData = {};
+  if (!plansData[monthStr]) plansData[monthStr] = { plans: [], ideas: [] };
+
+  const newPlan = {
+    id: `p_${monthStr}_${Date.now()}`,
+    week: week,
+    category: content.category,
+    title: content.title,
+    link: content.url || '',
+    description: content.planDetail || '',
+    createdAt: new Date().toISOString(),
+    createdBy: 'content',            // 콘텐츠에서 자동 생성된 표시 — 콘텐츠 지우면 같이 지운다
+    linkedContentId: content.id
+  };
+  plansData[monthStr].plans.push(newPlan);
+  content.linkedPlanId = newPlan.id;
+  markDirty('plans');
+  markDirty('contents');
+}
+
+// 콘텐츠에서 자동 생성된 플랜 지우기 (콘텐츠 삭제 시). 손으로 만든 플랜은 연동만 끊고 남긴다.
+function removeAutoPlanForContent(content) {
+  if (!content?.linkedPlanId) return;
+  for (const month of Object.keys(plansData || {})) {
+    const plans = plansData[month]?.plans;
+    if (!plans) continue;
+    const idx = plans.findIndex(p => p.id === content.linkedPlanId);
+    if (idx < 0) continue;
+    if (plans[idx].createdBy === 'content') {
+      plans.splice(idx, 1);
+    } else {
+      delete plans[idx].linkedContentId;
+    }
+    markDirty('plans');
+    return;
+  }
+}
+
+// 아직 플래너에 안 들어간 업로드완료 콘텐츠
+function unplannedUploadedContents() {
+  return (contentsData?.contents || []).filter(c =>
+    !c.linkedPlanId && c.status === '업로드완료' && getUploadDate(c)
+  );
+}
+
+// 미등록 업로드분 일괄 등록 (플래너 상단 버튼)
+function backfillPlansFromUploads() {
+  const targets = unplannedUploadedContents();
+  if (targets.length === 0) {
+    alert('플래너에 넣을 업로드 콘텐츠가 없습니다');
+    return;
+  }
+  if (!confirm(`업로드완료 콘텐츠 ${targets.length}건을 각자 업로드한 달·주차의 플래너에 등록합니다.\n되돌리려면 하나씩 연동 해제해야 합니다. 진행할까요?`)) return;
+  targets.forEach(syncPlanFromUpload);
+  saveAllData();
+  renderDashboard();
+  showMemoSaveToast(`${targets.length}건 플래너에 등록됨`);
+}
+
 // 링크 열기 버튼 — URL 있으면 활성 <a>, 없으면 회색 disabled <span> (외부 Safari로 열기)
 function openLinkBtn(url) {
   const base = 'px-2 py-1 text-xs border rounded-lg whitespace-nowrap';
@@ -2196,6 +2267,13 @@ function renderDashboard() {
     <div class="mb-6">
       <div class="flex items-center gap-3">
         ${renderMonthSelect('dashboard-month-select', dashSelectedMonth, 'changeDashMonth')}
+        ${(() => {
+          const n = unplannedUploadedContents().length;   // 전체 월 기준
+          return n > 0 ? `
+            <button onclick="backfillPlansFromUploads()" class="ml-auto shrink-0 px-3 py-1.5 rounded-xl text-xs font-medium border border-botanical-stone text-botanical-sage hover:bg-botanical-cream transition-all whitespace-nowrap">
+              미등록 업로드 ${n}건 넣기
+            </button>` : '';
+        })()}
       </div>
     </div>
 
@@ -2241,9 +2319,23 @@ function renderDashboard() {
           const weekEnd = Math.min(week * 7, new Date(dashY, dashM, 0).getDate());
           return `
             <div class="bg-white rounded-2xl p-4 shadow-sm">
-              <h3 class="text-sm font-semibold text-botanical-sage mb-3 flex items-center justify-between">
-                <span>${week}주차</span>
-                <span class="text-xs font-normal text-botanical-clay">${dashM}/${weekStart}-${dashM}/${weekEnd}</span>
+              <h3 class="text-sm font-semibold text-botanical-sage mb-3 flex items-center justify-between gap-2">
+                <span class="flex items-center gap-1.5 min-w-0">
+                  <span class="shrink-0">${week}주차</span>
+                  ${(() => {
+                    // 그 주에 실제로 나간 것만 센다 (업로드완료 콘텐츠와 연동된 플랜)
+                    const uploaded = weekPlans.filter(pl => {
+                      const c = pl.linkedContentId && contentsData?.contents
+                        ? contentsData.contents.find(x => String(x.id) === String(pl.linkedContentId))
+                        : null;
+                      return c?.status === '업로드완료';
+                    }).length;
+                    return uploaded > 0
+                      ? `<span class="shrink-0 px-1.5 py-0.5 rounded-md text-[10px] font-medium bg-botanical-sage/15 text-botanical-sage">▸ ${uploaded}개 나감</span>`
+                      : '';
+                  })()}
+                </span>
+                <span class="text-xs font-normal text-botanical-clay shrink-0">${dashM}/${weekStart}-${dashM}/${weekEnd}</span>
               </h3>
 
               ${weekPlans.map(plan => {
@@ -3868,6 +3960,7 @@ function updateMilestone(contentId, status, date) {
 
   // '업로드완료' 마일스톤 변경 시 목록 '업로드' 열 국소 갱신
   if (status === '업로드완료') {
+    syncPlanFromUpload(content);   // 업로드 날짜가 찍히면 플래너에 자동 등록
     const uploadCell = document.querySelector(`[data-upload-cell="${contentId}"]`);
     if (uploadCell) {
       uploadCell.textContent = date ? date.slice(5).replace('-', '/') : '-';
@@ -5504,6 +5597,8 @@ function autoSaveTopField(el, contentId) {
     // 예정일(uploadDate) 포함 기타 단순 필드 — 어느 로직에도 연결 안 함 (메모성)
     content[field] = val;
   }
+  // 업로드완료로 바뀌면 플래너에 자동 등록
+  if (field === 'status') syncPlanFromUpload(content);
   // 성과분석 탭은 상태/카테고리/성과에 따라 내용 바뀌므로 갱신 (uploadDate는 제외 — 메모)
   if (['status', 'category'].includes(field) || field.startsWith('performance.')) {
     if (typeof renderPerformance === 'function') renderPerformance();
@@ -5647,6 +5742,7 @@ function saveTopInfo(contentId) {
     btn.classList.add('bg-green-600');
   }
 
+  syncPlanFromUpload(content);   // 업로드완료면 플래너에 자동 등록
   saveAllData();
   // 카테고리 바뀌면 폼 내용(광고/판매/협찬 섹션) 달라지므로 재렌더
   renderContentList();
@@ -6243,6 +6339,8 @@ function deleteContent(contentId) {
       });
       recalculateRevenueSummary();
     }
+    // 콘텐츠에서 자동 생성된 플랜도 같이 제거 (손으로 만든 플랜은 연동만 끊음)
+    removeAutoPlanForContent(contentsData.contents.find(c => c.id === contentId));
     contentsData.contents = contentsData.contents.filter(c => c.id !== contentId);
     // 캘린더 연동 항목도 제거
     calendarData.items = calendarData.items.filter(i => i.contentId !== contentId);
@@ -6250,6 +6348,7 @@ function deleteContent(contentId) {
     renderContentList();
     renderCalendar();
     renderRevenue();
+    renderDashboard();
     return;
   }
 }
@@ -6430,6 +6529,7 @@ function saveNewContent(formType) {
   };
 
   contentsData.contents.unshift(newContent);
+  syncPlanFromUpload(newContent);   // 업로드완료 + 날짜로 바로 등록한 경우 플래너에도
 
   // 캘린더에 마일스톤 자동 등록
   milestones.forEach((m, idx) => {
