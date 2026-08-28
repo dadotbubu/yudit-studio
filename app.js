@@ -3748,6 +3748,7 @@ function renderContentForm(content) {
             <div class="flex gap-2 flex-wrap md:justify-end">
               <button onclick="copyScriptForFeedback(${content.id})" class="px-3 py-1 rounded-full text-xs border border-botanical-stone hover:bg-botanical-cream transition-all">구간+${labels.body} 복사</button>
               <button onclick="copyScript(${content.id}, 'dialogue')" class="px-3 py-1 rounded-full text-xs border border-botanical-stone hover:bg-botanical-cream transition-all">${labels.body} 복사</button>
+              ${cardType ? '' : `<button onclick="copyScriptForTTS(${content.id})" title="대사를 읽는 표기(에이아이·오백자)로 바꿔서 복사 — 타입캐스트·캡컷에 바로 붙여넣기" class="px-3 py-1 rounded-full text-xs border border-botanical-stone hover:bg-botanical-cream transition-all">TTS 복사</button>`}
               ${cardType ? '' : `<button onclick="copyScript(${content.id}, 'subtitle')" class="px-3 py-1 rounded-full text-xs border border-botanical-stone hover:bg-botanical-cream transition-all">자막 복사</button>`}
               <button onclick="copyScriptAll(${content.id})" class="px-3 py-1 rounded-full text-xs border border-botanical-sage bg-botanical-sage/10 text-botanical-sage hover:bg-botanical-sage hover:text-white transition-all">전체 복사</button>
             </div>
@@ -4509,6 +4510,80 @@ function copyScriptForFeedback(contentId) {
   if (!text) { alert(`복사할 ${label}가 없습니다`); return; }
   navigator.clipboard.writeText(text).then(() => {
     alert(`구간+${label} 복사됨 — 기획 ③ 피드백에 붙여넣으세요`);
+  }).catch(() => alert('복사 실패'));
+}
+
+// ===== TTS 복사 — 대사 칸을 «읽는 표기»로 바꿔서 클립보드로 =====
+// 화면에는 원래 표기(AI·500자)로 두고, 복사할 때만 에이아이·오백자로 바꾼다.
+const TTS_ABBR = { AI:'에이아이', GPT:'지피티', PDF:'피디에프', DM:'디엠', SNS:'에스엔에스', ETF:'이티에프', ISA:'아이에스에이', CEO:'씨이오' };
+// 고유어로 읽는 단위 (세개 · 다섯군데)
+const TTS_NATIVE_UNITS = '개|곳|명|번|가지|군데|시간|살|장|달|마리|권|배';
+// 한자어로 읽는 단위 (오백자 · 삼분) — 「대」는 나이대라서 여기다 (30대 → 삼십대)
+const TTS_SINO_UNITS = '자|원|년|월|일|분|초|퍼센트|%|대';
+
+function ttsSino(n) {                       // 500 → 오백
+  if (!n) return '영';
+  const d = ['','일','이','삼','사','오','육','칠','팔','구'];
+  const small = ['','십','백','천'], big = ['','만','억','조'];
+  let out = '', gi = 0;
+  while (n > 0) {
+    const chunk = n % 10000;
+    if (chunk) {
+      const cd = String(chunk).split('');
+      let s = '';
+      cd.forEach((c, i) => {
+        const v = +c, pos = cd.length - 1 - i;
+        if (v) s += (v === 1 && pos > 0 ? '' : d[v]) + small[pos];
+      });
+      out = s + big[gi] + out;
+    }
+    n = Math.floor(n / 10000);
+    gi++;
+  }
+  return out;
+}
+
+function ttsNative(n) {                     // 3 → 세 · 20 → 스무
+  if (n < 1 || n > 99) return null;
+  const ones = ['','한','두','세','네','다섯','여섯','일곱','여덟','아홉'];
+  const tens = ['','열','스물','서른','마흔','쉰','예순','일흔','여든','아흔'];
+  const t = Math.floor(n / 10), o = n % 10;
+  if (t && !o) return t === 2 ? '스무' : tens[t];   // 스물 개 ✕ → 스무 개
+  return tens[t] + ones[o];
+}
+
+function ttsRead(text) {
+  let t = (text || '')
+    .replace(/<br\s*\/?>/gi, ' ')            // 자막 표기가 섞여 있으면 걷는다
+    .replace(/!\s*[가-힣]+\s*:\s*/g, '')     // !설렘:
+    .replace(/\*/g, '')                      // *빨강*
+    .replace(/\//g, ' ');                    // 호흡
+  // 영문 약어
+  Object.keys(TTS_ABBR).forEach(k => {
+    t = t.replace(new RegExp('\\b' + k + '\\b', 'g'), TTS_ABBR[k]);
+  });
+  // ① 숫자 + 천/만/억/조 — 숫자만 한자어로 (2천만원 → 이천만원)
+  t = t.replace(/(\d[\d,]*)(?=[천만억조])/g, m => ttsSino(+m.replace(/,/g, '')));
+  // ② 숫자 + 고유어 단위 (3개 → 세개) — 띄우면 TTS가 끊어 읽는다
+  t = t.replace(new RegExp('(\\d[\\d,]*)\\s*(' + TTS_NATIVE_UNITS + ')', 'g'), (m, n, u) => {
+    const k = ttsNative(+n.replace(/,/g, ''));
+    return k ? k + u : m;
+  });
+  // ③ 숫자 + 한자어 단위 (500자 → 오백자)
+  t = t.replace(new RegExp('(\\d[\\d,]*)\\s*(' + TTS_SINO_UNITS + ')', 'g'), (m, n, u) =>
+    ttsSino(+n.replace(/,/g, '')) + (u === '%' ? '퍼센트' : u));
+  return t.replace(/\s+/g, ' ').trim();
+}
+
+// 한 구간이 한 줄, 구간 사이 빈 줄 하나 — 붙여넣으면 그대로 읽히는 모양
+function copyScriptForTTS(contentId) {
+  const content = contentsData.contents.find(c => c.id === contentId);
+  const ver = content?.script?.currentVersion ?? 0;
+  const rows = content?.script?.versions?.[ver]?.rows || [];
+  const text = rows.map(r => ttsRead(r.dialogue)).filter(t => t).join('\n\n');
+  if (!text) { alert('복사할 대사가 없습니다'); return; }
+  navigator.clipboard.writeText(text).then(() => {
+    alert('TTS 대사 복사됨 (읽는 표기로 변환)');
   }).catch(() => alert('복사 실패'));
 }
 
