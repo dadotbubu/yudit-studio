@@ -154,7 +154,8 @@ const CATEGORY_MIGRATION = {
   'AI활용': 'AI Work',
   '재테크': 'Life Style',        // 2026-09-08 — Money Log 폐기로 Life Style 이 흡수
   '대기업라이프': 'Life Style',
-  '쇼핑/여행': 'Life Style'
+  '쇼핑/여행': 'Life Style',
+  'Money Log': 'Life Style'      // 2026-09-08 폐기 — 옛 기록을 Life Style 로 옮긴다 (init 에서 1회 자동)
 };
 
 function migrateCategoryNames() {
