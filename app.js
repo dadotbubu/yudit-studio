@@ -387,7 +387,8 @@ function syncPlanFromUpload(content) {
   // ★ 손으로 미리 적어 둔 계획이 같은 달에 이미 있으면 새로 만들지 않고 «그걸 붙인다».
   //   (예전엔 무조건 새로 만들어서 플래너에 같은 게 두 개씩 떴다 — 2026-09-08)
   const sameTitle = (plansData[monthStr].plans || []).find(pl =>
-    !pl.linkedContentId && (pl.title || '').trim() === (content.title || '').trim()
+    (!pl.linkedContentId || String(pl.linkedContentId) === String(content.id)) &&
+    planTitleKey(pl.title) === planTitleKey(content.title)
   );
   if (sameTitle) {
     sameTitle.linkedContentId = content.id;
@@ -416,9 +417,13 @@ function syncPlanFromUpload(content) {
   markDirty('contents');
 }
 
+// 계획 제목 비교용 정규화 — 공백·대소문자·양끝 문장부호 차이를 무시한다
+function planTitleKey(t) {
+  return (t || '').replace(/\s+/g, ' ').trim().toLowerCase().replace(/^[\-·•]+|[.\-·•]+$/g, '');
+}
+
 // 같은 달·같은 제목으로 두 벌 생긴 계획 정리 (2026-09-08)
-// 손으로 적은 계획 + 콘텐츠가 자동 생성한 계획이 겹친 경우만 건드린다.
-// 손으로 적은 쪽을 남기고(주차·설명이 거기 있다) 연동만 옮겨 붙인 뒤 자동 생성분을 지운다.
+// 손으로 적은 쪽을 남기고(주차·설명이 거기 있다) 연동을 옮겨 붙인 뒤 나머지를 지운다.
 function reconcileDuplicatePlans() {
   let changed = false;
   for (const month of Object.keys(plansData || {})) {
@@ -426,24 +431,31 @@ function reconcileDuplicatePlans() {
     if (!Array.isArray(plans)) continue;
     const byTitle = {};
     plans.forEach(pl => {
-      const key = (pl.title || '').trim();
+      const key = planTitleKey(pl.title);
       if (!key) return;
       (byTitle[key] = byTitle[key] || []).push(pl);
     });
     for (const group of Object.values(byTitle)) {
       if (group.length < 2) continue;
-      const auto = group.filter(pl => pl.createdBy === 'content' && pl.linkedContentId);
-      const manual = group.filter(pl => pl.createdBy !== 'content' && !pl.linkedContentId);
-      // 「자동 1 + 손 1」인 짝만 정리한다. 그 밖의 모양은 손대지 않는다
-      if (auto.length !== 1 || manual.length !== 1 || group.length !== 2) continue;
-      const keep = manual[0], drop = auto[0];
-      keep.linkedContentId = drop.linkedContentId;
-      if (!keep.category) keep.category = drop.category;
-      if (!keep.link) keep.link = drop.link || '';
-      const c = (contentsData?.contents || []).find(x => x.id == drop.linkedContentId);
-      if (c) c.linkedPlanId = keep.id;
-      plans.splice(plans.indexOf(drop), 1);
-      changed = true;
+      // 서로 «다른» 콘텐츠에 붙어 있으면 진짜 다른 회차다 — 손대지 않는다
+      const linkedIds = [...new Set(group.filter(pl => pl.linkedContentId).map(pl => String(pl.linkedContentId)))];
+      if (linkedIds.length > 1) continue;
+      // 남길 쪽 — 손으로 적은 것 우선(주차·설명이 거기 있다), 없으면 첫 번째
+      const keep = group.find(pl => pl.createdBy !== 'content') || group[0];
+      const linkId = linkedIds[0];
+      group.forEach(pl => {
+        if (pl === keep) return;
+        if (!keep.category) keep.category = pl.category;
+        if (!keep.link) keep.link = pl.link || '';
+        if (!keep.description) keep.description = pl.description || '';
+        plans.splice(plans.indexOf(pl), 1);
+        changed = true;
+      });
+      if (linkId) {
+        keep.linkedContentId = linkId;
+        const c = (contentsData?.contents || []).find(x => String(x.id) === linkId);
+        if (c) c.linkedPlanId = keep.id;
+      }
     }
   }
   if (changed) { markDirty('plans'); markDirty('contents'); }
@@ -470,9 +482,14 @@ function removeAutoPlanForContent(content) {
 
 // 아직 플래너에 안 들어간 업로드완료 콘텐츠
 function unplannedUploadedContents() {
-  return (contentsData?.contents || []).filter(c =>
-    !c.linkedPlanId && c.status === '업로드완료' && getUploadDate(c)
-  );
+  return (contentsData?.contents || []).filter(c => {
+    if (c.linkedPlanId || c.status !== '업로드완료') return false;
+    const date = getUploadDate(c);
+    if (!date) return false;
+    // ★ 연동만 안 됐을 뿐 그 달에 같은 제목 계획이 이미 있으면 «미등록»이 아니다 (2026-09-08)
+    const monthPlans = plansData?.[date.slice(0, 7)]?.plans || [];
+    return !monthPlans.some(pl => planTitleKey(pl.title) === planTitleKey(c.title));
+  });
 }
 
 // 미등록 업로드분 일괄 등록 (플래너 상단 버튼)
@@ -2661,16 +2678,23 @@ function deletePlan(planId) {
 
   const numPlanId = typeof planId === 'string' ? parseInt(planId) : planId;
 
-  // plan 삭제
-  plansData[dashSelectedMonth].plans = plansData[dashSelectedMonth].plans.filter(p => p.id !== numPlanId && p.id !== planId);
+  const monthPlans = plansData[dashSelectedMonth].plans;
+  const gone = monthPlans.find(p => p.id === numPlanId || p.id === planId);
 
-  // 연동된 콘텐츠의 planDetail 비우기 (콘텐츠 자체는 유지)
-  if (contentsData && contentsData.contents) {
-    contentsData.contents.forEach(content => {
-      if (content.planDetail && content.planDetail.includes(planId)) {
-        // planId가 직접 저장되지 않으므로, 모든 콘텐츠의 planDetail을 유지
-        // 사용자가 수동으로 정리하도록 함
-      }
+  // plan 삭제
+  plansData[dashSelectedMonth].plans = monthPlans.filter(p => p.id !== numPlanId && p.id !== planId);
+
+  // ★ 지워진 계획을 가리키던 콘텐츠 정리 (2026-09-08)
+  //   같은 달에 같은 제목의 계획이 남아 있으면 그쪽으로 연동을 옮기고,
+  //   없으면 연동을 끊는다. 예전엔 죽은 계획을 계속 가리켜서 상태가 어긋났다.
+  if (gone) {
+    const twin = plansData[dashSelectedMonth].plans.find(p =>
+      planTitleKey(p.title) === planTitleKey(gone.title)
+    );
+    (contentsData?.contents || []).forEach(c => {
+      if (String(c.linkedPlanId) !== String(gone.id)) return;
+      if (twin) { c.linkedPlanId = twin.id; twin.linkedContentId = c.id; }
+      else { delete c.linkedPlanId; }
     });
   }
 
