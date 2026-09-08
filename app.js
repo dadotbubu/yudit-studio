@@ -2254,13 +2254,13 @@ function renderDashboard() {
   }) || [];
 
   // 라벨은 셋 (2026-09-08). 폐기된 Money Log 로 저장된 옛 기록은 Life Style 로 합산해 센다.
-  const LEGACY_INTO = { 'Money Log': 'Life Style' };
+  // 넷째 칸은 광고·협찬 — 「이번 달 몇 건 했나」를 한눈에 보는 칸이다 (판매는 안 센다)
+  const COUNT_INTO = { 'Money Log': 'Life Style', '광고': '광고·협찬', '협찬': '광고·협찬' };
   const categoryCount = {};
-  // 넷째 칸은 광고 (2026-09-08 유디트) — 셋이면 모바일 2열에서 한 칸이 붕 떴다
-  const categories = ['Career Guide', 'AI Work', 'Life Style', '광고'];
+  const categories = ['Career Guide', 'AI Work', 'Life Style', '광고·협찬'];
   categories.forEach(cat => { categoryCount[cat] = 0; });
   monthContents.forEach(c => {
-    const cat = LEGACY_INTO[c.category] || c.category;
+    const cat = COUNT_INTO[c.category] || c.category;
     if (cat in categoryCount) categoryCount[cat] += 1;
   });
   const totalPlans = monthContents.length;
