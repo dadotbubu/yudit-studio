@@ -10,9 +10,8 @@ let perfRecalculated = false; // 성과 데이터 재계산 완료 플래그
 let isOfflineMode = false; // 오프라인 모드 (읽기 전용)
 const dirtyTables = new Set(); // 변경된 테이블만 저장하기 위한 플래그
 
-// 카테고리 목표 설정 (localStorage에 저장)
-let categoryGoalsConfig = JSON.parse(localStorage.getItem('yudit_categoryGoals') || '{"Career Guide":2,"AI Work":2,"Money Log":2,"Life Style":2}');
-let totalGoalConfig = parseInt(localStorage.getItem('yudit_totalGoal') || '8');
+// 카테고리 목표 폐기 (2026-09-08 유디트 — 개수를 채우려는 압박이 힘들었다)
+// 시키는 표가 아니라 «비어 있는 칸을 알아채는» 표로 바꿨다. 집계만 한다.
 
 // Lazy Loading - 탭 렌더링 상태 추적
 const tabRendered = {
@@ -134,7 +133,7 @@ const categoryColors = {
   // 일반 카테고리
   'Career Guide': '#4A6FA5',  // 차분한 파란색
   'AI Work': '#7B5EA7',       // 보라색
-  'Money Log': '#D97746',     // 주황색
+  'Money Log': '#D97746',     // 주황색 — 2026-09-08 폐기. 과거 기록 색만 유지한다 (새로 고를 수 없다)
   'Life Style': '#2A9D8F',    // 청록색
   // 수익 카테고리
   '광고': '#9B6B8C',
@@ -153,7 +152,7 @@ const TYPE_COLORS = {
 const CATEGORY_MIGRATION = {
   '취업/이직': 'Career Guide',
   'AI활용': 'AI Work',
-  '재테크': 'Money Log',
+  '재테크': 'Life Style',        // 2026-09-08 — Money Log 폐기로 Life Style 이 흡수
   '대기업라이프': 'Life Style',
   '쇼핑/여행': 'Life Style'
 };
@@ -2010,7 +2009,6 @@ function getRegistrationFormHTML(dateStr) {
         <select id="new-category" class="w-full px-3 py-2 rounded-xl border border-botanical-stone focus:outline-none">
           <option value="Career Guide">Career Guide</option>
           <option value="AI Work">AI Work</option>
-          <option value="Money Log">Money Log</option>
           <option value="Life Style">Life Style</option>
         </select>
       </div>
@@ -2209,7 +2207,7 @@ function changeDashMonth(monthStr) {
 }
 
 // 아이디어 필터 상태 (아이디어는 기획 탭으로 이동됨)
-let ideaCategoryFilter = 'all'; // 'all', 'Career Guide', 'AI Work', 'Money Log', 'Life Style'
+let ideaCategoryFilter = 'all'; // 'all', 'Career Guide', 'AI Work', 'Life Style'
 let ideaSourceFilter = 'all';   // 'all' | 'original'(링크X) | 'reference'(링크O)
 
 function switchIdeaCategory(cat) {
@@ -2254,13 +2252,16 @@ function renderDashboard() {
     return uploadDate.startsWith(dashMonthStr);
   }) || [];
 
+  // 라벨은 셋 (2026-09-08). 폐기된 Money Log 로 저장된 옛 기록은 Life Style 로 합산해 센다.
+  const LEGACY_INTO = { 'Money Log': 'Life Style' };
   const categoryCount = {};
-  const categories = ['Career Guide', 'Money Log', 'AI Work', 'Life Style'];
-  categories.forEach(cat => {
-    categoryCount[cat] = monthContents.filter(c => c.category === cat).length;
+  const categories = ['Career Guide', 'AI Work', 'Life Style'];
+  categories.forEach(cat => { categoryCount[cat] = 0; });
+  monthContents.forEach(c => {
+    const cat = LEGACY_INTO[c.category] || c.category;
+    if (cat in categoryCount) categoryCount[cat] += 1;
   });
   const totalPlans = monthContents.length;
-  const totalGoal = totalGoalConfig || 8;
 
   document.getElementById('dashboard-content').innerHTML = `
     <!-- 월 선택기 -->
@@ -2281,31 +2282,26 @@ function renderDashboard() {
     <div class="mb-6">
       <div class="bg-white rounded-2xl p-4 md:p-5 shadow-sm">
         <div class="flex items-center justify-between mb-4">
-          <h3 class="text-sm font-semibold text-botanical-fg">카테고리별 진행 상황</h3>
+          <h3 class="text-sm font-semibold text-botanical-fg">카테고리별 집계</h3>
           <span class="text-sm text-botanical-sage">${dashY}년 ${dashM}월</span>
         </div>
         <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-3">
           ${categories.map(cat => {
-            const goal = categoryGoalsConfig[cat] || 2;
             const current = categoryCount[cat] || 0;
-            const percentage = goal > 0 ? Math.round((current / goal) * 100) : 0;
             return `
               <div class="p-3 rounded-lg border border-botanical-stone hover:border-botanical-sage transition-all">
                 <p class="text-xs text-botanical-sage mb-1">${cat}</p>
                 <div class="flex items-baseline gap-1">
-                  <span class="text-lg font-semibold ${current >= goal ? 'text-botanical-sage' : 'text-botanical-fg'}">${current}</span>
-                  <span class="text-xs text-botanical-sage">/ ${goal}</span>
-                </div>
-                <div class="mt-2 h-1 bg-botanical-stone rounded-full overflow-hidden">
-                  <div class="h-full bg-botanical-sage transition-all" style="width: ${Math.min(percentage, 100)}%"></div>
+                  <span class="text-lg font-semibold ${current === 0 ? 'text-botanical-sage' : 'text-botanical-fg'}">${current}</span>
+                  <span class="text-xs text-botanical-sage">개</span>
                 </div>
               </div>
             `;
           }).join('')}
         </div>
         <div class="pt-3 border-t border-botanical-stone flex items-center justify-between">
-          <span class="text-sm text-botanical-sage">전체 진행</span>
-          <span class="text-sm font-semibold ${totalPlans >= totalGoal ? 'text-botanical-sage' : 'text-botanical-fg'}">${totalPlans} / ${totalGoal}</span>
+          <span class="text-sm text-botanical-sage">이번 달 업로드</span>
+          <span class="text-sm font-semibold text-botanical-fg">${totalPlans}개</span>
         </div>
       </div>
     </div>
@@ -2418,7 +2414,6 @@ function addPlanToWeek(week) {
         <select id="new-plan-category" class="w-full px-3 py-2 rounded-xl border border-botanical-stone focus:outline-none">
           <option value="Career Guide">Career Guide</option>
           <option value="AI Work">AI Work</option>
-          <option value="Money Log">Money Log</option>
           <option value="Life Style">Life Style</option>
         </select>
       </div>
@@ -2495,7 +2490,7 @@ function editPlan(planId) {
           <select id="edit-plan-category" class="w-full px-3 py-2 rounded-xl border border-botanical-stone focus:outline-none">
             <option value="Career Guide" ${plan.category === 'Career Guide' ? 'selected' : ''}>Career Guide</option>
             <option value="AI Work" ${plan.category === 'AI Work' ? 'selected' : ''}>AI Work</option>
-            <option value="Money Log" ${plan.category === 'Money Log' ? 'selected' : ''}>Money Log</option>
+            ${plan.category === 'Money Log' ? '<option value="Money Log" selected>Money Log (폐기됨)</option>' : ''}
             <option value="Life Style" ${plan.category === 'Life Style' ? 'selected' : ''}>Life Style</option>
           </select>
         </div>
@@ -2791,7 +2786,6 @@ function addIdea() {
           <select id="new-idea-category" class="w-full px-3 py-2 rounded-xl border border-botanical-stone focus:outline-none">
             <option value="Career Guide">Career Guide</option>
             <option value="AI Work">AI Work</option>
-            <option value="Money Log">Money Log</option>
             <option value="Life Style">Life Style</option>
           </select>
         </div>
@@ -2853,7 +2847,7 @@ function editIdea(ideaId) {
           <select id="edit-idea-category" class="w-full px-3 py-2 rounded-xl border border-botanical-stone focus:outline-none">
             <option value="Career Guide" ${idea.category === 'Career Guide' ? 'selected' : ''}>Career Guide</option>
             <option value="AI Work" ${idea.category === 'AI Work' ? 'selected' : ''}>AI Work</option>
-            <option value="Money Log" ${idea.category === 'Money Log' ? 'selected' : ''}>Money Log</option>
+            ${idea.category === 'Money Log' ? '<option value="Money Log" selected>Money Log (폐기됨)</option>' : ''}
             <option value="Life Style" ${idea.category === 'Life Style' ? 'selected' : ''}>Life Style</option>
           </select>
         </div>
@@ -3365,7 +3359,7 @@ function renderContentForm(content) {
               <optgroup label="일반">
                 <option value="Career Guide" ${content.category === 'Career Guide' ? 'selected' : ''}>Career Guide</option>
                 <option value="AI Work" ${content.category === 'AI Work' ? 'selected' : ''}>AI Work</option>
-                <option value="Money Log" ${content.category === 'Money Log' ? 'selected' : ''}>Money Log</option>
+                ${content.category === 'Money Log' ? '<option value="Money Log" selected>Money Log (폐기됨)</option>' : ''}
                 <option value="Life Style" ${content.category === 'Life Style' ? 'selected' : ''}>Life Style</option>
               </optgroup>
               <optgroup label="수익">
@@ -6460,7 +6454,6 @@ function showNewContentModal() {
           <select id="new-content-category" class="w-full px-3 py-2 rounded-xl border border-botanical-stone focus:outline-none">
             <option value="Career Guide">Career Guide</option>
             <option value="AI Work">AI Work</option>
-            <option value="Money Log">Money Log</option>
             <option value="Life Style">Life Style</option>
           </select>
         </div>
@@ -8854,7 +8847,6 @@ function renderDashboardPlans(monthStr) {
           <option value="">카테고리 선택</option>
           <option value="Career Guide">Career Guide</option>
           <option value="AI Work">AI Work</option>
-          <option value="Money Log">Money Log</option>
           <option value="Life Style">Life Style</option>
           <option value="광고">광고</option>
         </select>
@@ -8918,33 +8910,7 @@ function deleteDashboardPlan(planId) {
   renderDashboard();
 }
 
-// ========== Category Goals Edit ==========
-function editTotalGoal() {
-  const newGoal = prompt('월 총 목표 개수를 입력하세요', totalGoalConfig);
-  if (newGoal === null) return;
-  const num = parseInt(newGoal);
-  if (isNaN(num) || num < 1 || num > 31) {
-    alert('1~31 사이의 숫자를 입력하세요');
-    return;
-  }
-  totalGoalConfig = num;
-  localStorage.setItem('yudit_totalGoal', num);
-  renderDashboard();
-}
-
-function editCategoryGoal(category) {
-  const currentGoal = categoryGoalsConfig[category] || 0;
-  const newGoal = prompt(`${category} 목표 개수를 입력하세요`, currentGoal);
-  if (newGoal === null) return;
-  const num = parseInt(newGoal);
-  if (isNaN(num) || num < 0 || num > 31) {
-    alert('0~31 사이의 숫자를 입력하세요');
-    return;
-  }
-  categoryGoalsConfig[category] = num;
-  localStorage.setItem('yudit_categoryGoals', JSON.stringify(categoryGoalsConfig));
-  renderDashboard();
-}
+// ========== Category Goals — 2026-09-08 폐기 (집계만 한다) ==========
 
 // ========== Planning Tab (기획) ==========
 // 데이터: data/planning_data.js (PLANNING_DATA) — 레퍼 50개 분석 기반
@@ -9041,7 +9007,7 @@ function plRenderIdeas() {
       <button onclick="addIdea()" class="px-3 py-1.5 rounded-lg bg-botanical-fg text-white text-xs font-medium hover:bg-opacity-90 transition-all shrink-0">+ 추가</button>
     </div>
     <div class="border-t border-botanical-stone mb-3"></div>
-    <div class="flex flex-wrap gap-1.5 mb-4">${catBtn('all', '전체')}${catBtn('Career Guide', 'Career')}${catBtn('Money Log', 'Money')}${catBtn('AI Work', 'AI')}${catBtn('Life Style', 'Life')}</div>
+    <div class="flex flex-wrap gap-1.5 mb-4">${catBtn('all', '전체')}${catBtn('Career Guide', 'Career')}${catBtn('AI Work', 'AI')}${catBtn('Life Style', 'Life')}</div>
     <div class="bg-white rounded-2xl p-4 shadow-sm">
       ${list.length > 0 ? `<div class="space-y-3">${list.map(idea => `
         <div class="p-3 rounded-lg border border-botanical-stone hover:border-botanical-sage transition-all">
