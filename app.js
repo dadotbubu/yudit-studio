@@ -384,6 +384,21 @@ function syncPlanFromUpload(content) {
   if (!plansData) plansData = {};
   if (!plansData[monthStr]) plansData[monthStr] = { plans: [], ideas: [] };
 
+  // ★ 손으로 미리 적어 둔 계획이 같은 달에 이미 있으면 새로 만들지 않고 «그걸 붙인다».
+  //   (예전엔 무조건 새로 만들어서 플래너에 같은 게 두 개씩 떴다 — 2026-09-08)
+  const sameTitle = (plansData[monthStr].plans || []).find(pl =>
+    !pl.linkedContentId && (pl.title || '').trim() === (content.title || '').trim()
+  );
+  if (sameTitle) {
+    sameTitle.linkedContentId = content.id;
+    if (!sameTitle.category) sameTitle.category = content.category;
+    if (!sameTitle.link) sameTitle.link = content.url || '';
+    content.linkedPlanId = sameTitle.id;
+    markDirty('plans');
+    markDirty('contents');
+    return;
+  }
+
   const newPlan = {
     id: `p_${monthStr}_${Date.now()}`,
     week: week,
@@ -399,6 +414,40 @@ function syncPlanFromUpload(content) {
   content.linkedPlanId = newPlan.id;
   markDirty('plans');
   markDirty('contents');
+}
+
+// 같은 달·같은 제목으로 두 벌 생긴 계획 정리 (2026-09-08)
+// 손으로 적은 계획 + 콘텐츠가 자동 생성한 계획이 겹친 경우만 건드린다.
+// 손으로 적은 쪽을 남기고(주차·설명이 거기 있다) 연동만 옮겨 붙인 뒤 자동 생성분을 지운다.
+function reconcileDuplicatePlans() {
+  let changed = false;
+  for (const month of Object.keys(plansData || {})) {
+    const plans = plansData[month]?.plans;
+    if (!Array.isArray(plans)) continue;
+    const byTitle = {};
+    plans.forEach(pl => {
+      const key = (pl.title || '').trim();
+      if (!key) return;
+      (byTitle[key] = byTitle[key] || []).push(pl);
+    });
+    for (const group of Object.values(byTitle)) {
+      if (group.length < 2) continue;
+      const auto = group.filter(pl => pl.createdBy === 'content' && pl.linkedContentId);
+      const manual = group.filter(pl => pl.createdBy !== 'content' && !pl.linkedContentId);
+      // 「자동 1 + 손 1」인 짝만 정리한다. 그 밖의 모양은 손대지 않는다
+      if (auto.length !== 1 || manual.length !== 1 || group.length !== 2) continue;
+      const keep = manual[0], drop = auto[0];
+      keep.linkedContentId = drop.linkedContentId;
+      if (!keep.category) keep.category = drop.category;
+      if (!keep.link) keep.link = drop.link || '';
+      const c = (contentsData?.contents || []).find(x => x.id == drop.linkedContentId);
+      if (c) c.linkedPlanId = keep.id;
+      plans.splice(plans.indexOf(drop), 1);
+      changed = true;
+    }
+  }
+  if (changed) { markDirty('plans'); markDirty('contents'); }
+  return changed;
 }
 
 // 콘텐츠에서 자동 생성된 플랜 지우기 (콘텐츠 삭제 시). 손으로 만든 플랜은 연동만 끊고 남긴다.
@@ -1217,6 +1266,8 @@ function initApp() {
   if (migrateCategoryNames()) {
     saveAllData();
   }
+  // 같은 달·같은 제목으로 두 벌 생긴 계획 정리 (손으로 적은 쪽을 남긴다)
+  if (reconcileDuplicatePlans()) saveAllData();
   // 초기 로드 후 캘린더 ↔ 마일스톤 정합성 한 번 정리 (stale orphan 제거 + 누락 추가)
   reconcileCalendarMilestones();
   // 판매 콘텐츠의 월별 수익 ↔ 수익 리포트 정합성 정리 (다른 기기에서 입력한 분 포함)
@@ -1232,6 +1283,11 @@ function initApp() {
   if (isStale) {
     localStorage.removeItem('yudit_openContentId');
     localStorage.removeItem('yudit_scrollY');
+    localStorage.removeItem('yudit_dashMonth');
+  } else {
+    // 플래너에서 보던 월을 새로고침 후에도 그대로 (최신월로 튀지 않게)
+    const savedDashMonth = localStorage.getItem('yudit_dashMonth');
+    if (savedDashMonth && /^\d{4}-\d{2}$/.test(savedDashMonth)) dashSelectedMonth = savedDashMonth;
   }
   switchTab(targetTab);
 
@@ -2157,14 +2213,18 @@ function linkToContent(calendarItemId) {
 function goToContentExpanded(contentId) {
   closeCalendarPopup();
   // 해당 콘텐츠의 월로 필터 변경
-  const content = contentsData.contents.find(c => c.id === contentId);
+  // ★ id 는 숫자·문자열이 섞여 들어온다 (템플릿에서 넘어온 값) → 느슨한 비교로 찾는다
+  const content = contentsData.contents.find(c => c.id == contentId);
+  let monthChanged = false;
   if (content) {
     const refDate = getContentRefDate(content);
-    if (refDate) {
+    if (refDate && refDate.slice(0, 7) !== contentSelectedMonth) {
       contentSelectedMonth = refDate.slice(0, 7);
+      monthChanged = true;
     }
   }
   switchTab('content');
+  if (monthChanged) renderContentList();   // switchTab 은 첫 방문에만 렌더한다
   setTimeout(() => {
     const form = document.getElementById('form-' + contentId);
     const arrow = document.getElementById('arrow-' + contentId);
@@ -2180,7 +2240,7 @@ function goToPerformance(contentId) {
   // 다른 달 콘텐츠면 월 상세를 그 콘텐츠 월로 먼저 옮긴다 (안 그러면 줄이 없어서 못 찾음)
   let monthChanged = false;
   if (contentId) {
-    const c = contentsData?.contents?.find(x => x.id === contentId);
+    const c = contentsData?.contents?.find(x => x.id == contentId);
     const m = (c ? getUploadDate(c) : '').slice(0, 7);
     if (m && m !== perfSelectedMonth) { perfSelectedMonth = m; monthChanged = true; }
   }
@@ -2204,6 +2264,7 @@ function goToPerformance(contentId) {
 // ========== Dashboard ==========
 function changeDashMonth(monthStr) {
   dashSelectedMonth = monthStr;
+  try { localStorage.setItem('yudit_dashMonth', monthStr); } catch (e) {}
   renderDashboard();
 }
 
@@ -2263,7 +2324,22 @@ function renderDashboard() {
     const cat = COUNT_INTO[c.category] || c.category;
     if (cat in categoryCount) categoryCount[cat] += 1;
   });
-  const totalPlans = monthContents.length;
+  let totalPlans = monthContents.length;
+
+  // ★ 콘텐츠 연동을 못 했던 달(3·4월)은 0 으로 비어 보인다 → 그 달의 «계획» 으로라도 센다.
+  //   연동된 콘텐츠가 한 건이라도 있으면 그쪽이 정답이라 계획은 안 본다 (2026-09-08 유디트)
+  let countedFromPlans = false;
+  if (totalPlans === 0) {
+    const monthPlansAll = plansData?.[dashMonthStr]?.plans || [];
+    if (monthPlansAll.length > 0) {
+      monthPlansAll.forEach(pl => {
+        const cat = COUNT_INTO[pl.category] || pl.category;
+        if (cat in categoryCount) categoryCount[cat] += 1;
+      });
+      totalPlans = monthPlansAll.length;
+      countedFromPlans = true;
+    }
+  }
 
   document.getElementById('dashboard-content').innerHTML = `
     <!-- 월 선택기 -->
@@ -2284,7 +2360,7 @@ function renderDashboard() {
     <div class="mb-6">
       <div class="bg-white rounded-2xl p-4 md:p-5 shadow-sm">
         <div class="flex items-center justify-between mb-4">
-          <h3 class="text-sm font-semibold text-botanical-fg">카테고리별 집계</h3>
+          <h3 class="text-sm font-semibold text-botanical-fg">카테고리별 집계${countedFromPlans ? ' <span class="text-xs font-normal text-botanical-sage">(계획 기준)</span>' : ''}</h3>
           <span class="text-sm text-botanical-sage">${dashY}년 ${dashM}월</span>
         </div>
         <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-3">
@@ -2302,7 +2378,7 @@ function renderDashboard() {
           }).join('')}
         </div>
         <div class="pt-3 border-t border-botanical-stone flex items-center justify-between">
-          <span class="text-sm text-botanical-sage">이번 달 업로드</span>
+          <span class="text-sm text-botanical-sage">${countedFromPlans ? '이번 달 계획' : '이번 달 업로드'}</span>
           <span class="text-sm font-semibold text-botanical-fg">${totalPlans}개</span>
         </div>
       </div>
