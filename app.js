@@ -4615,7 +4615,7 @@ const TTS_ABBR = { AI:'에이아이', GPT:'지피티', PDF:'피디에프', DM:'�
 // 고유어로 읽는 단위 (세개 · 다섯군데)
 const TTS_NATIVE_UNITS = '개|곳|명|번|가지|군데|시간|살|장|달|마리|권|배';
 // 한자어로 읽는 단위 (오백자 · 삼분) — 「대」는 나이대라서 여기다 (30대 → 삼십대)
-const TTS_SINO_UNITS = '자|원|년|월|일|분|초|퍼센트|%|대';
+const TTS_SINO_UNITS = '개국|자|원|년|월|일|분|초|퍼센트|%|대';
 
 function ttsSino(n) {                       // 500 → 오백
   if (!n) return '영';
@@ -4660,14 +4660,14 @@ function ttsRead(text) {
   });
   // ① 숫자 + 천/만/억/조 — 숫자만 한자어로 (2천만원 → 이천만원)
   t = t.replace(/(\d[\d,]*)(?=[천만억조])/g, m => ttsSino(+m.replace(/,/g, '')));
-  // ② 숫자 + 고유어 단위 (3개 → 세개) — 띄우면 TTS가 끊어 읽는다
+  // ② 숫자 + 한자어 단위 (500자 → 오백자) — ★고유어보다 «먼저». 19개국의 개국을 개 가 먼저 먹으면 열아홉개국이 된다
+  t = t.replace(new RegExp('(\\d[\\d,]*)\\s*(' + TTS_SINO_UNITS + ')', 'g'), (m, n, u) =>
+    ttsSino(+n.replace(/,/g, '')) + (u === '%' ? '퍼센트' : u));
+  // ③ 숫자 + 고유어 단위 (3개 → 세개) — 띄우면 TTS가 끊어 읽는다
   t = t.replace(new RegExp('(\\d[\\d,]*)\\s*(' + TTS_NATIVE_UNITS + ')', 'g'), (m, n, u) => {
     const k = ttsNative(+n.replace(/,/g, ''));
     return k ? k + u : m;
   });
-  // ③ 숫자 + 한자어 단위 (500자 → 오백자)
-  t = t.replace(new RegExp('(\\d[\\d,]*)\\s*(' + TTS_SINO_UNITS + ')', 'g'), (m, n, u) =>
-    ttsSino(+n.replace(/,/g, '')) + (u === '%' ? '퍼센트' : u));
   return t.replace(/\s+/g, ' ').trim();
 }
 
