@@ -2240,6 +2240,7 @@ function goToContentExpanded(contentId) {
       contentSelectedMonth = refDate.slice(0, 7);
       monthChanged = true;
     }
+    if (isHeld(content) && !heldGroupOpen) { heldGroupOpen = true; monthChanged = true; } // 보류 묶음 펼쳐서 보이게
   }
   switchTab('content');
   if (monthChanged) renderContentList();   // switchTab 은 첫 방문에만 렌더한다
@@ -3150,6 +3151,7 @@ function changeContentMonth(monthStr) {
   renderContentList();
 }
 
+let heldGroupOpen = false; // 보류 묶음 펼침 — 리렌더 후에도 유지
 function renderContentList() {
   // 1) 타입 필터 (전체/일반/수익)
   let filteredContents = contentsData.contents;
@@ -3159,13 +3161,21 @@ function renderContentList() {
     filteredContents = contentsData.contents.filter(c => c.isRevenue);
   }
 
-  // 2) 월 필터: 보류일 > 업로드완료 마일스톤 > 예정일. 셋 다 없으면 항상 표시.
+  // 보류는 월과 상관없이 맨 아래 묶음으로 따로 모은다 (최근 보류가 위)
+  const heldContents = filteredContents.filter(isHeld)
+    .sort((a, b) => (getContentRefDate(b) || '').localeCompare(getContentRefDate(a) || ''));
+  // 펼쳐 둔 콘텐츠가 보류면 묶음도 펼친다 (앱 복귀 시 복원)
+  const openId = localStorage.getItem('yudit_openContentId');
+  if (openId && heldContents.some(c => c.id == openId)) heldGroupOpen = true;
+
+  // 2) 월 필터: 업로드완료 마일스톤 > 예정일. 둘 다 없으면 항상 표시. (보류는 위 묶음으로)
   const monthStr = contentSelectedMonth;
   const today = new Date();
   const currentMonth = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}`;
   const isPastMonth = monthStr < currentMonth;
 
   filteredContents = filteredContents.filter(c => {
+    if (isHeld(c)) return false;
     const ref = getContentRefDate(c);
     // 과거월 선택 시: 마무리된 것(업로드완료·보류)만 표시
     if (isPastMonth) {
@@ -3227,7 +3237,13 @@ function renderContentList() {
     <div class="space-y-4">
   `;
 
-  filteredContents.forEach((content, idx) => {
+  [...filteredContents, ...heldContents].forEach((content, idx) => {
+    if (idx === filteredContents.length) {
+      html += `</div>
+    <details class="mt-8" ${heldGroupOpen ? 'open' : ''} ontoggle="heldGroupOpen = this.open">
+      <summary class="cursor-pointer text-sm font-medium text-botanical-sage mb-4">보류 ${heldContents.length}건</summary>
+      <div class="space-y-4">`;
+    }
     const statusColors = {
       // 일반 · 판매 · 협찬 상태
       '기획중': { bg: '#FEF3C7', text: '#92400E' },
@@ -3280,6 +3296,7 @@ function renderContentList() {
   });
 
   html += '</div>';
+  if (heldContents.length) html += '</details>';
   document.getElementById('content-list').innerHTML = html;
 
   // 이전에 열려있던 콘텐츠 복원 (앱 전환 후 복귀 시)
@@ -6275,6 +6292,7 @@ function removeNotionLink(contentId, idx) {
 // revenueData.products = [{ id, name, sales: [{ month, amount }] }]
 // 콘텐츠와 따로 관리한다 — 콘텐츠는 adInfo.productId 로 상품을 불러와 연결만, 금액은 여기서만
 function getProducts() {
+  if (!revenueData) return [];
   if (!Array.isArray(revenueData.products)) revenueData.products = [];
   return revenueData.products;
 }
