@@ -6292,18 +6292,15 @@ function getSalesAmount(content, month) {
   return getSalesRevenue(content).find(r => r.month === month)?.amount || 0;
 }
 
-// 판매 수수료 — 달마다 {rate(%), fixed(원)}. 설정 없는 달은 직전 설정을 이어받는다
+// 판매 수수료 — 달마다 {rate(%)}. 설정 없는 달은 직전 설정을 이어받는다 (고정 비용은 지출 카드)
 function getSalesFee(month) {
   const fees = revenueData.salesFee || {};
   const prev = Object.keys(fees).filter(m => m <= month).sort().pop();
-  return prev ? fees[prev] : { rate: 0, fixed: 0 };
+  return prev ? fees[prev] : { rate: 0 };
 }
 
-// ponytail: 고정비는 매출 있는 달만 뺀다 — 안 판 달에도 요금이 나가면 그 달만 따로 적는다
 function salesFeeAmount(month, gross) {
-  if (!(gross > 0)) return 0;
-  const { rate, fixed } = getSalesFee(month);
-  return Math.round(gross * (rate || 0) / 100) + (fixed || 0);
+  return gross > 0 ? Math.round(gross * (getSalesFee(month).rate || 0) / 100) : 0;
 }
 
 // 지출 — 달마다 [{name, amount, once}]. 설정 없는 달은 직전 목록에서 «매달» 항목만 이어받는다
@@ -7048,7 +7045,7 @@ function renderPerformance() {
           })()}
         </div>
       </div>
-      <div class="flex flex-wrap items-center gap-3 mt-8 mb-6">
+      <div class="flex items-center gap-2 whitespace-nowrap mt-8 mb-6">
         ${renderMonthSelect('perf-range-from', perfRangeFrom, 'changePerfRangeFrom')}<span class="text-botanical-sage">~</span>${renderMonthSelect('perf-range-to', perfRangeTo, 'changePerfRangeTo')}
       </div>
       <!-- 팔로워 월별 트렌드 (막대 그래프, 고른 기간) -->
@@ -7069,17 +7066,22 @@ function renderPerformance() {
           }
           const hasAnyData = yearMonths.some(m => m.hasData);
           if (!hasAnyData) return `<p class="text-sm text-botanical-sage text-center py-8">팔로워 데이터가 없습니다</p>`;
-          const maxFollowers = Math.max(...yearMonths.map(m => m.totalFollowers), 1);
+          // 높이는 기간 안 «가장 적은 달 ~ 가장 많은 달» 사이로 펼친다 (0명 기준이면 큰 달끼리 차이가 안 보임)
+          const counts = yearMonths.map(m => m.totalFollowers).filter(v => v > 0);
+          const hi = Math.max(...counts, 1), lo = Math.min(...counts, hi);
+          // 색칠 = 기간의 마지막 달 (안 온 달·빈 달이면 데이터 있는 마지막 달)
+          const highlightKey = [...yearMonths].reverse().find(m => m.hasData)?.monthKey;
           const isPC = window.innerWidth >= 768;
-          const barMaxHeight = isPC ? 160 : 80;
+          const barMaxHeight = isPC ? 220 : 120;
+          const barFloor = 4;
           const fontSize = isPC ? '14px' : '10px';
           const smallFontSize = isPC ? '12px' : '9px';
           const barMaxWidth = isPC ? '40px' : '20px';
           return `
             <div style="display: grid; grid-template-columns: repeat(${yearMonths.length}, 1fr); gap: ${isPC ? '8px' : '4px'};">
               ${yearMonths.map(m => {
-                const barHeight = m.hasData ? Math.max((m.totalFollowers / maxFollowers) * barMaxHeight, 8) : 0;
-                const isCurrentMonth = m.monthKey === perfSelectedMonth;
+                const barHeight = m.totalFollowers > 0 ? barFloor + (hi > lo ? (m.totalFollowers - lo) / (hi - lo) : 1) * (barMaxHeight - barFloor) : 0;
+                const isCurrentMonth = m.monthKey === highlightKey;
                 const barColor = isCurrentMonth ? '#C17F59' : '#8C9A84';
                 return `
                   <div style="display: flex; flex-direction: column; align-items: center;">
@@ -7220,7 +7222,7 @@ function renderPerformance() {
         </div>
       </div>
 
-      <div class="flex flex-wrap items-center gap-3 mt-8 mb-6">
+      <div class="flex items-center gap-2 whitespace-nowrap mt-8 mb-6">
         ${renderMonthSelect('perf-range-from-c', perfRangeFrom, 'changePerfRangeFrom')}<span class="text-botanical-sage">~</span>${renderMonthSelect('perf-range-to-c', perfRangeTo, 'changePerfRangeTo')}
       </div>
       <!-- 월별 콘텐츠 성과 비교 -->
@@ -8050,7 +8052,7 @@ function renderRevenue() {
     <div class="flex flex-wrap items-center gap-3 mb-6">
       <div class="flex gap-1 p-1 rounded-full bg-botanical-stone/40">${viewBtn('range', '기간')}${viewBtn('month', '월별')}</div>
       ${isRange
-        ? `${renderMonthSelect('rev-range-from', revRangeFrom, 'changeRevRangeFrom')}<span class="text-botanical-sage">~</span>${renderMonthSelect('rev-range-to', revRangeTo, 'changeRevRangeTo')}`
+        ? `<div class="flex items-center gap-2 whitespace-nowrap">${renderMonthSelect('rev-range-from', revRangeFrom, 'changeRevRangeFrom')}<span class="text-botanical-sage">~</span>${renderMonthSelect('rev-range-to', revRangeTo, 'changeRevRangeTo')}</div>`
         : renderMonthSelect('revenue-month-select', revenueSelectedMonth, 'changeRevenueMonth')}
     </div>
 
@@ -8065,9 +8067,9 @@ function renderRevenue() {
       </div>
     </div>
 
-    ${isRange ? trendHtml + taxHtml : renderSalesMonthInput() + renderExpenseInput()}
+    ${isRange ? trendHtml + taxHtml : ''}
 
-    <div class="bg-white rounded-2xl p-5 shadow-sm">
+    <div class="bg-white rounded-2xl p-5 shadow-sm mb-6">
       <h3 class="text-base font-semibold mb-4">수익 상세</h3>
       <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
         ${renderRevenueList('광고', revenueData.items.ad, 'botanical-terracotta', months)}
@@ -8075,6 +8077,8 @@ function renderRevenue() {
         ${renderRevenueList('협찬', revenueData.items.sponsor, 'botanical-clay', months)}
       </div>
     </div>
+
+    ${isRange ? '' : renderSalesMonthInput() + renderExpenseInput()}
     </div>
 
     <div id="rev-contracts" class="rev-section ${revSubTab === 'contracts' ? '' : 'hidden'}">
@@ -8146,8 +8150,6 @@ function renderSalesMonthInput() {
       <div class="flex flex-wrap items-center gap-2 mb-2 text-sm">
         <span class="text-botanical-sage">수수료</span>
         ${feeInput('rate', fee.rate, '%', 'w-16')}
-        <span class="text-botanical-sage ml-2">월 고정비</span>
-        ${feeInput('fixed', fee.fixed, '원', 'w-24')}
       </div>
       ${body}
       <div class="mt-3 pt-3 border-t border-botanical-stone grid grid-cols-3 text-center">
