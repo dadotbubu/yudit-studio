@@ -150,7 +150,7 @@
     var maxAge = Math.max.apply(null, d.age.map(function (a) { return a.pct; }).concat([1]));
     var ageHtml = d.age.map(function (a) {
       var h = Math.max(6, Math.round(a.pct / maxAge * 100));
-      return '<div class="bar-col"><div class="bar" style="height:' + h + '%"></div><div class="bar-lab">' + esc(a.label) + '<br><b>' + a.pct + '%</b></div></div>';
+      return '<div class="bar-col"><div class="bar-area"><div class="bar" style="height:' + h + '%"></div></div><div class="bar-lab">' + esc(a.label) + '<br><b>' + a.pct + '%</b></div></div>';
     }).join('');
 
     var genderPct = d.gender.female;
@@ -203,10 +203,12 @@
     var gr = d.growth || {};
     var growthHtml = '';
     if (gr.points && gr.points.length) {
-      var maxG = Math.max.apply(null, gr.points.map(function (p) { return p.value; }).concat([1]));
+      // 높이는 가장 적은 달 ~ 가장 많은 달 사이로 펼친다 (0 기준이면 큰 달끼리 차이가 안 보임)
+      var vals = gr.points.map(function (p) { return p.value; }).filter(function (v) { return v > 0; });
+      var maxG = Math.max.apply(null, vals.concat([1])), minG = Math.min.apply(null, vals.concat([maxG]));
       var barsG = gr.points.map(function (p) {
-        var h = Math.max(4, Math.round(p.value / maxG * 100));
-        return '<div class="bar-col"><div class="bar" style="height:' + h + '%"></div><div class="bar-lab">' + esc(p.label) + '<br><b>' + (p.value ? fmtNum(p.value) : '-') + '</b></div></div>';
+        var h = p.value > 0 ? Math.round(6 + (maxG > minG ? (p.value - minG) / (maxG - minG) : 1) * 94) : 0;
+        return '<div class="bar-col"><div class="bar-area"><div class="bar" style="height:' + h + '%"></div></div><div class="bar-lab">' + esc(p.label) + '<br><b>' + (p.value ? fmtNum(p.value) : '-') + '</b></div></div>';
       }).join('');
       var capG = (gr.caption && gr.caption[L]) || '';
       growthHtml = '<h2>' + T.growth + '</h2><div class="panel">' +
