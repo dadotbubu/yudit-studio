@@ -2262,8 +2262,10 @@ function goToPerformance(contentId) {
     const m = (c ? getUploadDate(c) : '').slice(0, 7);
     if (m && m !== perfSelectedMonth) { perfSelectedMonth = m; monthChanged = true; }
   }
+  const tabChanged = perfSubTab !== 'content';
+  perfSubTab = 'content';
   switchTab('performance');
-  if (monthChanged) renderPerformance(); // switchTab은 첫 방문에만 렌더함
+  if (monthChanged || tabChanged) renderPerformance(); // switchTab은 첫 방문에만 렌더함
   setTimeout(() => {
     if (contentId) {
       const row = document.querySelector(`[data-perf-row="${contentId}"]`);
@@ -6304,11 +6306,12 @@ function salesFeeAmount(month, gross) {
   return Math.round(gross * (rate || 0) / 100) + (fixed || 0);
 }
 
-// 고정 지출 — 달마다 [{name, amount}]. 설정 없는 달은 직전 목록을 이어받는다
+// 지출 — 달마다 [{name, amount, once}]. 설정 없는 달은 직전 목록에서 «매달» 항목만 이어받는다
 function getExpenses(month) {
   const ex = revenueData.expenses || {};
   const prev = Object.keys(ex).filter(m => m <= month).sort().pop();
-  return prev ? ex[prev] : [];
+  if (!prev) return [];
+  return prev === month ? ex[prev] : ex[prev].filter(e => !e.once);
 }
 function expensesTotal(month) {
   if (month > ym(new Date().getFullYear(), new Date().getMonth() + 1)) return 0; // 아직 안 온 달은 안 뺀다
@@ -6326,7 +6329,8 @@ function editExpenses(month, fn) {
 }
 function setExpense(month, idx, field, value) {
   editExpenses(month, list => {
-    list[idx][field] = field === 'amount' ? (parseInt(String(value).replace(/[^0-9]/g, '')) || 0) : value.trim();
+    list[idx][field] = field === 'amount' ? (parseInt(String(value).replace(/[^0-9]/g, '')) || 0)
+      : field === 'once' ? !list[idx].once : value.trim();
   });
 }
 function addExpense(month) { editExpenses(month, list => list.push({ name: '', amount: 0 })); }
@@ -6340,12 +6344,13 @@ function renderExpenseInput() {
           <input type="text" value="${(e.name || '').replace(/"/g, '&quot;')}" placeholder="항목" onchange="setExpense('${month}', ${i}, 'name', this.value)" class="flex-1 min-w-0 px-2 text-sm rounded-lg border border-botanical-stone focus:outline-none" style="height:38px;">
           <input type="number" value="${e.amount || ''}" placeholder="0" onchange="setExpense('${month}', ${i}, 'amount', this.value)" class="w-28 md:w-40 shrink-0 px-2 text-sm text-right rounded-lg border border-botanical-stone focus:outline-none" style="height:38px;">
           <span class="text-xs text-botanical-sage shrink-0">원</span>
+          <button onclick="setExpense('${month}', ${i}, 'once')" class="shrink-0 px-2 py-1 rounded-full text-xs border ${e.once ? 'border-botanical-terracotta text-botanical-terracotta' : 'border-botanical-stone text-botanical-sage'}">${e.once ? '한 번' : '매달'}</button>
           <button onclick="removeExpense('${month}', ${i})" class="text-botanical-sage hover:text-botanical-terracotta shrink-0 px-1">×</button>
         </div>`).join('');
   return `
     <div class="bg-white rounded-2xl p-5 shadow-sm mb-6">
       <div class="flex items-center justify-between mb-3">
-        <h4 class="text-base font-semibold">고정 지출 <span class="font-serif italic">${parseInt(month.slice(5))}월</span></h4>
+        <h4 class="text-base font-semibold">지출 <span class="font-serif italic">${parseInt(month.slice(5))}월</span></h4>
         <span class="text-sm text-botanical-sage">합계 <span class="font-serif font-semibold text-botanical-fg">${fmt(expensesTotal(month))}</span>원</span>
       </div>
       ${rows || '<p class="text-sm text-botanical-sage py-2">없음</p>'}
@@ -6800,12 +6805,11 @@ function saveNewContent(formType) {
 
 // ========== Performance ==========
 // 시작월(2026-04)보다 과거 연도면 시작 연도로 클램프
-let perfSelectedYear = (() => {
-  const startY = parseInt(MONTH_SELECT_START.slice(0, 4));
-  return Math.max(currentYear, startY);
-})();
+// 아래쪽 기간 (팔로우·콘텐츠 공통) — 기본 올해 1~12월
+let perfRangeFrom = `${new Date().getFullYear()}-01`;
+let perfRangeTo = `${new Date().getFullYear()}-12`;
 let followerViewMode = 'daily';
-let perfSubTab = 'detail'; // 'detail' | 'compare' — 리렌더 후에도 보존
+let perfSubTab = 'follow'; // 'follow' | 'content' — 리렌더 후에도 보존
 
 function renderPerformance() {
   // performanceData null check
@@ -6874,133 +6878,17 @@ function renderPerformance() {
     .filter(d => d.date >= sevenDaysAgoStr && d.date <= today)
     .reduce((sum, d) => sum + d.change, 0);
 
+  const perfRangeMonths = monthsBetween(perfRangeFrom, perfRangeTo);
   document.getElementById('performance-content').innerHTML = `
     <div class="flex gap-5 mb-6 border-b border-botanical-stone/40">
-      <button onclick="switchPerfTab('detail')" id="perf-tab-detail" class="perf-tab-btn pb-2 text-[13px] border-b-2 -mb-px ${perfSubTab === 'detail' ? 'border-botanical-terracotta text-botanical-terracotta font-bold' : 'border-transparent text-botanical-sage font-medium hover:text-botanical-fg'}">월 상세</button>
-      <button onclick="switchPerfTab('compare')" id="perf-tab-compare" class="perf-tab-btn pb-2 text-[13px] border-b-2 -mb-px ${perfSubTab === 'compare' ? 'border-botanical-terracotta text-botanical-terracotta font-bold' : 'border-transparent text-botanical-sage font-medium hover:text-botanical-fg'}">월간 비교</button>
+      <button onclick="switchPerfTab('follow')" id="perf-tab-follow" class="perf-tab-btn pb-2 text-[13px] border-b-2 -mb-px ${perfSubTab === 'follow' ? 'border-botanical-terracotta text-botanical-terracotta font-bold' : 'border-transparent text-botanical-sage font-medium hover:text-botanical-fg'}">팔로우</button>
+      <button onclick="switchPerfTab('content')" id="perf-tab-content" class="perf-tab-btn pb-2 text-[13px] border-b-2 -mb-px ${perfSubTab === 'content' ? 'border-botanical-terracotta text-botanical-terracotta font-bold' : 'border-transparent text-botanical-sage font-medium hover:text-botanical-fg'}">콘텐츠</button>
     </div>
 
-    <div id="perf-detail" class="perf-section ${perfSubTab === 'detail' ? '' : 'hidden'}">
-      <!-- Month Selector -->
+    <div id="perf-follow" class="perf-section ${perfSubTab === 'follow' ? '' : 'hidden'}">
       <div class="flex items-center gap-3 mb-6">
         ${renderMonthSelect('perf-month-select', perfSelectedMonth, 'changePerfMonth')}
       </div>
-
-      <!-- Month Summary -->
-      <div class="bg-white rounded-2xl p-6 shadow-sm mb-6">
-        <h3 class="font-medium mb-4">${monthNum}월 성과 요약</h3>
-        <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <div class="text-center">
-            <p class="text-xl font-semibold">${(monthPerf.totalContents || 0).toLocaleString()}</p>
-            <p class="text-xs text-botanical-sage">총 콘텐츠</p>
-          </div>
-          <div class="text-center">
-            <p class="text-xl font-semibold">${toK(monthPerf.totalViews, 0)}</p>
-            <p class="text-xs text-botanical-sage">총 조회수</p>
-          </div>
-          <div class="text-center">
-            <p class="text-xl font-semibold">${(monthPerf.totalSaves || 0).toLocaleString()}</p>
-            <p class="text-xs text-botanical-sage">총 저장</p>
-          </div>
-          <div class="text-center">
-            <p class="text-xl font-semibold">${Math.round(monthPerf.avgSaveRate || 0)}%</p>
-            <p class="text-xs text-botanical-sage">평균 저장률</p>
-          </div>
-        </div>
-      </div>
-
-      <!-- 성과 입력 대기 알림 배너 -->
-      ${needsPerfList.length > 0 ? `
-      <div class="bg-botanical-terracotta/10 border border-botanical-terracotta/40 rounded-xl px-4 py-3 mb-4">
-        <div class="flex items-center gap-2 mb-1">
-          <span class="text-lg leading-none">🔔</span>
-          <p class="font-medium text-botanical-terracotta">성과 입력 대기 ${needsPerfList.length}건</p>
-        </div>
-        <p class="text-xs text-botanical-sage mb-2">업로드 후 2주 지난 콘텐츠의 성과를 입력해주세요.</p>
-        <div class="space-y-1">
-          ${needsPerfList.map(c => `
-          <div class="flex items-center justify-between gap-2 bg-white/60 rounded-lg pl-3 pr-1.5 py-1.5">
-            <span onclick="goToPerformance(${c.id})" class="text-xs text-botanical-fg cursor-pointer hover:text-botanical-terracotta hover:underline truncate">${c.title || '무제'}</span>
-            <button onclick="dismissPerfReminder(${c.id})" title="이 항목 알림 끄기" class="shrink-0 w-5 h-5 rounded-full text-botanical-sage hover:bg-botanical-terracotta/20 hover:text-botanical-terracotta flex items-center justify-center text-xs leading-none transition-all">✕</button>
-          </div>
-          `).join('')}
-        </div>
-      </div>
-      ` : ''}
-
-      <!-- Content Performance Input -->
-      <div class="bg-white rounded-2xl p-6 shadow-sm mb-6">
-        <h3 class="font-medium mb-4">콘텐츠별 성과 입력</h3>
-
-        <!-- PC: 테이블 -->
-        <div class="hidden md:block border border-botanical-stone rounded-xl overflow-x-auto">
-          <table class="w-full text-xs">
-            <thead>
-              <tr class="bg-botanical-cream/50">
-                <th class="px-3 py-2 text-left font-medium whitespace-nowrap w-20">카테고리</th>
-                <th class="px-3 py-2 text-left font-medium">제목</th>
-                <th class="px-3 py-2 text-center font-medium whitespace-nowrap w-16">업로드일</th>
-                <th class="px-3 py-2 text-center font-medium whitespace-nowrap w-16">조회</th>
-                <th class="px-3 py-2 text-center font-medium whitespace-nowrap w-16">좋아요</th>
-                <th class="px-3 py-2 text-center font-medium whitespace-nowrap w-14">공유</th>
-                <th class="px-3 py-2 text-center font-medium whitespace-nowrap w-14">댓글</th>
-                <th class="px-3 py-2 text-center font-medium whitespace-nowrap w-14">저장</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${monthContents.length > 0 ? monthContents.map(c => {
-                const catColor = categoryColors[c.category] || '#8C9A84';
-                const needs = needsPerfIds.has(c.id);
-                return `
-                <tr data-perf-row="${c.id}" class="border-t border-botanical-stone hover:bg-botanical-cream/30 transition-all ${needs ? 'bg-botanical-terracotta/5' : ''}">
-                  <td class="px-3 py-2">
-                    <span class="flex items-center gap-1.5">
-                      <span class="w-2 h-2 rounded-full flex-shrink-0" style="background-color: ${catColor};"></span>
-                      <span class="text-botanical-sage truncate">${c.category}</span>
-                    </span>
-                  </td>
-                  <td class="px-3 py-2">
-                    <span class="flex items-center gap-1.5 whitespace-nowrap">
-                      ${needs ? '<span title="성과 입력 필요">🔔</span>' : ''}
-                      <span onclick="goToContentExpanded(${c.id})" class="cursor-pointer hover:text-botanical-terracotta hover:underline">${c.title || '무제'}</span>
-                    </span>
-                  </td>
-                  <td class="px-3 py-2 text-center text-botanical-sage">${getUploadDate(c) ? getUploadDate(c).slice(5).replace('-', '/') : '-'}</td>
-                  <td class="px-3 py-2"><input type="text" onchange="savePerfCell(this, ${c.id}, 'views')" value="${c.performance.views ? c.performance.views.toLocaleString() : ''}" placeholder="-" class="w-full text-center bg-transparent border-b border-transparent hover:border-botanical-stone focus:border-botanical-sage focus:outline-none"></td>
-                  <td class="px-3 py-2"><input type="text" onchange="savePerfCell(this, ${c.id}, 'likes')" value="${c.performance.likes ? c.performance.likes.toLocaleString() : ''}" placeholder="-" class="w-full text-center bg-transparent border-b border-transparent hover:border-botanical-stone focus:border-botanical-sage focus:outline-none"></td>
-                  <td class="px-3 py-2"><input type="text" onchange="savePerfCell(this, ${c.id}, 'shares')" value="${c.performance.shares ? c.performance.shares.toLocaleString() : ''}" placeholder="-" class="w-full text-center bg-transparent border-b border-transparent hover:border-botanical-stone focus:border-botanical-sage focus:outline-none"></td>
-                  <td class="px-3 py-2"><input type="text" onchange="savePerfCell(this, ${c.id}, 'comments')" value="${c.performance.comments ? c.performance.comments.toLocaleString() : ''}" placeholder="-" class="w-full text-center bg-transparent border-b border-transparent hover:border-botanical-stone focus:border-botanical-sage focus:outline-none"></td>
-                  <td class="px-3 py-2"><input type="text" onchange="savePerfCell(this, ${c.id}, 'saves')" value="${c.performance.saves ? c.performance.saves.toLocaleString() : ''}" placeholder="-" class="w-full text-center bg-transparent border-b border-transparent hover:border-botanical-stone focus:border-botanical-sage focus:outline-none"></td>
-                </tr>
-              `;}).join('') : '<tr><td colspan="8" class="px-3 py-4 text-center text-botanical-sage">해당 월 콘텐츠 없음</td></tr>'}
-            </tbody>
-          </table>
-        </div>
-
-        <!-- 모바일: 2줄 카드 -->
-        <div class="md:hidden space-y-3">
-          ${monthContents.length > 0 ? monthContents.map(c => {
-            const catColor = categoryColors[c.category] || '#8C9A84';
-            const needs = needsPerfIds.has(c.id);
-            return `
-            <div data-perf-row="${c.id}" class="border border-botanical-stone rounded-xl p-3 ${needs ? 'bg-botanical-terracotta/5' : 'bg-white'}">
-              <div class="flex items-center gap-2 mb-2 text-xs flex-wrap">
-                <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full flex-shrink-0" style="background-color: ${catColor};"></span><span class="text-botanical-sage">${c.category}</span></span>
-                <span onclick="goToContentExpanded(${c.id})" class="font-medium flex-1 min-w-0 truncate cursor-pointer hover:text-botanical-terracotta hover:underline">${needs ? '🔔 ' : ''}${c.title || '무제'}</span>
-                <span class="text-botanical-sage text-[10px]">${getUploadDate(c) ? getUploadDate(c).slice(5).replace('-', '/') : '-'}</span>
-              </div>
-              <div class="grid grid-cols-5 gap-1 text-center text-xs">
-                <div><p class="text-[10px] text-botanical-sage mb-0.5">조회</p><input type="text" onchange="savePerfCell(this, ${c.id}, 'views')" value="${c.performance.views ? c.performance.views.toLocaleString() : ''}" placeholder="-" class="w-full text-center px-1 py-1 rounded border border-botanical-stone focus:border-botanical-sage focus:outline-none"></div>
-                <div><p class="text-[10px] text-botanical-sage mb-0.5">좋아요</p><input type="text" onchange="savePerfCell(this, ${c.id}, 'likes')" value="${c.performance.likes ? c.performance.likes.toLocaleString() : ''}" placeholder="-" class="w-full text-center px-1 py-1 rounded border border-botanical-stone focus:border-botanical-sage focus:outline-none"></div>
-                <div><p class="text-[10px] text-botanical-sage mb-0.5">공유</p><input type="text" onchange="savePerfCell(this, ${c.id}, 'shares')" value="${c.performance.shares ? c.performance.shares.toLocaleString() : ''}" placeholder="-" class="w-full text-center px-1 py-1 rounded border border-botanical-stone focus:border-botanical-sage focus:outline-none"></div>
-                <div><p class="text-[10px] text-botanical-sage mb-0.5">댓글</p><input type="text" onchange="savePerfCell(this, ${c.id}, 'comments')" value="${c.performance.comments ? c.performance.comments.toLocaleString() : ''}" placeholder="-" class="w-full text-center px-1 py-1 rounded border border-botanical-stone focus:border-botanical-sage focus:outline-none"></div>
-                <div><p class="text-[10px] text-botanical-sage mb-0.5">저장</p><input type="text" onchange="savePerfCell(this, ${c.id}, 'saves')" value="${c.performance.saves ? c.performance.saves.toLocaleString() : ''}" placeholder="-" class="w-full text-center px-1 py-1 rounded border border-botanical-stone focus:border-botanical-sage focus:outline-none"></div>
-              </div>
-            </div>
-          `;}).join('') : '<p class="text-sm text-botanical-sage text-center py-4">해당 월 콘텐츠 없음</p>'}
-        </div>
-      </div>
-
       <!-- Follower Trend -->
       <div class="bg-white rounded-2xl p-6 shadow-sm">
         <div class="flex items-center justify-between mb-4">
@@ -7160,30 +7048,22 @@ function renderPerformance() {
           })()}
         </div>
       </div>
-    </div>
-
-    <div id="perf-compare" class="perf-section ${perfSubTab === 'compare' ? '' : 'hidden'}">
-      <!-- Year Selector (시작월 2026-04 ~ 오늘 연도까지 동적 생성) -->
-      <div class="flex items-center gap-3 mb-6">
-        <select id="perf-year-select" onchange="changePerfYear(this.value)" class="px-4 py-2 pr-8 rounded-full border border-botanical-stone bg-white text-sm focus:outline-none appearance-none bg-no-repeat" style="background-image: url('data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%2712%27 height=%2712%27 viewBox=%270 0 24 24%27 fill=%27none%27 stroke=%27%238C9A84%27 stroke-width=%272%27%3E%3Cpath d=%27m6 9 6 6 6-6%27/%3E%3C/svg%3E'); background-position: right 12px center;">
-          ${getYearOptions().map(y => `<option value="${y}" ${perfSelectedYear === y ? 'selected' : ''}>${y}년</option>`).join('')}
-        </select>
+      <div class="flex flex-wrap items-center gap-3 mt-8 mb-6">
+        ${renderMonthSelect('perf-range-from', perfRangeFrom, 'changePerfRangeFrom')}<span class="text-botanical-sage">~</span>${renderMonthSelect('perf-range-to', perfRangeTo, 'changePerfRangeTo')}
       </div>
-
-      <!-- 월간 트렌드 (막대 그래프, 12개월 한눈에) -->
+      <!-- 팔로워 월별 트렌드 (막대 그래프, 고른 기간) -->
       <div class="bg-white rounded-2xl p-6 shadow-sm mb-6">
-        <h3 class="font-medium mb-4">팔로워 월간 트렌드</h3>
+        <h3 class="font-medium mb-4">팔로워 월별 트렌드</h3>
         ${(() => {
-          const yearStr = String(perfSelectedYear);
           const yearMonths = [];
-          for (let m = 1; m <= 12; m++) {
-            const monthKey = `${yearStr}-${String(m).padStart(2, '0')}`;
+          for (const monthKey of monthsBetween(perfRangeFrom, perfRangeTo)) {
+            const m = parseInt(monthKey.slice(5));
             const monthData = monthlyData.find(d => d.month === monthKey);
             const monthDailyData = dailyData.filter(d => d.date.startsWith(monthKey));
             const lastDay = monthDailyData.sort((a, b) => b.date.localeCompare(a.date))[0];
             const totalFollowers = lastDay?.count || 0;
             const change = monthData?.change || 0;
-            const daysInMonth = new Date(perfSelectedYear, m, 0).getDate();
+            const daysInMonth = new Date(parseInt(monthKey.slice(0, 4)), m, 0).getDate();
             const dailyAvg = change !== 0 ? Math.round(change / daysInMonth) : 0;
             yearMonths.push({ month: m, monthKey, totalFollowers, change, dailyAvg, hasData: totalFollowers > 0 || change !== 0 });
           }
@@ -7196,7 +7076,7 @@ function renderPerformance() {
           const smallFontSize = isPC ? '12px' : '9px';
           const barMaxWidth = isPC ? '40px' : '20px';
           return `
-            <div style="display: grid; grid-template-columns: repeat(12, 1fr); gap: ${isPC ? '8px' : '4px'};">
+            <div style="display: grid; grid-template-columns: repeat(${yearMonths.length}, 1fr); gap: ${isPC ? '8px' : '4px'};">
               ${yearMonths.map(m => {
                 const barHeight = m.hasData ? Math.max((m.totalFollowers / maxFollowers) * barMaxHeight, 8) : 0;
                 const isCurrentMonth = m.monthKey === perfSelectedMonth;
@@ -7219,9 +7099,133 @@ function renderPerformance() {
         })()}
       </div>
 
-      <!-- 월간 콘텐츠 성과 비교 -->
+    </div>
+
+    <div id="perf-content" class="perf-section ${perfSubTab === 'content' ? '' : 'hidden'}">
+      <div class="flex items-center gap-3 mb-6">
+        ${renderMonthSelect('perf-month-select-c', perfSelectedMonth, 'changePerfMonth')}
+      </div>
+      <!-- Month Summary -->
+      <div class="bg-white rounded-2xl p-6 shadow-sm mb-6">
+        <h3 class="font-medium mb-4">${monthNum}월 성과 요약</h3>
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div class="text-center">
+            <p class="text-xl font-semibold">${(monthPerf.totalContents || 0).toLocaleString()}</p>
+            <p class="text-xs text-botanical-sage">총 콘텐츠</p>
+          </div>
+          <div class="text-center">
+            <p class="text-xl font-semibold">${toK(monthPerf.totalViews, 0)}</p>
+            <p class="text-xs text-botanical-sage">총 조회수</p>
+          </div>
+          <div class="text-center">
+            <p class="text-xl font-semibold">${(monthPerf.totalSaves || 0).toLocaleString()}</p>
+            <p class="text-xs text-botanical-sage">총 저장</p>
+          </div>
+          <div class="text-center">
+            <p class="text-xl font-semibold">${Math.round(monthPerf.avgSaveRate || 0)}%</p>
+            <p class="text-xs text-botanical-sage">평균 저장률</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- 성과 입력 대기 알림 배너 -->
+      ${needsPerfList.length > 0 ? `
+      <div class="bg-botanical-terracotta/10 border border-botanical-terracotta/40 rounded-xl px-4 py-3 mb-4">
+        <div class="flex items-center gap-2 mb-1">
+          <span class="text-lg leading-none">🔔</span>
+          <p class="font-medium text-botanical-terracotta">성과 입력 대기 ${needsPerfList.length}건</p>
+        </div>
+        <p class="text-xs text-botanical-sage mb-2">업로드 후 2주 지난 콘텐츠의 성과를 입력해주세요.</p>
+        <div class="space-y-1">
+          ${needsPerfList.map(c => `
+          <div class="flex items-center justify-between gap-2 bg-white/60 rounded-lg pl-3 pr-1.5 py-1.5">
+            <span onclick="goToPerformance(${c.id})" class="text-xs text-botanical-fg cursor-pointer hover:text-botanical-terracotta hover:underline truncate">${c.title || '무제'}</span>
+            <button onclick="dismissPerfReminder(${c.id})" title="이 항목 알림 끄기" class="shrink-0 w-5 h-5 rounded-full text-botanical-sage hover:bg-botanical-terracotta/20 hover:text-botanical-terracotta flex items-center justify-center text-xs leading-none transition-all">✕</button>
+          </div>
+          `).join('')}
+        </div>
+      </div>
+      ` : ''}
+
+      <!-- Content Performance Input -->
+      <div class="bg-white rounded-2xl p-6 shadow-sm mb-6">
+        <h3 class="font-medium mb-4">콘텐츠별 성과 입력</h3>
+
+        <!-- PC: 테이블 -->
+        <div class="hidden md:block border border-botanical-stone rounded-xl overflow-x-auto">
+          <table class="w-full text-xs">
+            <thead>
+              <tr class="bg-botanical-cream/50">
+                <th class="px-3 py-2 text-left font-medium whitespace-nowrap w-20">카테고리</th>
+                <th class="px-3 py-2 text-left font-medium">제목</th>
+                <th class="px-3 py-2 text-center font-medium whitespace-nowrap w-16">업로드일</th>
+                <th class="px-3 py-2 text-center font-medium whitespace-nowrap w-16">조회</th>
+                <th class="px-3 py-2 text-center font-medium whitespace-nowrap w-16">좋아요</th>
+                <th class="px-3 py-2 text-center font-medium whitespace-nowrap w-14">공유</th>
+                <th class="px-3 py-2 text-center font-medium whitespace-nowrap w-14">댓글</th>
+                <th class="px-3 py-2 text-center font-medium whitespace-nowrap w-14">저장</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${monthContents.length > 0 ? monthContents.map(c => {
+                const catColor = categoryColors[c.category] || '#8C9A84';
+                const needs = needsPerfIds.has(c.id);
+                return `
+                <tr data-perf-row="${c.id}" class="border-t border-botanical-stone hover:bg-botanical-cream/30 transition-all ${needs ? 'bg-botanical-terracotta/5' : ''}">
+                  <td class="px-3 py-2">
+                    <span class="flex items-center gap-1.5">
+                      <span class="w-2 h-2 rounded-full flex-shrink-0" style="background-color: ${catColor};"></span>
+                      <span class="text-botanical-sage truncate">${c.category}</span>
+                    </span>
+                  </td>
+                  <td class="px-3 py-2">
+                    <span class="flex items-center gap-1.5 whitespace-nowrap">
+                      ${needs ? '<span title="성과 입력 필요">🔔</span>' : ''}
+                      <span onclick="goToContentExpanded(${c.id})" class="cursor-pointer hover:text-botanical-terracotta hover:underline">${c.title || '무제'}</span>
+                    </span>
+                  </td>
+                  <td class="px-3 py-2 text-center text-botanical-sage">${getUploadDate(c) ? getUploadDate(c).slice(5).replace('-', '/') : '-'}</td>
+                  <td class="px-3 py-2"><input type="text" onchange="savePerfCell(this, ${c.id}, 'views')" value="${c.performance.views ? c.performance.views.toLocaleString() : ''}" placeholder="-" class="w-full text-center bg-transparent border-b border-transparent hover:border-botanical-stone focus:border-botanical-sage focus:outline-none"></td>
+                  <td class="px-3 py-2"><input type="text" onchange="savePerfCell(this, ${c.id}, 'likes')" value="${c.performance.likes ? c.performance.likes.toLocaleString() : ''}" placeholder="-" class="w-full text-center bg-transparent border-b border-transparent hover:border-botanical-stone focus:border-botanical-sage focus:outline-none"></td>
+                  <td class="px-3 py-2"><input type="text" onchange="savePerfCell(this, ${c.id}, 'shares')" value="${c.performance.shares ? c.performance.shares.toLocaleString() : ''}" placeholder="-" class="w-full text-center bg-transparent border-b border-transparent hover:border-botanical-stone focus:border-botanical-sage focus:outline-none"></td>
+                  <td class="px-3 py-2"><input type="text" onchange="savePerfCell(this, ${c.id}, 'comments')" value="${c.performance.comments ? c.performance.comments.toLocaleString() : ''}" placeholder="-" class="w-full text-center bg-transparent border-b border-transparent hover:border-botanical-stone focus:border-botanical-sage focus:outline-none"></td>
+                  <td class="px-3 py-2"><input type="text" onchange="savePerfCell(this, ${c.id}, 'saves')" value="${c.performance.saves ? c.performance.saves.toLocaleString() : ''}" placeholder="-" class="w-full text-center bg-transparent border-b border-transparent hover:border-botanical-stone focus:border-botanical-sage focus:outline-none"></td>
+                </tr>
+              `;}).join('') : '<tr><td colspan="8" class="px-3 py-4 text-center text-botanical-sage">해당 월 콘텐츠 없음</td></tr>'}
+            </tbody>
+          </table>
+        </div>
+
+        <!-- 모바일: 2줄 카드 -->
+        <div class="md:hidden space-y-3">
+          ${monthContents.length > 0 ? monthContents.map(c => {
+            const catColor = categoryColors[c.category] || '#8C9A84';
+            const needs = needsPerfIds.has(c.id);
+            return `
+            <div data-perf-row="${c.id}" class="border border-botanical-stone rounded-xl p-3 ${needs ? 'bg-botanical-terracotta/5' : 'bg-white'}">
+              <div class="flex items-center gap-2 mb-2 text-xs flex-wrap">
+                <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full flex-shrink-0" style="background-color: ${catColor};"></span><span class="text-botanical-sage">${c.category}</span></span>
+                <span onclick="goToContentExpanded(${c.id})" class="font-medium flex-1 min-w-0 truncate cursor-pointer hover:text-botanical-terracotta hover:underline">${needs ? '🔔 ' : ''}${c.title || '무제'}</span>
+                <span class="text-botanical-sage text-[10px]">${getUploadDate(c) ? getUploadDate(c).slice(5).replace('-', '/') : '-'}</span>
+              </div>
+              <div class="grid grid-cols-5 gap-1 text-center text-xs">
+                <div><p class="text-[10px] text-botanical-sage mb-0.5">조회</p><input type="text" onchange="savePerfCell(this, ${c.id}, 'views')" value="${c.performance.views ? c.performance.views.toLocaleString() : ''}" placeholder="-" class="w-full text-center px-1 py-1 rounded border border-botanical-stone focus:border-botanical-sage focus:outline-none"></div>
+                <div><p class="text-[10px] text-botanical-sage mb-0.5">좋아요</p><input type="text" onchange="savePerfCell(this, ${c.id}, 'likes')" value="${c.performance.likes ? c.performance.likes.toLocaleString() : ''}" placeholder="-" class="w-full text-center px-1 py-1 rounded border border-botanical-stone focus:border-botanical-sage focus:outline-none"></div>
+                <div><p class="text-[10px] text-botanical-sage mb-0.5">공유</p><input type="text" onchange="savePerfCell(this, ${c.id}, 'shares')" value="${c.performance.shares ? c.performance.shares.toLocaleString() : ''}" placeholder="-" class="w-full text-center px-1 py-1 rounded border border-botanical-stone focus:border-botanical-sage focus:outline-none"></div>
+                <div><p class="text-[10px] text-botanical-sage mb-0.5">댓글</p><input type="text" onchange="savePerfCell(this, ${c.id}, 'comments')" value="${c.performance.comments ? c.performance.comments.toLocaleString() : ''}" placeholder="-" class="w-full text-center px-1 py-1 rounded border border-botanical-stone focus:border-botanical-sage focus:outline-none"></div>
+                <div><p class="text-[10px] text-botanical-sage mb-0.5">저장</p><input type="text" onchange="savePerfCell(this, ${c.id}, 'saves')" value="${c.performance.saves ? c.performance.saves.toLocaleString() : ''}" placeholder="-" class="w-full text-center px-1 py-1 rounded border border-botanical-stone focus:border-botanical-sage focus:outline-none"></div>
+              </div>
+            </div>
+          `;}).join('') : '<p class="text-sm text-botanical-sage text-center py-4">해당 월 콘텐츠 없음</p>'}
+        </div>
+      </div>
+
+      <div class="flex flex-wrap items-center gap-3 mt-8 mb-6">
+        ${renderMonthSelect('perf-range-from-c', perfRangeFrom, 'changePerfRangeFrom')}<span class="text-botanical-sage">~</span>${renderMonthSelect('perf-range-to-c', perfRangeTo, 'changePerfRangeTo')}
+      </div>
+      <!-- 월별 콘텐츠 성과 비교 -->
       <div class="bg-white rounded-2xl p-4 md:p-6 shadow-sm mb-6">
-        <h3 class="font-medium mb-4">월간 콘텐츠 성과 비교</h3>
+        <h3 class="font-medium mb-4">월별 콘텐츠 성과 비교</h3>
         <div class="border border-botanical-stone rounded-xl overflow-hidden">
           <table class="w-full text-xs md:text-base" style="table-layout: fixed;">
             <thead>
@@ -7236,7 +7240,7 @@ function renderPerformance() {
             </thead>
             <tbody>
               ${Object.keys(performanceData.monthly || {}).length > 0 ?
-                Object.entries(performanceData.monthly).filter(([m]) => m.startsWith(String(perfSelectedYear))).reverse().map(([month, data], idx) => {
+                Object.entries(performanceData.monthly).filter(([m]) => perfRangeMonths.includes(m)).sort((a, b) => b[0].localeCompare(a[0])).map(([month, data], idx) => {
                   const totalViews = data.totalViews || 0;
                   const totalSaves = data.totalSaves || 0;
                   const totalShares = data.totalShares || 0;
@@ -7491,10 +7495,8 @@ function changePerfMonth(month) {
   renderPerformance();
 }
 
-function changePerfYear(year) {
-  perfSelectedYear = parseInt(year);
-  renderPerformance();
-}
+function changePerfRangeFrom(m) { perfRangeFrom = m; renderPerformance(); }
+function changePerfRangeTo(m) { perfRangeTo = m; renderPerformance(); }
 
 function switchFollowerView(mode) {
   followerViewMode = mode;
@@ -8055,7 +8057,7 @@ function renderRevenue() {
     <div class="bg-white rounded-2xl p-4 shadow-sm border border-botanical-stone mb-6">
       <p class="text-sm text-botanical-sage font-medium mb-1">${cardTitle}</p>
       <p class="text-3xl font-semibold"><span class="font-serif">${fmt(total)}</span><span class="text-lg">원</span></p>
-      ${feeSum || expenseSum ? `<p class="text-xs text-botanical-sage mt-1">수수료 −${fmt(feeSum)} · 고정 지출 −${fmt(expenseSum)} · <span class="text-botanical-fg font-semibold">순수익 ${fmt(total - feeSum - expenseSum)}원</span></p>` : ''}
+      ${feeSum || expenseSum ? `<p class="text-xs text-botanical-sage mt-1">수수료 −${fmt(feeSum)} · 지출 −${fmt(expenseSum)} · <span class="text-botanical-fg font-semibold">순수익 ${fmt(total - feeSum - expenseSum)}원</span></p>` : ''}
       <div class="flex flex-col md:flex-row gap-2 mt-3">
         ${box('광고', ad, 'border-botanical-terracotta')}
         ${box('판매', sales, 'border-botanical-sage', sales ? `<p class="text-[11px] text-botanical-sage">실수령 ${fmt(salesNet)}원</p>` : '')}
