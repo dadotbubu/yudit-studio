@@ -6289,6 +6289,29 @@ function getSalesAmount(content, month) {
   return getSalesRevenue(content).find(r => r.month === month)?.amount || 0;
 }
 
+// 판매 수수료 — 달마다 {rate(%), fixed(원)}. 설정 없는 달은 직전 설정을 이어받는다
+function getSalesFee(month) {
+  const fees = revenueData.salesFee || {};
+  const prev = Object.keys(fees).filter(m => m <= month).sort().pop();
+  return prev ? fees[prev] : { rate: 0, fixed: 0 };
+}
+
+// ponytail: 고정비는 매출 있는 달만 뺀다 — 안 판 달에도 요금이 나가면 그 달만 따로 적는다
+function salesFeeAmount(month, gross) {
+  if (!(gross > 0)) return 0;
+  const { rate, fixed } = getSalesFee(month);
+  return Math.round(gross * (rate || 0) / 100) + (fixed || 0);
+}
+
+function setSalesFee(month, field, rawValue) {
+  if (!revenueData.salesFee) revenueData.salesFee = {};
+  const cur = { ...getSalesFee(month) };
+  cur[field] = parseFloat(String(rawValue).replace(/[^0-9.]/g, '')) || 0;
+  revenueData.salesFee[month] = cur;
+  saveAllData();
+  renderRevenue();
+}
+
 // 월 금액 저장 (0 이하면 해당 월 삭제) — 판매 상세 / 수익 현황 공통 진입점
 function setSalesRevenue(contentId, month, rawValue, opts = {}) {
   const content = contentsData.contents.find(c => c.id === contentId);
@@ -7896,6 +7919,7 @@ function renderRevenue() {
   const salesMonth = sumMonth('sales');
   const sponsorMonth = sumMonth('sponsor');
   const totalMonth = adMonth + salesMonth + sponsorMonth;
+  const salesNetMonth = salesMonth - salesFeeAmount(revMonth, salesMonth);
 
   // 연간 누적: 항상 오늘 기준 올해 (1~12월)
   const realYear = new Date().getFullYear();
@@ -7907,6 +7931,9 @@ function renderRevenue() {
   const salesYear = sumYear('sales');
   const sponsorYear = sumYear('sponsor');
   const totalYear = adYear + salesYear + sponsorYear;
+  const salesNetYear = salesYear - Array.from({ length: 12 }, (_, i) => `${yearStr}-${pad2(i + 1)}`)
+    .reduce((s, m) => s + salesFeeAmount(m, (revenueData.items?.sales || [])
+      .filter(i => i.date?.startsWith(m)).reduce((a, i) => a + (i.amount || 0), 0)), 0);
 
   document.getElementById('revenue-content').innerHTML = `
     <div class="flex gap-5 mb-6 border-b border-botanical-stone/40">
@@ -7935,6 +7962,7 @@ function renderRevenue() {
           <div class="flex-1 p-2 rounded-lg border-l-2 border-botanical-sage bg-botanical-cream/30">
             <p class="text-xs text-botanical-sage">판매</p>
             <p class="text-base font-semibold font-serif">${fmt(salesMonth)}<span class="text-xs">원</span></p>
+            ${salesMonth ? `<p class="text-[11px] text-botanical-sage">실수령 ${fmt(salesNetMonth)}원</p>` : ''}
           </div>
         </div>
       </div>
@@ -7949,6 +7977,7 @@ function renderRevenue() {
           <div class="flex-1 p-2 rounded-lg border-l-2 border-botanical-sage bg-botanical-cream/30">
             <p class="text-xs text-botanical-sage">판매</p>
             <p class="text-base font-semibold font-serif">${fmt(salesYear)}<span class="text-xs">원</span></p>
+            ${salesYear ? `<p class="text-[11px] text-botanical-sage">실수령 ${fmt(salesNetYear)}원</p>` : ''}
           </div>
         </div>
       </div>
@@ -8053,6 +8082,11 @@ function renderSalesMonthInput() {
     .sort((a, b) => b.id - a.id);
 
   const monthTotal = salesContents.reduce((s, c) => s + getSalesAmount(c, month), 0);
+  const fee = getSalesFee(month);
+  const feeAmount = salesFeeAmount(month, monthTotal);
+  const feeInput = (field, value, unit, w) => `
+    <input type="number" step="0.1" value="${value || ''}" placeholder="0" onchange="setSalesFee('${month}', '${field}', this.value)" class="${w} px-2 text-sm text-right rounded-lg border border-botanical-stone focus:outline-none" style="height:32px;">
+    <span class="text-xs text-botanical-sage">${unit}</span>`;
 
   const body = salesContents.length === 0
     ? '<p class="text-sm text-botanical-sage">아직 판매 상품이 없어요. 콘텐츠를 <span class="text-botanical-fg">수익 → 판매</span>로 등록하면 여기에 나타나요.</p>'
@@ -8073,7 +8107,18 @@ function renderSalesMonthInput() {
         <h4 class="text-base font-semibold">판매 상품 <span class="font-serif italic">${monthNum}월</span> 매출</h4>
         <span class="text-sm text-botanical-sage">합계 <span class="font-serif font-semibold text-botanical-fg">${fmt(monthTotal)}</span>원</span>
       </div>
+      <div class="flex flex-wrap items-center gap-2 mb-2 text-sm">
+        <span class="text-botanical-sage">수수료</span>
+        ${feeInput('rate', fee.rate, '%', 'w-16')}
+        <span class="text-botanical-sage ml-2">월 고정비</span>
+        ${feeInput('fixed', fee.fixed, '원', 'w-24')}
+      </div>
       ${body}
+      <div class="mt-3 pt-3 border-t border-botanical-stone grid grid-cols-3 text-center">
+        <div><p class="text-xs text-botanical-sage">총매출</p><p class="font-serif font-semibold">${fmt(monthTotal)}</p></div>
+        <div><p class="text-xs text-botanical-sage">수수료</p><p class="font-serif font-semibold text-botanical-terracotta">−${fmt(feeAmount)}</p></div>
+        <div><p class="text-xs text-botanical-sage">실수령</p><p class="font-serif font-semibold">${fmt(monthTotal - feeAmount)}</p></div>
+      </div>
     </div>
   `;
 }
