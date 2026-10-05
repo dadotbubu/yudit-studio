@@ -6304,6 +6304,55 @@ function salesFeeAmount(month, gross) {
   return Math.round(gross * (rate || 0) / 100) + (fixed || 0);
 }
 
+// 고정 지출 — 달마다 [{name, amount}]. 설정 없는 달은 직전 목록을 이어받는다
+function getExpenses(month) {
+  const ex = revenueData.expenses || {};
+  const prev = Object.keys(ex).filter(m => m <= month).sort().pop();
+  return prev ? ex[prev] : [];
+}
+function expensesTotal(month) {
+  if (month > ym(new Date().getFullYear(), new Date().getMonth() + 1)) return 0; // 아직 안 온 달은 안 뺀다
+  return getExpenses(month).reduce((s, e) => s + (e.amount || 0), 0);
+}
+
+// 고친 달에 목록을 복사해 두고 고친다 → 이전 달은 그대로, 다음 달부터 이어받음
+function editExpenses(month, fn) {
+  if (!revenueData.expenses) revenueData.expenses = {};
+  const list = getExpenses(month).map(e => ({ ...e }));
+  fn(list);
+  revenueData.expenses[month] = list;
+  saveAllData();
+  renderRevenue();
+}
+function setExpense(month, idx, field, value) {
+  editExpenses(month, list => {
+    list[idx][field] = field === 'amount' ? (parseInt(String(value).replace(/[^0-9]/g, '')) || 0) : value.trim();
+  });
+}
+function addExpense(month) { editExpenses(month, list => list.push({ name: '', amount: 0 })); }
+function removeExpense(month, idx) { editExpenses(month, list => list.splice(idx, 1)); }
+
+function renderExpenseInput() {
+  const month = revenueSelectedMonth;
+  const list = getExpenses(month);
+  const rows = list.map((e, i) => `
+        <div class="flex items-center gap-2 py-2 border-b border-botanical-stone/40">
+          <input type="text" value="${(e.name || '').replace(/"/g, '&quot;')}" placeholder="항목" onchange="setExpense('${month}', ${i}, 'name', this.value)" class="flex-1 min-w-0 px-2 text-sm rounded-lg border border-botanical-stone focus:outline-none" style="height:38px;">
+          <input type="number" value="${e.amount || ''}" placeholder="0" onchange="setExpense('${month}', ${i}, 'amount', this.value)" class="w-28 md:w-40 shrink-0 px-2 text-sm text-right rounded-lg border border-botanical-stone focus:outline-none" style="height:38px;">
+          <span class="text-xs text-botanical-sage shrink-0">원</span>
+          <button onclick="removeExpense('${month}', ${i})" class="text-botanical-sage hover:text-botanical-terracotta shrink-0 px-1">×</button>
+        </div>`).join('');
+  return `
+    <div class="bg-white rounded-2xl p-5 shadow-sm mb-6">
+      <div class="flex items-center justify-between mb-3">
+        <h4 class="text-base font-semibold">고정 지출 <span class="font-serif italic">${parseInt(month.slice(5))}월</span></h4>
+        <span class="text-sm text-botanical-sage">합계 <span class="font-serif font-semibold text-botanical-fg">${fmt(expensesTotal(month))}</span>원</span>
+      </div>
+      ${rows || '<p class="text-sm text-botanical-sage py-2">없음</p>'}
+      <button onclick="addExpense('${month}')" class="mt-3 text-sm text-botanical-sage hover:text-botanical-fg">+ 항목 추가</button>
+    </div>`;
+}
+
 function setSalesFee(month, field, rawValue) {
   if (!revenueData.salesFee) revenueData.salesFee = {};
   const cur = { ...getSalesFee(month) };
@@ -7930,7 +7979,9 @@ function renderRevenue() {
   const sales = sumOf('sales', inMonths);
   const sponsor = sumOf('sponsor', inMonths);
   const total = ad + sales + sponsor;
-  const salesNet = sales - months.reduce((s, m) => s + salesFeeAmount(m, sumOf('sales', i => i.date?.startsWith(m))), 0);
+  const feeSum = months.reduce((s, m) => s + salesFeeAmount(m, sumOf('sales', i => i.date?.startsWith(m))), 0);
+  const salesNet = sales - feeSum;
+  const expenseSum = months.reduce((s, m) => s + expensesTotal(m), 0);
 
   const realYear = new Date().getFullYear();
   const monthLabel = m => `${parseInt(m.slice(5))}월`;
@@ -8004,6 +8055,7 @@ function renderRevenue() {
     <div class="bg-white rounded-2xl p-4 shadow-sm border border-botanical-stone mb-6">
       <p class="text-sm text-botanical-sage font-medium mb-1">${cardTitle}</p>
       <p class="text-3xl font-semibold"><span class="font-serif">${fmt(total)}</span><span class="text-lg">원</span></p>
+      ${feeSum || expenseSum ? `<p class="text-xs text-botanical-sage mt-1">수수료 −${fmt(feeSum)} · 고정 지출 −${fmt(expenseSum)} · <span class="text-botanical-fg font-semibold">순수익 ${fmt(total - feeSum - expenseSum)}원</span></p>` : ''}
       <div class="flex flex-col md:flex-row gap-2 mt-3">
         ${box('광고', ad, 'border-botanical-terracotta')}
         ${box('판매', sales, 'border-botanical-sage', sales ? `<p class="text-[11px] text-botanical-sage">실수령 ${fmt(salesNet)}원</p>` : '')}
@@ -8011,7 +8063,7 @@ function renderRevenue() {
       </div>
     </div>
 
-    ${isRange ? trendHtml + taxHtml : renderSalesMonthInput()}
+    ${isRange ? trendHtml + taxHtml : renderSalesMonthInput() + renderExpenseInput()}
 
     <div class="bg-white rounded-2xl p-5 shadow-sm">
       <h3 class="text-base font-semibold mb-4">수익 상세</h3>
