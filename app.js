@@ -3573,9 +3573,13 @@ function renderContentForm(content) {
               </tr>
               ` : content.category === '판매' ? `
               <tr class="border-b border-botanical-stone">
-                <td class="px-2 md:px-4 py-2 md:py-3 bg-botanical-cream/40 font-medium w-24 md:w-40 text-xs md:text-sm break-keep align-middle">판매 상품명</td>
+                <td class="px-2 md:px-4 py-2 md:py-3 bg-botanical-cream/40 font-medium w-24 md:w-40 text-xs md:text-sm break-keep align-middle">판매 상품</td>
                 <td class="px-4 py-2">
-                  <input type="text" value="${content.adInfo?.productName || ''}" oninput="updateAdInfo(${content.id}, 'productName', this.value)" placeholder="상품명 입력" class="w-full px-3 rounded-lg border border-botanical-stone text-sm focus:outline-none" style="height:38px;">
+                  <select onchange="updateAdInfo(${content.id}, 'productId', this.value ? Number(this.value) : null)" class="w-full px-3 rounded-lg border border-botanical-stone text-sm focus:outline-none" style="height:38px;">
+                    <option value="">상품 선택 안 함</option>
+                    ${getProducts().map(p => `<option value="${p.id}" ${content.adInfo?.productId == p.id ? 'selected' : ''}>${p.name || '이름 없는 상품'}</option>`).join('')}
+                  </select>
+                  <p class="text-xs text-botanical-sage mt-1">상품·매출은 수익 탭에서 관리해요</p>
                 </td>
               </tr>
               <tr class="border-b border-botanical-stone">
@@ -3585,12 +3589,6 @@ function renderContentForm(content) {
                     <input type="text" value="${content.adInfo?.saleLink || ''}" oninput="updateAdInfo(${content.id}, 'saleLink', this.value)" placeholder="https://..." class="flex-1 px-3 rounded-lg border border-botanical-stone text-sm focus:outline-none" style="height:38px;">
                     ${openLinkBtn(content.adInfo?.saleLink)}
                   </div>
-                </td>
-              </tr>
-              <tr class="border-b border-botanical-stone">
-                <td class="px-2 md:px-4 py-2 md:py-3 bg-botanical-terracotta/10 font-medium text-botanical-terracotta w-24 md:w-40 text-xs md:text-sm break-keep align-top">월별 수익</td>
-                <td class="px-2 md:px-4 py-2">
-                  ${salesRevenueEditorHTML(content)}
                 </td>
               </tr>
               ` : `
@@ -6273,23 +6271,48 @@ function removeNotionLink(contentId, idx) {
   reopenForm(contentId);
 }
 
-// ========== 판매 월별 수익 ==========
-// 판매 상품은 업로드 한 번으로 끝이 아니라 매달 매출이 나오므로
-// content.salesRevenue = [{ month: 'YYYY-MM', amount: 숫자 }] 로 월별 관리
-function getSalesRevenue(content) {
-  if (!Array.isArray(content?.salesRevenue)) return [];
-  return content.salesRevenue
-    .filter(r => r && r.month)
-    .slice()
-    .sort((a, b) => b.month.localeCompare(a.month));
+// ========== 판매 상품 (수익 탭 전용) ==========
+// revenueData.products = [{ id, name, sales: [{ month, amount }] }]
+// 콘텐츠와 따로 관리한다 — 콘텐츠는 adInfo.productId 로 상품을 불러와 연결만, 금액은 여기서만
+function getProducts() {
+  if (!Array.isArray(revenueData.products)) revenueData.products = [];
+  return revenueData.products;
 }
-
-function salesRevenueTotal(content) {
-  return getSalesRevenue(content).reduce((s, r) => s + (r.amount || 0), 0);
+const findProduct = id => getProducts().find(p => p.id == id);
+function getProductAmount(p, month) {
+  return (p.sales || []).find(r => r.month === month)?.amount || 0;
 }
-
-function getSalesAmount(content, month) {
-  return getSalesRevenue(content).find(r => r.month === month)?.amount || 0;
+function afterProductChange() {
+  reconcileSalesRevenue();
+  saveAllData();
+  renderRevenue();
+}
+function setProductSales(id, month, rawValue) {
+  const p = findProduct(id);
+  if (!p) return;
+  if (!Array.isArray(p.sales)) p.sales = [];
+  const amount = parseInt(String(rawValue).replace(/[^0-9]/g, '')) || 0;
+  p.sales = p.sales.filter(r => r.month !== month);
+  if (amount > 0) p.sales.push({ month, amount });
+  p.sales.sort((a, b) => b.month.localeCompare(a.month));
+  afterProductChange();
+}
+function renameProduct(id, name) {
+  const p = findProduct(id);
+  if (!p) return;
+  p.name = name.trim();
+  afterProductChange();
+}
+function addProduct() {
+  getProducts().push({ id: Date.now(), name: '', sales: [] });
+  afterProductChange();
+}
+function deleteProduct(id) {
+  const p = findProduct(id);
+  if (!p) return;
+  if (!confirm(`「${p.name || '이름 없는 상품'}」을 지울까요?\n이 상품의 월별 매출도 같이 지워져요.`)) return;
+  revenueData.products = getProducts().filter(x => x !== p);
+  afterProductChange();
 }
 
 // 판매 수수료 — 달마다 {rate(%)}. 설정 없는 달은 직전 설정을 이어받는다 (고정 비용은 지출 카드)
@@ -6364,130 +6387,17 @@ function setSalesFee(month, field, rawValue) {
   renderRevenue();
 }
 
-// 월 금액 저장 (0 이하면 해당 월 삭제) — 판매 상세 / 수익 현황 공통 진입점
-function setSalesRevenue(contentId, month, rawValue, opts = {}) {
-  const content = contentsData.contents.find(c => c.id === contentId);
-  if (!content || !month) return;
-  if (!Array.isArray(content.salesRevenue)) content.salesRevenue = [];
-
-  const amount = Math.round(parseFloat(String(rawValue).replace(/[^0-9.-]/g, '')) || 0);
-  const idx = content.salesRevenue.findIndex(r => r.month === month);
-  if (amount > 0) {
-    if (idx >= 0) content.salesRevenue[idx].amount = amount;
-    else content.salesRevenue.push({ month, amount });
-  } else if (idx >= 0) {
-    content.salesRevenue.splice(idx, 1);
-  }
-  content.salesRevenue.sort((a, b) => b.month.localeCompare(a.month));
-
-  syncRevenueFromContent(content); // 저장 + 수익 리포트 갱신 포함
-  if (opts.refreshEditor) refreshSalesEditor(content);
-}
-
-// 월 자체를 바꿀 때 (같은 월이 이미 있으면 금액 합침)
-function changeSalesRevenueMonth(contentId, oldMonth, newMonth) {
-  const content = contentsData.contents.find(c => c.id === contentId);
-  if (!content || !newMonth || oldMonth === newMonth) return;
-  const rows = content.salesRevenue || [];
-  const from = rows.find(r => r.month === oldMonth);
-  if (!from) return;
-  const to = rows.find(r => r.month === newMonth);
-  if (to) {
-    to.amount = (to.amount || 0) + (from.amount || 0);
-    content.salesRevenue = rows.filter(r => r !== from);
-  } else {
-    from.month = newMonth;
-  }
-  content.salesRevenue.sort((a, b) => b.month.localeCompare(a.month));
-  syncRevenueFromContent(content);
-  refreshSalesEditor(content);
-}
-
-function addSalesRevenueMonth(contentId) {
-  const content = contentsData.contents.find(c => c.id === contentId);
-  if (!content) return;
-  if (!Array.isArray(content.salesRevenue)) content.salesRevenue = [];
-  // 아직 안 쓴 월 중 가장 최근 달을 기본값으로
-  const used = new Set(content.salesRevenue.map(r => r.month));
-  const candidate = getMonthOptions().map(o => o.value).find(m => !used.has(m));
-  if (!candidate) {
-    alert('추가할 수 있는 월이 없어요');
-    return;
-  }
-  content.salesRevenue.push({ month: candidate, amount: 0 });
-  content.salesRevenue.sort((a, b) => b.month.localeCompare(a.month));
-  saveAllData();
-  refreshSalesEditor(content);
-}
-
-function removeSalesRevenueMonth(contentId, month) {
-  const content = contentsData.contents.find(c => c.id === contentId);
-  if (!content?.salesRevenue) return;
-  content.salesRevenue = content.salesRevenue.filter(r => r.month !== month);
-  syncRevenueFromContent(content);
-  refreshSalesEditor(content);
-}
-
-// 콘텐츠 목록 전체 재렌더 없이 판매 수익 편집기만 다시 그림 (스크롤·열림 상태 유지)
-function refreshSalesEditor(content) {
-  const box = document.getElementById('sales-rev-' + content.id);
-  if (box) box.outerHTML = salesRevenueEditorHTML(content);
-}
-
-function salesRevenueEditorHTML(content) {
-  const rows = getSalesRevenue(content);
-  const monthOpts = (selected) => getMonthOptions(selected)
-    .map(o => `<option value="${o.value}" ${o.value === selected ? 'selected' : ''}>${o.label}</option>`).join('');
-
-  const body = rows.length === 0
-    ? '<p class="text-xs text-botanical-sage py-1">등록된 월이 없어요. 아래 “＋ 월 추가”로 시작하세요.</p>'
-    : rows.map(r => `
-      <div class="flex items-center gap-1.5 md:gap-2">
-        <select onchange="changeSalesRevenueMonth(${content.id}, '${r.month}', this.value)" class="w-32 md:w-40 shrink-0 px-2 md:px-3 rounded-lg border border-botanical-stone text-sm bg-white focus:outline-none" style="height:38px;">
-          ${monthOpts(r.month)}
-        </select>
-        <input type="number" value="${r.amount || ''}" placeholder="0" onchange="setSalesRevenue(${content.id}, '${r.month}', this.value, { refreshEditor: true })" class="flex-1 min-w-0 px-2 md:px-3 text-sm text-right rounded-lg border border-botanical-stone focus:outline-none" style="height:38px;">
-        <span class="text-xs text-botanical-sage shrink-0">원</span>
-        <button onclick="removeSalesRevenueMonth(${content.id}, '${r.month}')" class="shrink-0 px-1.5 py-1 text-xs text-botanical-terracotta hover:text-red-600">삭제</button>
-      </div>`).join('');
-
-  return `
-    <div id="sales-rev-${content.id}" class="space-y-1.5">
-      ${body}
-      <div class="flex items-center justify-between pt-2 mt-1 border-t border-botanical-stone/50">
-        <button onclick="addSalesRevenueMonth(${content.id})" class="px-2.5 py-1.5 text-xs rounded-lg border border-dashed border-botanical-stone text-botanical-sage hover:bg-botanical-cream/40">＋ 월 추가</button>
-        <span class="text-xs text-botanical-sage">합계 <span class="font-serif font-semibold text-sm text-botanical-fg">${fmt(salesRevenueTotal(content))}</span>원</span>
-      </div>
-      <p class="text-[10px] text-botanical-sage">입력한 달 금액이 수익 현황에 바로 반영돼요 · 판매는 사업소득 3.3%</p>
-    </div>
-  `;
-}
-
-// 판매 콘텐츠 하나가 수익 리포트에 만드는 항목들
-function salesEntriesFor(content) {
-  return getSalesRevenue(content)
-    .filter(r => r.amount > 0)
-    .map(r => ({
-      contentId: content.id,
-      date: `${r.month}-01`,
-      month: r.month,
-      brand: content.title || '무제',
-      amount: r.amount
-    }));
-}
-
-// 판매 콘텐츠 ↔ 수익 리포트 정합성 재구성
-// 콘텐츠를 열어 편집하지 않아도(다른 기기 입력·마이그레이션 직후) 리포트에 반영되도록 시작 시 1회
+// 판매 상품 매출 → 수익 리포트 항목 (상품·월마다 1건). 시작·동기화 때마다 다시 맞춘다
 function reconcileSalesRevenue() {
-  if (!Array.isArray(contentsData?.contents) || !revenueData) return false;
+  if (!revenueData) return false;
   if (!revenueData.items) revenueData.items = { ad: [], sales: [], sponsor: [] };
   if (!Array.isArray(revenueData.items.sales)) revenueData.items.sales = [];
 
-  // contentId 없는 항목은 수동 등록분이므로 보존
-  const manual = revenueData.items.sales.filter(i => !i.contentId);
-  const generated = contentsData.contents
-    .filter(c => c.isRevenue && c.category === '판매')
-    .flatMap(salesEntriesFor);
+  // 상품·콘텐츠에서 안 나온 항목은 수동 등록분이므로 보존
+  const manual = revenueData.items.sales.filter(i => !i.contentId && !i.productId);
+  const generated = getProducts().flatMap(p => (p.sales || [])
+    .filter(r => r.amount > 0)
+    .map(r => ({ productId: p.id, date: `${r.month}-01`, month: r.month, brand: p.name || '무제', amount: r.amount })));
 
   const next = [...manual, ...generated];
   if (JSON.stringify(next) === JSON.stringify(revenueData.items.sales)) return false;
@@ -6499,14 +6409,13 @@ function reconcileSalesRevenue() {
 }
 
 // ========== 수익 리포트 자동 연동 ==========
-// 광고: 광고비 합계 1건 / 판매: 월별 수익 여러 건 / 협찬: 연동 없음
+// 광고: 광고비 합계 1건 / 판매·협찬: 연동 없음 (판매 금액은 수익 탭 상품에서만)
 function syncRevenueFromContent(content) {
   if (!revenueData.items) revenueData.items = { ad: [], sales: [], sponsor: [] };
   ['ad', 'sales', 'sponsor'].forEach(t => { if (!revenueData.items[t]) revenueData.items[t] = []; });
 
   // 이 콘텐츠가 만든 기존 항목은 전부 걷어내고 현재 상태로 다시 등록
   revenueData.items.ad = revenueData.items.ad.filter(i => i.contentId !== content.id);
-  revenueData.items.sales = revenueData.items.sales.filter(i => i.contentId !== content.id);
 
   const brand = content.title || '무제';
 
@@ -6519,8 +6428,6 @@ function syncRevenueFromContent(content) {
         incomeType: content.adInfo?.incomeType || 'etc'
       });
     }
-  } else if (content.isRevenue && content.category === '판매') {
-    revenueData.items.sales.push(...salesEntriesFor(content));
   }
 
   recalculateRevenueSummary();
@@ -8112,34 +8019,26 @@ function renderRevenue() {
   if (revSubTab === 'mediakit') renderMediakitEditor();
 }
 
-// 선택한 달의 판매 상품 매출을 수익 탭에서 바로 입력 — 콘텐츠 목록은 업로드 월 기준으로
-// 필터되니까, 지난달에 올린 상품도 여기서는 항상 보이게 전체 판매 콘텐츠를 나열한다
+// 판매 상품 목록 + 선택한 달 매출 — 상품 추가·이름 수정·삭제도 여기서
 function renderSalesMonthInput() {
   const month = revenueSelectedMonth;
   const monthNum = parseInt(month.slice(5));
-  const salesContents = (contentsData?.contents || [])
-    .filter(c => c.isRevenue && c.category === '판매')
-    .sort((a, b) => b.id - a.id);
+  const products = getProducts();
 
-  const monthTotal = salesContents.reduce((s, c) => s + getSalesAmount(c, month), 0);
+  const monthTotal = products.reduce((s, p) => s + getProductAmount(p, month), 0);
   const fee = getSalesFee(month);
   const feeAmount = salesFeeAmount(month, monthTotal);
-  const feeInput = (field, value, unit, w) => `
-    <input type="number" step="0.1" value="${value || ''}" placeholder="0" onchange="setSalesFee('${month}', '${field}', this.value)" class="${w} px-2 text-sm text-right rounded-lg border border-botanical-stone focus:outline-none" style="height:32px;">
-    <span class="text-xs text-botanical-sage">${unit}</span>`;
 
-  const body = salesContents.length === 0
-    ? '<p class="text-sm text-botanical-sage">아직 판매 상품이 없어요. 콘텐츠를 <span class="text-botanical-fg">수익 → 판매</span>로 등록하면 여기에 나타나요.</p>'
-    : salesContents.map(c => {
-        const name = c.adInfo?.productName || c.title || '무제';
-        const amount = getSalesAmount(c, month);
-        return `
+  const body = products.map(p => {
+    const amount = getProductAmount(p, month);
+    return `
         <div class="flex items-center gap-2 py-2 border-b border-botanical-stone/40">
-          <button onclick="goToContentExpanded(${c.id})" class="flex-1 min-w-0 text-left text-sm truncate ${amount > 0 ? 'text-botanical-fg' : 'text-botanical-sage'}">${name}</button>
-          <input type="number" value="${amount || ''}" placeholder="0" onchange="setSalesRevenue(${c.id}, '${month}', this.value)" class="w-32 md:w-40 shrink-0 px-2 md:px-3 text-sm text-right rounded-lg border border-botanical-stone focus:outline-none" style="height:38px;">
+          <input type="text" value="${(p.name || '').replace(/"/g, '&quot;')}" placeholder="상품 이름" onchange="renameProduct(${p.id}, this.value)" class="flex-1 min-w-0 px-2 text-sm rounded-lg border border-botanical-stone focus:outline-none" style="height:38px;">
+          <input type="number" value="${amount || ''}" placeholder="0" onchange="setProductSales(${p.id}, '${month}', this.value)" class="w-28 md:w-40 shrink-0 px-2 text-sm text-right rounded-lg border border-botanical-stone focus:outline-none" style="height:38px;">
           <span class="text-xs text-botanical-sage shrink-0">원</span>
+          <button onclick="deleteProduct(${p.id})" class="text-botanical-sage hover:text-botanical-terracotta shrink-0 px-1">×</button>
         </div>`;
-      }).join('');
+  }).join('') || '<p class="text-sm text-botanical-sage py-2">아직 판매 상품이 없어요</p>';
 
   return `
     <div class="bg-white rounded-2xl p-5 shadow-sm mb-6">
@@ -8147,11 +8046,13 @@ function renderSalesMonthInput() {
         <h4 class="text-base font-semibold">판매 상품 <span class="font-serif italic">${monthNum}월</span> 매출</h4>
         <span class="text-sm text-botanical-sage">합계 <span class="font-serif font-semibold text-botanical-fg">${fmt(monthTotal)}</span>원</span>
       </div>
-      <div class="flex flex-wrap items-center gap-2 mb-2 text-sm">
+      <div class="flex items-center gap-2 mb-2 text-sm">
         <span class="text-botanical-sage">수수료</span>
-        ${feeInput('rate', fee.rate, '%', 'w-16')}
+        <input type="number" step="0.1" value="${fee.rate || ''}" placeholder="0" onchange="setSalesFee('${month}', 'rate', this.value)" class="w-16 px-2 text-sm text-right rounded-lg border border-botanical-stone focus:outline-none" style="height:32px;">
+        <span class="text-xs text-botanical-sage">%</span>
       </div>
       ${body}
+      <button onclick="addProduct()" class="mt-3 text-sm text-botanical-sage hover:text-botanical-fg">+ 상품 추가</button>
       <div class="mt-3 pt-3 border-t border-botanical-stone grid grid-cols-3 text-center">
         <div><p class="text-xs text-botanical-sage">총매출</p><p class="font-serif font-semibold">${fmt(monthTotal)}</p></div>
         <div><p class="text-xs text-botanical-sage">수수료</p><p class="font-serif font-semibold text-botanical-terracotta">−${fmt(feeAmount)}</p></div>
