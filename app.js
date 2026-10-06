@@ -6098,22 +6098,52 @@ function adTermEndDays(refDate, days) {
   return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
 }
 
-function adTermText(d) {
-  const pm = d.postMonths || 0;
-  const sm = d.secondaryMonths || 0;
-  const ld = d.linkDays || 0;
+// 광고 시작일 = 직접 넣은 날 > 연결 콘텐츠 업로드일
+function dealStart(d) {
   const c = dealContent(d);
-  const ref = c ? getContentRefDate(c) : null;
-  if (!pm && !sm && !ld) return '<span class="text-botanical-terracotta">기간 미기재</span>';
-  if (!c) return '콘텐츠를 연결하면 종료일이 나와요';
-  if (!ref) return '업로드일이 있어야 종료일이 나와요';
-  const parts = [`<span class="text-botanical-sage/80">시작 ${ref}</span>`];
-  if (pm) parts.push(`게시 ~${adTermEnd(ref, pm) || '?'}`);
-  if (sm) parts.push(`2차 ~${adTermEnd(ref, sm) || '?'}`);
-  if (ld) parts.push(`링크 ~${adTermEndDays(ref, ld) || '?'}`);
-  // 계약서에 링크 기간이 없으면 게시 기간과 동일하게 본다 (값은 안 채운다 — 「명시됨」과 구분)
-  else if (pm) parts.push(`<span class="text-botanical-sage/70">링크 ~${adTermEnd(ref, pm)} (명시 없음·게시와 동일)</span>`);
-  return parts.join(' · ');
+  return (d.startDate || (c && getContentRefDate(c)) || '').slice(0, 10) || null;
+}
+
+// 항목별 계약 기간. 종료일은 시작일 + 기간으로 자동, 계약서와 다르면 직접 넣은 날(d.postEnd 등)이 이긴다
+function dealTerms(d) {
+  const start = dealStart(d);
+  const pm = d.postMonths || 0, sm = d.secondaryMonths || 0, ld = d.linkDays || 0;
+  const terms = [];
+  const add = (key, label, len, auto) => {
+    if (!len && !d[key]) return;
+    terms.push({ key, label, len, auto: start ? auto : '', end: d[key] || (start ? auto : ''), manual: !!d[key] });
+  };
+  add('postEnd', '게시', pm ? `${pm}개월` : '', adTermEnd(start, pm));
+  add('secondaryEnd', '2차 활용', sm ? `${sm}개월` : '', adTermEnd(start, sm));
+  // 계약서에 링크 기간이 없으면 게시 기간과 같게 본다
+  add('linkEnd', '링크', ld ? `${ld}일` : (pm ? '게시와 같음' : ''), ld ? adTermEndDays(start, ld) : adTermEnd(start, pm));
+  return terms;
+}
+
+function adTermText(d) {
+  const start = dealStart(d);
+  const DATE = 'class="px-2 text-xs rounded-lg border border-botanical-stone bg-white focus:outline-none" style="height:30px;"';
+  const terms = dealTerms(d);
+  return `
+    <div class="flex items-center gap-2 py-1">
+      <span class="w-[5.4rem] shrink-0">광고 시작일</span>
+      <input type="date" value="${d.startDate || ''}" onchange="updateDeal(${d.id}, 'startDate', this.value)" ${DATE}>
+      ${!d.startDate ? `<span class="text-botanical-sage/70">${start ? `업로드일 ${start}` : '비우면 업로드일'}</span>` : ''}
+    </div>
+    ${terms.length ? terms.map(t => `
+    <div class="flex items-center gap-2 py-1">
+      <span class="w-[5.4rem] shrink-0">${t.label} <span class="text-botanical-sage/70">${t.len}</span></span>
+      <input type="date" value="${t.end}" onchange="updateDeal(${d.id}, '${t.key}', this.value === '${t.auto}' ? '' : this.value)" ${DATE}>
+      <span class="text-botanical-sage/70">${t.manual ? '직접 넣음' : t.end ? '자동' : '시작일 필요'}</span>
+    </div>`).join('') : '<p class="text-botanical-terracotta py-1">기간 미기재</p>'}`;
+}
+
+// 아직 안 끝난 계약 항목 전부 — 종료일 가까운 순
+function activeTerms() {
+  const today = new Date().toISOString().slice(0, 10);
+  return getDeals().flatMap(d => dealTerms(d).filter(t => t.end && t.end >= today).map(t => ({ d, t,
+    left: Math.round((new Date(t.end + 'T00:00:00') - new Date(today + 'T00:00:00')) / 86400000) })))
+    .sort((a, b) => a.t.end.localeCompare(b.t.end));
 }
 
 function updateAdRefLink(contentId, idx, value) {
@@ -6316,6 +6346,12 @@ function setProductSales(id, month, rawValue) {
   p.sales = p.sales.filter(r => r.month !== month);
   if (amount > 0) p.sales.push({ month, amount });
   p.sales.sort((a, b) => b.month.localeCompare(a.month));
+  afterProductChange();
+}
+function setProductStart(id, date) {
+  const p = findProduct(id);
+  if (!p) return;
+  p.startDate = date;
   afterProductChange();
 }
 function renameProduct(id, name) {
@@ -7860,7 +7896,16 @@ function renderRevContracts() {
     </div>`;
   };
 
+  const active = activeTerms();
   return `
+    <div class="bg-white rounded-2xl p-5 shadow-sm mb-4">
+      <h4 class="text-base font-semibold mb-2">진행 중인 계약</h4>
+      ${active.length ? active.map(({ d, t, left }) => `
+        <div onclick="changeContractMonth('${d.month}')" class="flex items-center justify-between gap-2 py-1.5 border-b border-botanical-stone/40 cursor-pointer hover:bg-botanical-cream/30">
+          <span class="text-sm truncate">${d.brand || '이름 없는 광고'} <span class="text-xs text-botanical-sage">· ${t.label} 종료</span></span>
+          <span class="text-xs shrink-0 ${left <= 14 ? 'text-botanical-terracotta font-semibold' : 'text-botanical-sage'}">${t.end.slice(2).replace(/-/g, '.')} · D-${left}</span>
+        </div>`).join('') : '<p class="text-xs text-botanical-sage">진행 중인 계약이 없어요.</p>'}
+    </div>
     <div class="bg-white rounded-2xl p-5 shadow-sm">
       <div class="flex items-center gap-3 mb-4">
         ${renderMonthSelect('contract-month-select', contractSelectedMonth, 'changeContractMonth')}
@@ -8041,11 +8086,17 @@ function renderSalesMonthInput() {
   const body = products.map(p => {
     const amount = getProductAmount(p, month);
     return `
-        <div class="flex items-center gap-2 py-2 border-b border-botanical-stone/40">
-          <input type="text" value="${(p.name || '').replace(/"/g, '&quot;')}" placeholder="상품 이름" onchange="renameProduct(${p.id}, this.value)" class="flex-1 min-w-0 px-2 text-sm rounded-lg border border-botanical-stone focus:outline-none" style="height:38px;">
-          <input type="number" value="${amount || ''}" placeholder="0" onchange="setProductSales(${p.id}, '${month}', this.value)" class="w-28 md:w-40 shrink-0 px-2 text-sm text-right rounded-lg border border-botanical-stone focus:outline-none" style="height:38px;">
-          <span class="text-xs text-botanical-sage shrink-0">원</span>
-          <button onclick="deleteProduct(${p.id})" class="text-botanical-sage hover:text-botanical-terracotta shrink-0 px-1">×</button>
+        <div class="py-2 border-b border-botanical-stone/40">
+          <div class="flex items-center gap-2">
+            <input type="text" value="${(p.name || '').replace(/"/g, '&quot;')}" placeholder="상품 이름" onchange="renameProduct(${p.id}, this.value)" class="flex-1 min-w-0 px-2 text-sm rounded-lg border border-botanical-stone focus:outline-none" style="height:38px;">
+            <input type="number" value="${amount || ''}" placeholder="0" onchange="setProductSales(${p.id}, '${month}', this.value)" class="w-28 md:w-40 shrink-0 px-2 text-sm text-right rounded-lg border border-botanical-stone focus:outline-none" style="height:38px;">
+            <span class="text-xs text-botanical-sage shrink-0">원</span>
+            <button onclick="deleteProduct(${p.id})" class="text-botanical-sage hover:text-botanical-terracotta shrink-0 px-1">×</button>
+          </div>
+          <div class="flex items-center gap-2 mt-1.5 text-xs text-botanical-sage">
+            <span>판매 시작일</span>
+            <input type="date" value="${p.startDate || ''}" onchange="setProductStart(${p.id}, this.value)" class="px-2 text-xs rounded-lg border border-botanical-stone bg-white focus:outline-none" style="height:30px;">
+          </div>
         </div>`;
   }).join('') || '<p class="text-sm text-botanical-sage py-2">아직 판매 상품이 없어요</p>';
 
