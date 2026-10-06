@@ -6413,8 +6413,7 @@ function setExpense(month, idx, field, value) {
 function addExpense(month) { editExpenses(month, list => list.push({ name: '', amount: 0 })); }
 function removeExpense(month, idx) { editExpenses(month, list => list.splice(idx, 1)); }
 
-function renderExpenseInput() {
-  const month = revenueSelectedMonth;
+function renderExpenseInput(month) {
   const list = getExpenses(month);
   const rows = list.map((e, i) => `
         <div class="flex items-center gap-2 py-2 border-b border-botanical-stone/40">
@@ -7546,7 +7545,7 @@ function changeRevenueMonth(monthStr) {
 }
 
 // ===== 활동 채널 (수익 탭 서브탭) =====
-let revSubTab = 'status'; // 'status' | 'contracts' | 'mediakit' | 'channels' — 리렌더 후에도 보존
+let revSubTab = 'status'; // 'status' | 'contracts'(수익) | 'expenses' | 'mediakit' | 'channels' — 리렌더 후에도 보존
 
 const ACTIVITY_CHANNELS = [
   {
@@ -7898,6 +7897,7 @@ function renderRevContracts() {
 
   const active = activeTerms();
   return `
+    <div class="mb-4">${renderMonthSelect('contract-month-select', contractSelectedMonth, 'changeContractMonth')}</div>
     <div class="bg-white rounded-2xl p-5 shadow-sm mb-4">
       <h4 class="text-base font-semibold mb-2">진행 중인 계약</h4>
       ${active.length ? active.map(({ d, t, left }) => `
@@ -7906,15 +7906,16 @@ function renderRevContracts() {
           <span class="text-xs shrink-0 ${left <= 14 ? 'text-botanical-terracotta font-semibold' : 'text-botanical-sage'}">${t.end.slice(2).replace(/-/g, '.')} · D-${left}</span>
         </div>`).join('') : '<p class="text-xs text-botanical-sage">진행 중인 계약이 없어요.</p>'}
     </div>
-    <div class="bg-white rounded-2xl p-5 shadow-sm">
-      <div class="flex items-center gap-3 mb-4">
-        ${renderMonthSelect('contract-month-select', contractSelectedMonth, 'changeContractMonth')}
-        <span class="text-xs text-botanical-sage">${deals.length}건 · 합계 <span class="font-serif font-semibold text-botanical-fg">${fmt(monthSum)}</span>원</span>
+    <div class="bg-white rounded-2xl p-5 shadow-sm mb-6">
+      <div class="flex items-center justify-between mb-4">
+        <h4 class="text-base font-semibold">광고 <span class="font-serif italic">${parseInt(contractSelectedMonth.slice(5))}월</span></h4>
+        <span class="text-sm text-botanical-sage">${deals.length}건 · 합계 <span class="font-serif font-semibold text-botanical-fg">${fmt(monthSum)}</span>원</span>
       </div>
       ${deals.length === 0 ? '<p class="text-xs text-botanical-sage mb-2">이 달에 광고가 없어요.</p>' : deals.map(card).join('')}
       <button onclick="addDeal()" class="mt-1 text-sm text-botanical-sage hover:text-botanical-fg">+ 광고 추가</button>
       <p class="text-[11px] text-botanical-sage mt-2">협찬도 여기에 넣어요. 무가면 금액을 비워 두세요.</p>
-    </div>`;
+    </div>
+    ${renderSalesMonthInput(contractSelectedMonth)}`;
 }
 
 // 수익 현황 보기 — 'range'(기간, 기본 올해 1~12월) | 'month'(월별)
@@ -8005,8 +8006,9 @@ function renderRevenue() {
 
   document.getElementById('revenue-content').innerHTML = `
     <div class="flex gap-5 mb-6 border-b border-botanical-stone/40">
-      <button onclick="switchRevTab('status')" id="rev-tab-status" class="rev-tab-btn pb-2 text-[13px] border-b-2 -mb-px ${revSubTab === 'status' ? 'border-botanical-terracotta text-botanical-terracotta font-bold' : 'border-transparent text-botanical-sage font-medium hover:text-botanical-fg'}">수익 현황</button>
-      <button onclick="switchRevTab('contracts')" id="rev-tab-contracts" class="rev-tab-btn pb-2 text-[13px] border-b-2 -mb-px ${revSubTab === 'contracts' ? 'border-botanical-terracotta text-botanical-terracotta font-bold' : 'border-transparent text-botanical-sage font-medium hover:text-botanical-fg'}">계약</button>
+      <button onclick="switchRevTab('status')" id="rev-tab-status" class="rev-tab-btn pb-2 text-[13px] border-b-2 -mb-px ${revSubTab === 'status' ? 'border-botanical-terracotta text-botanical-terracotta font-bold' : 'border-transparent text-botanical-sage font-medium hover:text-botanical-fg'}">현황</button>
+      <button onclick="switchRevTab('contracts')" id="rev-tab-contracts" class="rev-tab-btn pb-2 text-[13px] border-b-2 -mb-px ${revSubTab === 'contracts' ? 'border-botanical-terracotta text-botanical-terracotta font-bold' : 'border-transparent text-botanical-sage font-medium hover:text-botanical-fg'}">수익</button>
+      <button onclick="switchRevTab('expenses')" id="rev-tab-expenses" class="rev-tab-btn pb-2 text-[13px] border-b-2 -mb-px ${revSubTab === 'expenses' ? 'border-botanical-terracotta text-botanical-terracotta font-bold' : 'border-transparent text-botanical-sage font-medium hover:text-botanical-fg'}">지출</button>
       <button onclick="switchRevTab('mediakit')" id="rev-tab-mediakit" class="rev-tab-btn pb-2 text-[13px] border-b-2 -mb-px ${revSubTab === 'mediakit' ? 'border-botanical-terracotta text-botanical-terracotta font-bold' : 'border-transparent text-botanical-sage font-medium hover:text-botanical-fg'}">미디어킷</button>
       <button onclick="switchRevTab('channels')" id="rev-tab-channels" class="rev-tab-btn pb-2 text-[13px] border-b-2 -mb-px ${revSubTab === 'channels' ? 'border-botanical-terracotta text-botanical-terracotta font-bold' : 'border-transparent text-botanical-sage font-medium hover:text-botanical-fg'}">활동 채널</button>
     </div>
@@ -8039,11 +8041,27 @@ function renderRevenue() {
       </div>
     </div>
 
-    ${isRange ? '' : renderSalesMonthInput() + renderExpenseInput()}
+    ${isRange ? '' : `
+    <div class="bg-white rounded-2xl p-5 shadow-sm mb-6">
+      <div class="flex items-center justify-between mb-3">
+        <h3 class="text-base font-semibold">지출 내역</h3>
+        <span class="text-sm text-botanical-sage">합계 <span class="font-serif font-semibold text-botanical-fg">${fmt(expenseSum)}</span>원</span>
+      </div>
+      ${getExpenses(revenueSelectedMonth).map(e => `
+        <div class="flex items-center justify-between py-1">
+          <span class="text-sm truncate">${e.name || '이름 없음'}${e.once ? ' <span class="text-xs text-botanical-sage">· 한 번</span>' : ''}</span>
+          <span class="text-sm font-semibold font-serif shrink-0">${fmt(e.amount)}<span class="font-sans text-xs text-botanical-sage">원</span></span>
+        </div>`).join('') || '<p class="text-sm text-botanical-sage">없음</p>'}
+    </div>`}
     </div>
 
     <div id="rev-contracts" class="rev-section ${revSubTab === 'contracts' ? '' : 'hidden'}">
       ${renderRevContracts()}
+    </div>
+
+    <div id="rev-expenses" class="rev-section ${revSubTab === 'expenses' ? '' : 'hidden'}">
+      <div class="mb-4">${renderMonthSelect('expense-month-select', contractSelectedMonth, 'changeContractMonth')}</div>
+      ${renderExpenseInput(contractSelectedMonth)}
     </div>
 
     <div id="rev-channels" class="rev-section ${revSubTab === 'channels' ? '' : 'hidden'}">
@@ -8074,8 +8092,7 @@ function renderRevenue() {
 }
 
 // 판매 상품 목록 + 선택한 달 매출 — 상품 추가·이름 수정·삭제도 여기서
-function renderSalesMonthInput() {
-  const month = revenueSelectedMonth;
+function renderSalesMonthInput(month) {
   const monthNum = parseInt(month.slice(5));
   const products = getProducts();
 
