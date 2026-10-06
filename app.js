@@ -6418,7 +6418,7 @@ function renderExpenseInput(month) {
           <input type="number" value="${e.amount || ''}" placeholder="0" onchange="setExpense('${month}', ${i}, 'amount', this.value)" class="w-28 md:w-40 shrink-0 px-2 text-sm text-right rounded-lg border border-botanical-stone focus:outline-none" style="height:38px;">
           <span class="text-xs text-botanical-sage shrink-0">원</span>
           <button onclick="setExpense('${month}', ${i}, 'once')" class="shrink-0 px-2 py-1 rounded-full text-xs border ${e.once ? 'border-botanical-terracotta text-botanical-terracotta' : 'border-botanical-stone text-botanical-sage'}">${e.once ? '한 번' : '매달'}</button>
-          <button onclick="removeExpense('${month}', ${i})" class="text-botanical-sage hover:text-botanical-terracotta shrink-0 px-1">×</button>
+          <button onclick="removeExpense('${month}', ${i})" class="text-botanical-sage hover:text-botanical-terracotta shrink-0 px-1 text-xs">삭제</button>
         </div>`).join('');
   return `
     <div class="bg-white rounded-2xl p-5 shadow-sm mb-6">
@@ -7871,7 +7871,7 @@ function renderRevContracts() {
           <option value="국내" ${d.region !== '해외' ? 'selected' : ''}>국내 3.3%</option>
           <option value="해외" ${d.region === '해외' ? 'selected' : ''}>해외</option>
         </select>
-        <button onclick="deleteDeal(${d.id})" class="text-botanical-sage hover:text-botanical-terracotta shrink-0 px-1">×</button>
+        <button onclick="deleteDeal(${d.id})" class="text-botanical-sage hover:text-botanical-terracotta shrink-0 px-1 text-xs">삭제</button>
       </div>
       <div class="flex items-center gap-2 mb-2">
         <select onchange="updateDeal(${d.id}, 'month', this.value)" ${SEL}>
@@ -8105,7 +8105,7 @@ function renderSalesMonthInput(month) {
             <input type="text" value="${(p.name || '').replace(/"/g, '&quot;')}" placeholder="상품 이름" onchange="renameProduct(${p.id}, this.value)" class="flex-1 min-w-0 px-2 text-sm rounded-lg border border-botanical-stone focus:outline-none" style="height:38px;">
             <input type="number" value="${amount || ''}" placeholder="0" onchange="setProductSales(${p.id}, '${month}', this.value)" class="w-28 md:w-40 shrink-0 px-2 text-sm text-right rounded-lg border border-botanical-stone focus:outline-none" style="height:38px;">
             <span class="text-xs text-botanical-sage shrink-0">원</span>
-            <button onclick="deleteProduct(${p.id})" class="text-botanical-sage hover:text-botanical-terracotta shrink-0 px-1">×</button>
+            <button onclick="deleteProduct(${p.id})" class="text-botanical-sage hover:text-botanical-terracotta shrink-0 px-1 text-xs">삭제</button>
           </div>
           <div class="flex items-center gap-2 mt-1.5 text-xs text-botanical-sage">
             <span>판매 시작일</span>
