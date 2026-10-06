@@ -5998,22 +5998,19 @@ function updateAdInfo(contentId, field, value) {
 // ========== 광고 건 (수익 탭 「계약」에서만 입력 · 협찬도 광고로 본다) ==========
 // revenueData.deals = [{ id, brand, region:'국내'|'해외', month, contentId, contractLink, reelsFee, postMonths, ... }]
 // 콘텐츠는 연결만 한다(deal.contentId · 콘텐츠 1개 ↔ 건 1개). 국내 = 3.3% 원천징수, 해외 = 안 뗌.
-// 광고비 = 미디어킷 협업 단가표 4항목. mult:true 는 단가 × 수량으로 합계에 들어가는 항목.
+// 광고비 = 미디어킷 협업 단가표 4항목. 합계는 단가를 그냥 더한다 (수량은 기간 계산·기록용)
 function adFeeItems(type) {
   return [
     { key: 'reelsFee',     label: feeUploadLabel(type),  feeUnit: '원',    qtyKey: 'postMonths',      qtyUnit: '개월', mult: false },
-    { key: 'secondaryFee', label: '2차 활용·광고',        feeUnit: '원/월', qtyKey: 'secondaryMonths', qtyUnit: '개월', mult: true  },
-    { key: 'storyFee',     label: '스토리 업로드',        feeUnit: '원/회', qtyKey: 'storyCount',      qtyUnit: '회',   mult: true  },
+    { key: 'secondaryFee', label: '2차 활용·광고',        feeUnit: '원',    qtyKey: 'secondaryMonths', qtyUnit: '개월', mult: false },
+    { key: 'storyFee',     label: '스토리 업로드',        feeUnit: '원',    qtyKey: 'storyCount',      qtyUnit: '회',   mult: false },
     { key: 'linkFee',      label: '링크·자동DM',          feeUnit: '원',    qtyKey: 'linkDays',        qtyUnit: '일',   mult: false },
   ];
 }
 
 function adTotal(a) {
   a = a || {};
-  return (a.reelsFee || 0)
-    + (a.secondaryFee || 0) * (a.secondaryMonths || 0)
-    + (a.storyFee || 0) * (a.storyCount || 0)
-    + (a.linkFee || 0);
+  return (a.reelsFee || 0) + (a.secondaryFee || 0) + (a.storyFee || 0) + (a.linkFee || 0);
 }
 
 function getDeals() {
