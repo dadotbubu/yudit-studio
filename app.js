@@ -754,6 +754,7 @@ async function syncFromRemote(options = {}) {
     if (remote.plans) plansData = remote.plans;
     reconcileCalendarMilestones();
     reconcileSalesRevenue(); // 판매 매출 → 수익 항목 (받아온 데이터에도 적용)
+    reconcileAdRevenue();
 
     // 현재 탭만 렌더링
     const activeTab = document.querySelector('.tab-content.active')?.id.replace('-tab', '');
@@ -1289,7 +1290,7 @@ function initApp() {
   // 초기 로드 후 캘린더 ↔ 마일스톤 정합성 한 번 정리 (stale orphan 제거 + 누락 추가)
   reconcileCalendarMilestones();
   // 판매 콘텐츠의 월별 수익 ↔ 수익 리포트 정합성 정리 (다른 기기에서 입력한 분 포함)
-  if (reconcileSalesRevenue()) saveAllData();
+  if (reconcileSalesRevenue() | reconcileAdRevenue()) saveAllData();
 
   // 저장된 탭 복원 (앱 전환 후 복귀용) 또는 캘린더 기본
   // 30분(1800000ms) 이상 미사용 시 캘린더로 초기화
@@ -3546,30 +3547,26 @@ function renderContentForm(content) {
         <div class="flex items-center justify-between mb-4">
           <h3 class="font-medium flex items-center gap-2">
             <span class="w-6 h-6 rounded-full bg-botanical-sage/20 text-botanical-sage text-xs flex items-center justify-center">1</span>
-            ${content.category} 상세${content.category === '협찬' ? '' : ' (수익 연동)'}
+            ${content.category} 상세
           </h3>
-          <span class="text-xs text-botanical-sage">${content.category === '협찬' ? '수익 연동 없음' : '수익 리포트 자동 반영'}</span>
+          <span class="text-xs text-botanical-sage">금액은 수익 탭에서</span>
         </div>
 
         <div class="border border-botanical-stone rounded-lg overflow-x-auto">
           <table class="w-full text-sm">
             <tbody>
-              ${content.category === '광고' ? `
+              ${content.category !== '판매' ? `
               <tr class="border-b border-botanical-stone">
-                <td class="px-2 md:px-4 py-2 md:py-3 bg-botanical-cream/40 font-medium w-24 md:w-40 text-xs md:text-sm break-keep align-middle">소득 구분</td>
+                <td class="px-2 md:px-4 py-2 md:py-3 bg-botanical-cream/40 font-medium w-24 md:w-40 text-xs md:text-sm break-keep align-middle">광고 건</td>
                 <td class="px-4 py-2">
-                  <select oninput="updateAdInfo(${content.id}, 'incomeType', this.value); syncRevenueFromContent(contentsData.contents.find(c => c.id === ${content.id}));" class="w-60 px-3 rounded-lg border border-botanical-stone text-sm focus:outline-none bg-white" style="height:38px;">
-                    <option value="etc" ${(content.adInfo?.incomeType ?? 'etc') === 'etc' ? 'selected' : ''}>기타소득</option>
-                    <option value="biz" ${content.adInfo?.incomeType === 'biz' ? 'selected' : ''}>사업소득</option>
+                  <select onchange="linkDealContent(this.value ? Number(this.value) : null, ${content.id})" class="w-full px-3 rounded-lg border border-botanical-stone text-sm focus:outline-none bg-white" style="height:38px;">
+                    <option value="">연결 안 함</option>
+                    ${getDeals().slice().sort((a, b) => (b.month || '').localeCompare(a.month || '')).map(d => `<option value="${d.id}" ${d.contentId === content.id ? 'selected' : ''}>${(d.month || '').replace('-', '.')} ${d.brand || '이름 없는 광고'}</option>`).join('')}
                   </select>
+                  <p class="text-xs text-botanical-sage mt-1">금액·계약은 수익 탭 「계약」에서 관리해요</p>
                 </td>
               </tr>
-              <tr class="border-b border-botanical-stone">
-                <td class="px-2 md:px-4 py-2 md:py-3 bg-botanical-cream/40 font-medium w-24 md:w-40 text-xs md:text-sm break-keep align-middle">광고비 · 계약</td>
-                <td class="px-2 md:px-4 py-2">
-                  ${adFeeBlock(content, 'content')}
-                </td>
-              </tr>
+              ${content.category === '광고' ? `
               <tr class="border-b border-botanical-stone">
                 <td class="px-2 md:px-4 py-2 md:py-3 bg-botanical-cream/40 font-medium w-24 md:w-40 text-xs md:text-sm break-keep align-middle">제작 가이드</td>
                 <td class="px-2 md:px-4 py-2">
@@ -3579,16 +3576,8 @@ function renderContentForm(content) {
                   </div>
                 </td>
               </tr>
-              <tr class="border-b border-botanical-stone">
-                <td class="px-2 md:px-4 py-2 md:py-3 bg-botanical-cream/40 font-medium w-24 md:w-40 text-xs md:text-sm break-keep align-middle">계약서</td>
-                <td class="px-2 md:px-4 py-2">
-                  <div class="flex gap-1.5 md:gap-2">
-                    <input type="text" value="${content.adInfo?.contractLink || ''}" oninput="updateAdInfo(${content.id}, 'contractLink', this.value)" placeholder="https://... 또는 이미지 URL" class="flex-1 min-w-0 px-3 rounded-lg border border-botanical-stone text-sm focus:outline-none" style="height:38px;">
-                    ${openLinkBtn(content.adInfo?.contractLink)}
-                  </div>
-                </td>
-              </tr>
-              ` : content.category === '판매' ? `
+              ` : ''}
+              ` : `
               <tr class="border-b border-botanical-stone">
                 <td class="px-2 md:px-4 py-2 md:py-3 bg-botanical-cream/40 font-medium w-24 md:w-40 text-xs md:text-sm break-keep align-middle">판매 상품</td>
                 <td class="px-4 py-2">
@@ -3606,13 +3595,6 @@ function renderContentForm(content) {
                     <input type="text" value="${content.adInfo?.saleLink || ''}" oninput="updateAdInfo(${content.id}, 'saleLink', this.value)" placeholder="https://..." class="flex-1 px-3 rounded-lg border border-botanical-stone text-sm focus:outline-none" style="height:38px;">
                     ${openLinkBtn(content.adInfo?.saleLink)}
                   </div>
-                </td>
-              </tr>
-              ` : `
-              <tr class="border-b border-botanical-stone">
-                <td class="px-2 md:px-4 py-2 md:py-3 bg-botanical-cream/40 font-medium w-24 md:w-40 text-xs md:text-sm break-keep align-middle">협찬 상품명</td>
-                <td class="px-4 py-2">
-                  <input type="text" value="${content.adInfo?.productName || ''}" oninput="updateAdInfo(${content.id}, 'productName', this.value)" placeholder="협찬 받은 상품명" class="w-full px-3 rounded-lg border border-botanical-stone text-sm focus:outline-none" style="height:38px;">
                 </td>
               </tr>
               `}
@@ -4083,8 +4065,6 @@ function updateMilestone(contentId, status, date) {
       uploadCell.textContent = date ? date.slice(5).replace('-', '/') : '-';
     }
     if (typeof renderPerformance === 'function') renderPerformance();
-    // 광고 수익 항목은 업로드완료 날짜 기준으로 월이 잡히므로 함께 갱신
-    if (content.isRevenue && content.category === '광고') syncRevenueFromContent(content);
   }
 
   // 캘린더에도 업데이트
@@ -5797,7 +5777,7 @@ function autoSaveTopField(el, contentId) {
   // 카테고리가 바뀌면 진행 단계·상세 섹션·수익 연동이 통째로 달라지므로 다시 그림
   if (field === 'category') {
     reconcileCalendarMilestones();
-    syncRevenueFromContent(content); // saveAllData 포함
+    saveAllData();
     renderContentList();
     renderCalendar();
     reopenForm(contentId);
@@ -5919,7 +5899,7 @@ function saveTopInfo(contentId) {
         }
       });
       reconcileCalendarMilestones();
-      syncRevenueFromContent(content);
+      saveAllData();
     } else {
       content[field] = val;
     }
@@ -6013,18 +5993,18 @@ function updateAdInfo(contentId, field, value) {
   if (!content.adInfo) content.adInfo = {};
   content.adInfo[field] = value;
   saveAllData();
-  syncRevenueFromContent(content);
 }
 
-// ── 광고비 = 미디어킷 협업 단가표 4항목. 항목을 여기서만 바꾸면 콘텐츠 탭·계약 탭이 같이 따라온다.
-//    mult:true 는 「원 / 월」·「원 / 회」 처럼 단가 × 수량으로 합계에 들어가는 항목.
-//    데이터 키(reelsFee 등)는 예전 이름 그대로 둔다 — 바꾸면 이미 넣어둔 금액이 끊긴다.
-function adFeeItems(content) {
+// ========== 광고 건 (수익 탭 「계약」에서만 입력 · 협찬도 광고로 본다) ==========
+// revenueData.deals = [{ id, brand, region:'국내'|'해외', month, contentId, contractLink, reelsFee, postMonths, ... }]
+// 콘텐츠는 연결만 한다(deal.contentId · 콘텐츠 1개 ↔ 건 1개). 국내 = 3.3% 원천징수, 해외 = 안 뗌.
+// 광고비 = 미디어킷 협업 단가표 4항목. mult:true 는 단가 × 수량으로 합계에 들어가는 항목.
+function adFeeItems(type) {
   return [
-    { key: 'reelsFee',     label: feeUploadLabel(content.type), feeUnit: '원',    qtyKey: 'postMonths',      qtyUnit: '개월', mult: false },
-    { key: 'secondaryFee', label: '2차 활용·광고',              feeUnit: '원/월', qtyKey: 'secondaryMonths', qtyUnit: '개월', mult: true  },
-    { key: 'storyFee',     label: '스토리 업로드',              feeUnit: '원/회', qtyKey: 'storyCount',      qtyUnit: '회',   mult: true  },
-    { key: 'linkFee',      label: '링크·자동DM',                feeUnit: '원',    qtyKey: 'linkDays',        qtyUnit: '일',   mult: false },
+    { key: 'reelsFee',     label: feeUploadLabel(type),  feeUnit: '원',    qtyKey: 'postMonths',      qtyUnit: '개월', mult: false },
+    { key: 'secondaryFee', label: '2차 활용·광고',        feeUnit: '원/월', qtyKey: 'secondaryMonths', qtyUnit: '개월', mult: true  },
+    { key: 'storyFee',     label: '스토리 업로드',        feeUnit: '원/회', qtyKey: 'storyCount',      qtyUnit: '회',   mult: true  },
+    { key: 'linkFee',      label: '링크·자동DM',          feeUnit: '원',    qtyKey: 'linkDays',        qtyUnit: '일',   mult: false },
   ];
 }
 
@@ -6036,43 +6016,64 @@ function adTotal(a) {
     + (a.linkFee || 0);
 }
 
-// where 는 'content' | 'contract'. 두 탭이 한 화면에 같이 떠 있을 수 있어 id 앞자리를 나눈다.
-function adFeeBlock(content, where) {
-  const a = content.adInfo || {};
-  const p = where === 'contract' ? 'ct' : 'cf';
+function getDeals() {
+  if (!revenueData) return [];
+  if (!Array.isArray(revenueData.deals)) revenueData.deals = [];
+  return revenueData.deals;
+}
+const findDeal = id => getDeals().find(d => d.id == id);
+const dealContent = d => d?.contentId ? (contentsData?.contents || []).find(c => c.id === d.contentId) : null;
+// 수익 항목 하나에서 떼는 3.3% (해외는 0)
+const adWithheld = i => i.region === '해외' ? 0 : (i.amount || 0) - netFee(i.amount || 0);
+
+function afterDealChange() {
+  reconcileAdRevenue();
+  saveAllData();
+  renderRevenue();
+}
+function updateDeal(id, field, value) {
+  const d = findDeal(id);
+  if (!d) return;
+  d[field] = value;
+  afterDealChange();
+}
+function addDeal() {
+  getDeals().push({ id: Date.now(), brand: '', region: '국내', month: contractSelectedMonth, contentId: null });
+  afterDealChange();
+}
+function deleteDeal(id) {
+  const d = findDeal(id);
+  if (!d) return;
+  if (!confirm(`「${d.brand || '이름 없는 광고'}」 건을 지울까요?`)) return;
+  revenueData.deals = getDeals().filter(x => x !== d);
+  afterDealChange();
+}
+// 콘텐츠 1개 ↔ 건 1개. dealId 가 없으면 그 콘텐츠의 연결만 끊는다
+function linkDealContent(dealId, contentId) {
+  getDeals().forEach(d => { if (contentId && d.contentId === contentId) d.contentId = null; });
+  const d = findDeal(dealId);
+  if (d) d.contentId = contentId || null;
+  afterDealChange();
+}
+
+function adFeeBlock(d) {
   const IN = 'class="min-w-0 px-2 text-sm text-right rounded-lg border border-botanical-stone focus:outline-none focus:border-botanical-sage"';
-  const lines = adFeeItems(content).map(it => `
+  const num = `parseInt(this.value) || 0`;
+  const lines = adFeeItems(dealContent(d)?.type).map(it => `
     <div class="flex items-center gap-1 py-1">
       <span class="text-[11px] text-botanical-sage w-[5.4rem] shrink-0 break-keep leading-tight">${it.label}</span>
-      <input type="number" min="0" step="10000" id="${p}-${it.key}-${content.id}" value="${a[it.key] || ''}" placeholder="0"
-             onchange="updateAdFeeField(${content.id}, '${it.key}', this.value)" ${IN} style="height:34px;flex:1 1 0;">
+      <input type="number" min="0" step="10000" value="${d[it.key] || ''}" placeholder="0"
+             onchange="updateDeal(${d.id}, '${it.key}', ${num})" ${IN} style="height:34px;flex:1 1 0;">
       <span class="text-[10px] text-botanical-sage/70 w-9 shrink-0">${it.feeUnit}</span>
       <span class="text-[10px] text-botanical-sage/50 w-2.5 shrink-0 text-center">${it.mult ? '×' : ''}</span>
-      <input type="number" min="0" id="${p}-${it.qtyKey}-${content.id}" value="${a[it.qtyKey] || ''}" placeholder="0"
-             onchange="updateAdFeeField(${content.id}, '${it.qtyKey}', this.value)" ${IN} style="height:34px;width:3.4rem;">
+      <input type="number" min="0" value="${d[it.qtyKey] || ''}" placeholder="0"
+             onchange="updateDeal(${d.id}, '${it.qtyKey}', ${num})" ${IN} style="height:34px;width:3.4rem;">
       <span class="text-[10px] text-botanical-sage/70 w-7 shrink-0">${it.qtyUnit}</span>
     </div>`).join('');
   return `<div>${lines}
-    <div class="text-right text-xs text-botanical-sage mt-1 pt-1.5 border-t border-botanical-stone/50" id="${p}-total-${content.id}">${contractTotalText(adTotal(a))}</div>
-    <div class="text-[11px] text-botanical-sage mt-1" id="${p}-term-${content.id}">${adTermText(content)}</div>
+    <div class="text-right text-xs text-botanical-sage mt-1 pt-1.5 border-t border-botanical-stone/50">${contractTotalText(d)}</div>
+    <div class="text-[11px] text-botanical-sage mt-1">${adTermText(d)}</div>
   </div>`;
-}
-
-function updateAdFeeField(contentId, field, value) {
-  const content = contentsData.contents.find(c => c.id === contentId);
-  if (!content) return;
-  if (!content.adInfo) content.adInfo = {};
-  content.adInfo[field] = parseInt(String(value).replace(/[^0-9]/g, '')) || 0;
-  // 두 탭이 같이 떠 있을 수 있으니 양쪽 파생값을 다 갈아끼운다 (전체 리렌더하면 스크롤이 튄다)
-  ['cf', 'ct'].forEach(p => {
-    const t = document.getElementById(p + '-total-' + contentId);
-    if (t) t.innerHTML = contractTotalText(adTotal(content.adInfo));
-    const m = document.getElementById(p + '-term-' + contentId);
-    if (m) m.innerHTML = adTermText(content);
-    const inp = document.getElementById(p + '-' + field + '-' + contentId);
-    if (inp) inp.value = content.adInfo[field] || '';
-  });
-  syncRevenueFromContent(content); // saveAllData 포함
 }
 
 // 계약 기간: 기준일(업로드완료 > 예정일)에 개월을 더해 종료일 계산. 말일 넘어가면 그 달 말일로 당김.
@@ -6097,12 +6098,14 @@ function adTermEndDays(refDate, days) {
   return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
 }
 
-function adTermText(content) {
-  const pm = content.adInfo?.postMonths || 0;
-  const sm = content.adInfo?.secondaryMonths || 0;
-  const ld = content.adInfo?.linkDays || 0;
-  const ref = getContentRefDate(content);
+function adTermText(d) {
+  const pm = d.postMonths || 0;
+  const sm = d.secondaryMonths || 0;
+  const ld = d.linkDays || 0;
+  const c = dealContent(d);
+  const ref = c ? getContentRefDate(c) : null;
   if (!pm && !sm && !ld) return '<span class="text-botanical-terracotta">기간 미기재</span>';
+  if (!c) return '콘텐츠를 연결하면 종료일이 나와요';
   if (!ref) return '업로드일이 있어야 종료일이 나와요';
   const parts = [`<span class="text-botanical-sage/80">시작 ${ref}</span>`];
   if (pm) parts.push(`게시 ~${adTermEnd(ref, pm) || '?'}`);
@@ -6426,31 +6429,24 @@ function reconcileSalesRevenue() {
   return true;
 }
 
-// ========== 수익 리포트 자동 연동 ==========
-// 광고: 광고비 합계 1건 / 판매·협찬: 연동 없음 (판매 금액은 수익 탭 상품에서만)
-function syncRevenueFromContent(content) {
+// 광고 건 → 수익 리포트 항목 (건마다 1개, 그 건의 월). 시작·동기화·수정 때마다 다시 맞춘다
+function reconcileAdRevenue() {
+  if (!revenueData) return false;
   if (!revenueData.items) revenueData.items = { ad: [], sales: [], sponsor: [] };
-  ['ad', 'sales', 'sponsor'].forEach(t => { if (!revenueData.items[t]) revenueData.items[t] = []; });
+  if (!Array.isArray(revenueData.items.ad)) revenueData.items.ad = [];
 
-  // 이 콘텐츠가 만든 기존 항목은 전부 걷어내고 현재 상태로 다시 등록
-  revenueData.items.ad = revenueData.items.ad.filter(i => i.contentId !== content.id);
+  const manual = revenueData.items.ad.filter(i => !i.contentId && !i.dealId);
+  const generated = getDeals().filter(d => d.month && adTotal(d) > 0).map(d => ({
+    dealId: d.id, contentId: d.contentId || undefined, date: `${d.month}-01`, month: d.month,
+    brand: d.brand || dealContent(d)?.title || '무제', amount: adTotal(d), region: d.region || '국내'
+  }));
 
-  const brand = content.title || '무제';
+  const next = JSON.parse(JSON.stringify([...manual, ...generated]));
+  if (JSON.stringify(next) === JSON.stringify(revenueData.items.ad)) return false;
 
-  if (content.isRevenue && content.category === '광고') {
-    const total = adTotal(content.adInfo);
-    const date = getUploadDate(content) || new Date().toISOString().slice(0, 10);
-    if (total > 0) {
-      revenueData.items.ad.push({
-        contentId: content.id, date, brand, amount: total,
-        incomeType: content.adInfo?.incomeType || 'etc'
-      });
-    }
-  }
-
+  revenueData.items.ad = next;
   recalculateRevenueSummary();
-  saveAllData();
-  renderRevenue();
+  return true;
 }
 
 function recalculateRevenueSummary() {
@@ -6471,22 +6467,6 @@ function recalculateRevenueSummary() {
   if (!revenueData.summary) revenueData.summary = {};
   revenueData.summary.thisMonth = revenueData.byType.ad.thisMonth + revenueData.byType.sales.thisMonth + revenueData.byType.sponsor.thisMonth;
   revenueData.summary.thisYear = revenueData.byType.ad.thisYear + revenueData.byType.sales.thisYear + revenueData.byType.sponsor.thisYear;
-
-  // 세금 자동 계산 - 광고 item의 incomeType 기반
-  let etc88 = 0, biz33 = 0;
-  (revenueData.items?.ad || []).forEach(i => {
-    if (!i.date?.startsWith(yearStr)) return;
-    if (i.incomeType === 'biz') biz33 += (i.amount || 0) * 0.033;
-    else etc88 += (i.amount || 0) * 0.088;
-  });
-  // 판매는 무조건 사업소득
-  (revenueData.items?.sales || []).forEach(i => {
-    if (!i.date?.startsWith(yearStr)) return;
-    biz33 += (i.amount || 0) * 0.033;
-  });
-  if (!revenueData.tax) revenueData.tax = {};
-  revenueData.tax.etc88 = Math.round(etc88);
-  revenueData.tax.biz33 = Math.round(biz33);
 
   // monthly 재계산
   const monthlyMap = {};
@@ -7817,19 +7797,10 @@ function switchRevTab(tab) {
 }
 
 // ========== 계약 ==========
-// 콘텐츠 탭의 adInfo 를 그대로 읽고 쓴다. 여기서 고치면 콘텐츠 탭에도 그대로 반영됨.
+// 광고 건(revenueData.deals)을 월별로 입력하는 곳. 콘텐츠는 연결만.
 function changeContractMonth(month) {
   contractSelectedMonth = month;
   renderRevenue();
-}
-
-// 글자 칸(브랜드명 등) 전용. 금액·수량은 updateAdFeeField 가 맡는다.
-function updateContractField(contentId, field, value) {
-  const content = contentsData.contents.find(c => c.id === contentId);
-  if (!content) return;
-  if (!content.adInfo) content.adInfo = {};
-  content.adInfo[field] = value;
-  saveAllData();
 }
 
 // 원천징수 3.3% 뗀 실수령액 (소득세 3% + 지방소득세 0.3%, 원 단위 절사)
@@ -7844,30 +7815,48 @@ function netFee(gross) {
 // 업로드비 라벨은 콘텐츠 형식을 따라간다 (데이터 키는 reelsFee 그대로 — 바꾸면 넣어둔 금액이 끊긴다)
 function feeUploadLabel(type) { return (type || '릴스') + ' 제작+업로드'; }
 
-function contractTotalText(total) {
+function contractTotalText(d) {
+  const total = adTotal(d);
+  if (d.region === '해외') return `계약 <span class="font-serif font-semibold text-sm text-botanical-fg">${fmt(total)}</span>원 · 해외 (안 뗌)`;
   return `계약 <span class="font-serif text-sm text-botanical-fg">${fmt(total)}</span>원 · 실수령 <span class="font-serif font-semibold text-sm text-botanical-fg">${fmt(netFee(total))}</span>원`;
 }
 
 function renderRevContracts() {
-  const ads = (contentsData.contents || []).filter(c => c.category === '광고');
+  const deals = getDeals().filter(d => d.month === contractSelectedMonth).sort((a, b) => b.id - a.id);
+  const monthSum = deals.reduce((s, d) => s + adTotal(d), 0);
+  const adContents = (contentsData.contents || []).filter(c => ['광고', '협찬'].includes(c.category))
+    .sort((a, b) => (getContentRefDate(b) || '').localeCompare(getContentRefDate(a) || ''));
+  const SEL = 'class="min-w-0 px-2 text-sm rounded-lg border border-botanical-stone bg-white focus:outline-none" style="height:34px;"';
 
-  // ── 월별 계약 목록 (기준일 = 업로드완료 마일스톤 > 예정일)
-  const monthAds = ads.filter(c => (getContentRefDate(c) || '').startsWith(contractSelectedMonth));
-  monthAds.sort((a, b) => (getContentRefDate(b) || '').localeCompare(getContentRefDate(a) || ''));
-  const monthSum = monthAds.reduce((s, c) => s + adTotal(c.adInfo), 0);
-
-  const card = (c) => {
-    const a = c.adInfo || {};
+  const card = (d) => {
+    const c = dealContent(d);
     return `
     <div class="border border-botanical-stone rounded-xl p-3 mb-2 bg-white">
       <div class="flex items-center gap-2 mb-2">
-        <input type="text" value="${(a.productName || '').replace(/"/g, '&quot;')}" onchange="updateContractField(${c.id}, 'productName', this.value)" placeholder="브랜드 / 상품명"
+        <input type="text" value="${(d.brand || '').replace(/"/g, '&quot;')}" onchange="updateDeal(${d.id}, 'brand', this.value.trim())" placeholder="브랜드 / 상품명"
                class="flex-1 min-w-0 px-2 text-sm font-medium rounded-lg border border-botanical-stone focus:outline-none focus:border-botanical-sage" style="height:34px;">
-        ${openLinkBtn(a.contractLink)}
+        <select onchange="updateDeal(${d.id}, 'region', this.value)" ${SEL}>
+          <option value="국내" ${d.region !== '해외' ? 'selected' : ''}>국내 3.3%</option>
+          <option value="해외" ${d.region === '해외' ? 'selected' : ''}>해외</option>
+        </select>
+        <button onclick="deleteDeal(${d.id})" class="text-botanical-sage hover:text-botanical-terracotta shrink-0 px-1">×</button>
       </div>
-      <p onclick="goToContentExpanded(${c.id})" class="text-xs text-botanical-sage mb-2 cursor-pointer hover:text-botanical-terracotta hover:underline truncate">${c.title || '무제'} · ${getContentRefDate(c) || '날짜 없음'}</p>
-
-      ${adFeeBlock(c, 'contract')}
+      <div class="flex items-center gap-2 mb-2">
+        <select onchange="updateDeal(${d.id}, 'month', this.value)" ${SEL}>
+          ${getMonthOptions(d.month).map(o => `<option value="${o.value}" ${o.value === d.month ? 'selected' : ''}>${o.label}</option>`).join('')}
+        </select>
+        <select onchange="linkDealContent(${d.id}, this.value ? Number(this.value) : null)" ${SEL.replace('min-w-0', 'flex-1 min-w-0')}>
+          <option value="">콘텐츠 연결 안 함</option>
+          ${adContents.map(x => `<option value="${x.id}" ${x.id === d.contentId ? 'selected' : ''}>${(getContentRefDate(x) || '').slice(5, 10)} ${x.title || '무제'}</option>`).join('')}
+        </select>
+        ${c ? `<button onclick="goToContentExpanded(${c.id})" class="text-xs text-botanical-sage hover:text-botanical-terracotta shrink-0">열기</button>` : ''}
+      </div>
+      <div class="flex items-center gap-2 mb-2">
+        <input type="text" value="${(d.contractLink || '').replace(/"/g, '&quot;')}" onchange="updateDeal(${d.id}, 'contractLink', this.value.trim())" placeholder="계약서 링크"
+               class="flex-1 min-w-0 px-2 text-sm rounded-lg border border-botanical-stone focus:outline-none focus:border-botanical-sage" style="height:34px;">
+        ${openLinkBtn(d.contractLink)}
+      </div>
+      ${adFeeBlock(d)}
     </div>`;
   };
 
@@ -7875,11 +7864,11 @@ function renderRevContracts() {
     <div class="bg-white rounded-2xl p-5 shadow-sm">
       <div class="flex items-center gap-3 mb-4">
         ${renderMonthSelect('contract-month-select', contractSelectedMonth, 'changeContractMonth')}
-        <span class="text-xs text-botanical-sage">${monthAds.length}건 · 합계 <span class="font-serif font-semibold text-botanical-fg">${fmt(monthSum)}</span>원</span>
+        <span class="text-xs text-botanical-sage">${deals.length}건 · 합계 <span class="font-serif font-semibold text-botanical-fg">${fmt(monthSum)}</span>원</span>
       </div>
-      ${monthAds.length === 0
-        ? '<p class="text-xs text-botanical-sage">이 달에 광고 콘텐츠가 없어요.</p>'
-        : monthAds.map(card).join('')}
+      ${deals.length === 0 ? '<p class="text-xs text-botanical-sage mb-2">이 달에 광고가 없어요.</p>' : deals.map(card).join('')}
+      <button onclick="addDeal()" class="mt-1 text-sm text-botanical-sage hover:text-botanical-fg">+ 광고 추가</button>
+      <p class="text-[11px] text-botanical-sage mt-2">협찬도 여기에 넣어요. 무가면 금액을 비워 두세요.</p>
     </div>`;
 }
 
@@ -7911,6 +7900,7 @@ function renderRevenue() {
   const feeSum = months.reduce((s, m) => s + salesFeeAmount(m, sumOf('sales', i => i.date?.startsWith(m))), 0);
   const salesNet = sales - feeSum;
   const expenseSum = months.reduce((s, m) => s + expensesTotal(m), 0);
+  const adTax = (revenueData.items?.ad || []).filter(inMonths).reduce((s, i) => s + adWithheld(i), 0);
 
   const realYear = new Date().getFullYear();
   const monthLabel = m => `${parseInt(m.slice(5))}월`;
@@ -7946,21 +7936,24 @@ function renderRevenue() {
       </div>
       <div class="mt-3 pt-3 border-t border-botanical-stone flex justify-between text-xs">
         <span class="text-botanical-sage">기간 합계 ${fmt(total)}원</span>
-        <span class="text-botanical-terracotta font-medium">기타소득 한도 ${fmt(7500000 - (revenueData.tax?.etc88 || 0))}원 여유</span>
       </div>
     </div>`;
 
+  const yearAds = (revenueData.items?.ad || []).filter(i => i.date?.startsWith(String(realYear)));
+  const withheld = yearAds.reduce((s, i) => s + adWithheld(i), 0);
+  const overseas = yearAds.filter(i => i.region === '해외').reduce((s, i) => s + (i.amount || 0), 0);
   const taxHtml = `
     <div class="bg-white rounded-2xl p-5 shadow-sm mb-6">
-      <p class="text-base font-semibold mb-3">세금 구분 (${realYear}년)</p>
+      <p class="text-base font-semibold mb-3">광고 세금 (${realYear}년)</p>
       <div class="grid grid-cols-2 gap-3">
-        <div class="p-3 rounded-xl" style="background-color: rgba(135,148,131,0.1);">
-          <span class="text-sm text-botanical-sage">기타소득 8.8%</span>
-          <p class="text-xl font-semibold mt-1"><span class="font-serif">${fmt(revenueData.tax?.etc88 || 0)}</span><span class="text-base font-sans">원</span></p>
-        </div>
         <div class="p-3 rounded-xl" style="background-color: rgba(193,114,93,0.1);">
-          <span class="text-sm text-botanical-terracotta">사업소득 3.3%</span>
-          <p class="text-xl font-semibold mt-1"><span class="font-serif">${fmt(revenueData.tax?.biz33 || 0)}</span><span class="text-base font-sans">원</span></p>
+          <span class="text-sm text-botanical-terracotta">국내 3.3% 뗀 금액</span>
+          <p class="text-xl font-semibold mt-1"><span class="font-serif">${fmt(withheld)}</span><span class="text-base font-sans">원</span></p>
+        </div>
+        <div class="p-3 rounded-xl" style="background-color: rgba(135,148,131,0.1);">
+          <span class="text-sm text-botanical-sage">해외 (안 뗌)</span>
+          <p class="text-xl font-semibold mt-1"><span class="font-serif">${fmt(overseas)}</span><span class="text-base font-sans">원</span></p>
+          <p class="text-[11px] text-botanical-sage mt-1">종합소득세 신고 때 따로 챙기기</p>
         </div>
       </div>
     </div>`;
@@ -7984,11 +7977,10 @@ function renderRevenue() {
     <div class="bg-white rounded-2xl p-4 shadow-sm border border-botanical-stone mb-6">
       <p class="text-sm text-botanical-sage font-medium mb-1">${cardTitle}</p>
       <p class="text-3xl font-semibold"><span class="font-serif">${fmt(total)}</span><span class="text-lg">원</span></p>
-      ${feeSum || expenseSum ? `<p class="text-xs text-botanical-sage mt-1">수수료 −${fmt(feeSum)} · 지출 −${fmt(expenseSum)} · <span class="text-botanical-fg font-semibold">순수익 ${fmt(total - feeSum - expenseSum)}원</span></p>` : ''}
+      ${feeSum || expenseSum || adTax ? `<p class="text-xs text-botanical-sage mt-1">수수료 −${fmt(feeSum)} · 3.3% −${fmt(adTax)} · 지출 −${fmt(expenseSum)} · <span class="text-botanical-fg font-semibold">순수익 ${fmt(total - feeSum - adTax - expenseSum)}원</span></p>` : ''}
       <div class="flex flex-col md:flex-row gap-2 mt-3">
-        ${box('광고', ad, 'border-botanical-terracotta')}
+        ${box('광고', ad, 'border-botanical-terracotta', ad ? `<p class="text-[11px] text-botanical-sage">실수령 ${fmt(ad - adTax)}원</p>` : '')}
         ${box('판매', sales, 'border-botanical-sage', sales ? `<p class="text-[11px] text-botanical-sage">실수령 ${fmt(salesNet)}원</p>` : '')}
-        ${box('협찬', sponsor, 'border-botanical-clay')}
       </div>
     </div>
 
@@ -7996,10 +7988,9 @@ function renderRevenue() {
 
     <div class="bg-white rounded-2xl p-5 shadow-sm mb-6">
       <h3 class="text-base font-semibold mb-4">수익 상세</h3>
-      <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
         ${renderRevenueList('광고', revenueData.items.ad, 'botanical-terracotta', months)}
         ${renderRevenueList('판매', revenueData.items.sales, 'botanical-sage', months)}
-        ${renderRevenueList('협찬', revenueData.items.sponsor, 'botanical-clay', months)}
       </div>
     </div>
 
@@ -8086,14 +8077,13 @@ function renderRevenueList(title, items, color, months) {
     'botanical-sage': 'border-botanical-sage',
     'botanical-clay': 'border-botanical-clay'
   };
-  // 판매는 일자가 의미 없어서 '08월'로 표시 (광고·협찬은 월/일)
-  const isSales = title === '판매';
+  // 광고·판매 모두 월 단위라 '08월'로 표시 (예전 수동 항목만 월/일)
   const shown = items
     .filter(item => months.includes(item.date?.slice(0, 7)))
     .sort((a, b) => (b.date || '').localeCompare(a.date || ''));
 
   const itemsHtml = shown.map(item => {
-    const dateLabel = isSales ? `${item.date.slice(5, 7)}월` : item.date.slice(5).replace('-', '/');
+    const dateLabel = item.month || item.productId ? `${item.date.slice(5, 7)}월` : item.date.slice(5).replace('-', '/');
     const jump = item.contentId ? `onclick="goToContentExpanded(${item.contentId})"` : '';
     return `
       <div ${jump} class="flex items-center justify-between py-1 hover:bg-botanical-cream/30 cursor-pointer">
