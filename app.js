@@ -7313,7 +7313,7 @@ async function renderMediakitEditor(reload){
 }
 // 누락 필드 기본 채움
 function mkEnsure(d){
-  d.name=d.name||{ko:'유디트',en:'Yudit'}; d.email=d.email||'yudit_@naver.com'; d.ig=d.ig||'https://www.instagram.com/yudit_life/';
+  d.name=d.name||{ko:'유디트',en:'Yudit'}; d.email=d.email||'yudit.life@gmail.com'; d.ig=d.ig||'https://www.instagram.com/yudit_life/';
   d.images=d.images||{headerBg:null,avatar:'header.jpg'};
   d.tags=d.tags||{ko:[],en:[]}; d.bio=d.bio||{ko:['','',''],en:['','','']};
   d.stats=d.stats||{views30d:0,reach30d:0}; d.gender=d.gender||{female:50,male:50};
