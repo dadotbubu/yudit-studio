@@ -247,7 +247,6 @@
           '<li><span class="dot" style="background:#8C9A84"></span> ' + T.male + ' <b style="margin-left:4px">' + d.gender.male + '%</b></li>' +
         '</ul></div></div>' +
       '<div class="panel"><div class="ttl">' + T.age + '</div><div class="bars">' + ageHtml + '</div></div>' +
-      '<div class="panel"><div class="ttl">' + T.region + '</div>' + geoHtml + '</div>' +
       '<h2>' + T.top + '</h2><div class="reels">' + reelsHtml + '</div>' +
       adHtml +
       brandHtml +

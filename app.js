@@ -7356,7 +7356,6 @@ function mkFormHtml(d){
   var dist =
     '<label '+LB+'>여성 %</label><input type="number" step="0.1" '+I+' value="'+d.gender.female+'" onchange="mkSet(\'gender.female\',this.value,true);mkSet(\'gender.male\',(100-Number(this.value)).toFixed(1),true)"><p class="text-xs text-botanical-sage mt-1">남성은 자동 (100-여성)</p>' +
     '<label '+LB+'>연령대 %</label>' + d.age.map(function(a,i){ return '<div class="flex items-center gap-2 mb-1"><span class="text-sm w-16">'+mkAttr(a.label)+'</span><input type="number" step="0.1" '+I+' value="'+a.pct+'" onchange="mkSet(\'age.'+i+'.pct\',this.value,true)"></div>'; }).join('') +
-    '<label '+LB+'>지역 (도시명 한/영 + %)</label>' + d.regions.map(function(r,i){ return '<div style="display:grid;grid-template-columns:1fr 1fr 96px;gap:8px;margin-bottom:6px"><input '+I+' value="'+mkAttr(r.ko)+'" placeholder="서울" onchange="mkSet(\'regions.'+i+'.ko\',this.value)"><input '+I+' value="'+mkAttr(r.en)+'" placeholder="Seoul" onchange="mkSet(\'regions.'+i+'.en\',this.value)"><input type="number" step="0.1" '+I+' value="'+(r.pct||'')+'" placeholder="%" onchange="mkSet(\'regions.'+i+'.pct\',this.value,true)"></div>'; }).join('') +
     '<p class="text-xs text-botanical-sage mt-1">4개까지 · 비워두면 미디어킷에서 자동 숨김</p>';
 
   // 대표 콘텐츠
