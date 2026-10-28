@@ -6833,6 +6833,25 @@ function renderPerformance() {
           </div>
         </div>
 
+        <!-- 성과 입력 대기 알림 배너 -->
+        ${needsPerfList.length > 0 ? `
+        <div class="bg-botanical-terracotta/10 border border-botanical-terracotta/40 rounded-xl px-4 py-3 mb-4">
+          <div class="flex items-center gap-2 mb-1">
+            <span class="text-lg leading-none">🔔</span>
+            <p class="font-medium text-botanical-terracotta">성과 입력 대기 ${needsPerfList.length}건</p>
+          </div>
+          <p class="text-xs text-botanical-sage mb-2">업로드 후 2주 지난 콘텐츠의 성과를 입력해주세요.</p>
+          <div class="space-y-1">
+            ${needsPerfList.map(c => `
+            <div class="flex items-center justify-between gap-2 bg-white/60 rounded-lg pl-3 pr-1.5 py-1.5">
+              <span onclick="goToPerformance(${c.id})" class="text-xs text-botanical-fg cursor-pointer hover:text-botanical-terracotta hover:underline truncate">${c.title || '무제'}</span>
+              <button onclick="dismissPerfReminder(${c.id})" title="이 항목 알림 끄기" class="shrink-0 w-5 h-5 rounded-full text-botanical-sage hover:bg-botanical-terracotta/20 hover:text-botanical-terracotta flex items-center justify-center text-xs leading-none transition-all">✕</button>
+            </div>
+            `).join('')}
+          </div>
+        </div>
+        ` : ''}
+
         <!-- 팔로워 입력 -->
         <div class="p-3 md:p-4 bg-botanical-cream/30 rounded-xl mb-4 border border-botanical-stone">
           <div class="flex flex-col md:flex-row md:items-center gap-2 md:gap-4">
@@ -7067,24 +7086,6 @@ function renderPerformance() {
         </div>
       </div>
 
-      <!-- 성과 입력 대기 알림 배너 -->
-      ${needsPerfList.length > 0 ? `
-      <div class="bg-botanical-terracotta/10 border border-botanical-terracotta/40 rounded-xl px-4 py-3 mb-4">
-        <div class="flex items-center gap-2 mb-1">
-          <span class="text-lg leading-none">🔔</span>
-          <p class="font-medium text-botanical-terracotta">성과 입력 대기 ${needsPerfList.length}건</p>
-        </div>
-        <p class="text-xs text-botanical-sage mb-2">업로드 후 2주 지난 콘텐츠의 성과를 입력해주세요.</p>
-        <div class="space-y-1">
-          ${needsPerfList.map(c => `
-          <div class="flex items-center justify-between gap-2 bg-white/60 rounded-lg pl-3 pr-1.5 py-1.5">
-            <span onclick="goToPerformance(${c.id})" class="text-xs text-botanical-fg cursor-pointer hover:text-botanical-terracotta hover:underline truncate">${c.title || '무제'}</span>
-            <button onclick="dismissPerfReminder(${c.id})" title="이 항목 알림 끄기" class="shrink-0 w-5 h-5 rounded-full text-botanical-sage hover:bg-botanical-terracotta/20 hover:text-botanical-terracotta flex items-center justify-center text-xs leading-none transition-all">✕</button>
-          </div>
-          `).join('')}
-        </div>
-      </div>
-      ` : ''}
 
       <!-- Content Performance Input -->
       <div class="bg-white rounded-2xl p-6 shadow-sm mb-6">
@@ -10506,12 +10507,12 @@ function plBuildRefPrompt() {
 ■ 키워드
 ${kw.trim() || '(키워드를 넣어주세요)'}
 
-■ 조건
-1. 최근 1년 이내 게시물 (필수)
-2. 조회수를 알면 → 30만 이상 + 그 계정 팔로워수의 10배 이상
-3. 조회수를 모르면 → 좋아요가 팔로워수의 5% 이상
+■ 조건 (셋 다 필수)
+1. 최근 1년 이내 게시물
+2. 조회수 30만 이상
+3. 조회수가 그 계정 팔로워수의 10배 이상
 
-조회수를 모를 땐 '확인 불가'라고 쓰고, 좋아요 기준으로 골랐다고 표시해 줘.
+조회수를 확인 못 한 건은 '확인 불가'라고 쓰고, 목록 맨 뒤에 '조회수 확인 필요'로 따로 모아 줘.
 
 ■ 개수
 10개. 조건에 못 미치면 억지로 채우지 말고 '조건 충족 N개'라고 알려줘.
