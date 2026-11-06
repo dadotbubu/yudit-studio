@@ -117,7 +117,7 @@
       age: L === 'en' ? 'Age' : '연령대',
       region: L === 'en' ? 'Location' : '지역',
       top: L === 'en' ? 'Top Content' : '대표 콘텐츠',
-      adcase: L === 'en' ? 'Sponsored Results' : '광고 성과 사례',
+      adcase: L === 'en' ? 'Sponsored Results' : '주요 광고 사례',
       brands: L === 'en' ? 'Brands' : '협업 브랜드',
       rate: L === 'en' ? 'Rate Card' : '콘텐츠 협업 단가',
       rateH: L === 'en' ? '💲 Rate Card' : '💲 협업 단가',

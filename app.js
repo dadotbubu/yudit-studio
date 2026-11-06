@@ -7414,7 +7414,7 @@ function mkFormHtml(d){
     sec('🖼️ 이미지 (헤더배경·프로필)', imgSec, false) +
     sec('👥 팔로워 분포', dist, false) +
     sec('🎬 대표 콘텐츠', top, false) +
-    sec('📣 광고 성과 사례', ads, false) +
+    sec('📣 주요 광고 사례', ads, false) +
     sec('🏷️ 협업 브랜드', brands, false) +
     sec('💰 협업 단가', rate, false) +
     sec('🗓️ 기준일 (숫자 업데이트 날짜)', updated, false);
