@@ -761,9 +761,9 @@ async function syncFromRemote(options = {}) {
     if (activeTab === 'calendar') renderCalendar();
     else if (activeTab === 'dashboard') renderDashboard();
     else if (activeTab === 'content') renderContentList();
-    else if (activeTab === 'performance' && typeof renderPerformance === 'function') renderPerformance();
     // 미디어킷 편집기를 열어놓고 편집 중이면 재렌더 skip (동기화가 폼을 날려 포커스·스크롤·입력 유실 방지)
-    else if (activeTab === 'revenue' && !(revSubTab === 'mediakit' && document.querySelector('#mk-editor details'))) renderRevenue();
+    else if (activeTab === 'performance' && typeof renderPerformance === 'function' && !(perfSubTab === 'mediakit' && document.querySelector('#mk-editor details'))) renderPerformance();
+    else if (activeTab === 'revenue') renderRevenue();
     else if (activeTab === 'memos') renderMemos();
 
     if (showToast) showMemoSaveToast('최신 데이터 동기화됨');
@@ -2275,7 +2275,8 @@ function goToPerformance(contentId) {
         row.scrollIntoView({ behavior: 'smooth', block: 'center' });
         row.classList.add('ring-2', 'ring-botanical-terracotta', 'bg-botanical-terracotta/10');
         setTimeout(() => row.classList.remove('ring-2', 'ring-botanical-terracotta', 'bg-botanical-terracotta/10'), 2200);
-        row.querySelector('input')?.focus(); // 조회수 칸에 바로 커서
+        // 폰은 자동 커서를 넣으면 키보드 없이 칸만 잡혀서, 눌러도 키보드가 안 뜬다 → 컴퓨터에서만
+        if (!matchMedia('(pointer: coarse)').matches) row.querySelector('input')?.focus(); // 조회수 칸에 바로 커서
       }
     } else {
       document.getElementById('performance-tab')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -6743,7 +6744,7 @@ function saveNewContent(formType) {
 let perfRangeFrom = `${new Date().getFullYear()}-01`;
 let perfRangeTo = `${new Date().getFullYear()}-12`;
 let followerViewMode = 'daily';
-let perfSubTab = 'follow'; // 'follow' | 'content' — 리렌더 후에도 보존
+let perfSubTab = 'follow'; // 'follow' | 'content' | 'mediakit' — 리렌더 후에도 보존
 
 function renderPerformance() {
   // performanceData null check
@@ -6817,6 +6818,7 @@ function renderPerformance() {
     <div class="flex gap-5 mb-6 border-b border-botanical-stone/40">
       <button onclick="switchPerfTab('follow')" id="perf-tab-follow" class="perf-tab-btn pb-2 text-[13px] border-b-2 -mb-px ${perfSubTab === 'follow' ? 'border-botanical-terracotta text-botanical-terracotta font-bold' : 'border-transparent text-botanical-sage font-medium hover:text-botanical-fg'}">팔로우</button>
       <button onclick="switchPerfTab('content')" id="perf-tab-content" class="perf-tab-btn pb-2 text-[13px] border-b-2 -mb-px ${perfSubTab === 'content' ? 'border-botanical-terracotta text-botanical-terracotta font-bold' : 'border-transparent text-botanical-sage font-medium hover:text-botanical-fg'}">콘텐츠</button>
+      <button onclick="switchPerfTab('mediakit')" id="perf-tab-mediakit" class="perf-tab-btn pb-2 text-[13px] border-b-2 -mb-px ${perfSubTab === 'mediakit' ? 'border-botanical-terracotta text-botanical-terracotta font-bold' : 'border-transparent text-botanical-sage font-medium hover:text-botanical-fg'}">미디어킷</button>
     </div>
 
     <div id="perf-follow" class="perf-section ${perfSubTab === 'follow' ? '' : 'hidden'}">
@@ -7205,8 +7207,27 @@ function renderPerformance() {
       </div>
     </div>
 
-    <!-- Media Kit Sub-tab -->
+    <div id="perf-mediakit" class="perf-section ${perfSubTab === 'mediakit' ? '' : 'hidden'}">
+      <div class="bg-white rounded-2xl p-5 shadow-sm">
+        <h3 class="font-medium mb-3">미디어킷 링크</h3>
+        ${(() => { const mkBtn='text-sm text-botanical-fg hover:text-botanical-terracotta underline underline-offset-2'; const dot='<span class="text-botanical-stone">·</span>';
+          const row = (label, lang, isPublic, withPdf) => `
+        <div class="flex flex-wrap items-center gap-x-2.5 gap-y-1 py-2.5 border-b border-botanical-stone/40">
+          <span class="text-xs font-semibold ${isPublic?'text-botanical-terracotta':'text-botanical-sage'} w-full">${label}</span>
+          <a href="${mediakitUrl(lang, isPublic)}" target="_blank" class="${mkBtn}">미리보기</a>${dot}
+          <button onclick="copyMediakitLink('${lang}', ${isPublic})" class="${mkBtn}">링크 복사</button>${withPdf?dot+`<button onclick="downloadMediakitPdf('${lang}', ${isPublic})" class="${mkBtn}">PDF</button>`:''}
+        </div>`;
+          return row('공개용 (프로필용 · 단가 숨김)', 'ko', true, false)
+               + row('협업 제안용 · 한국어 (단가 포함)', 'ko', false, true)
+               + row('협업 제안용 · 영어', 'en', false, true);
+        })()}
+        <p class="text-xs text-botanical-sage mt-2">공개용은 프로필 링크에 걸고, 문의 오면 협업 제안용을 보내요.</p>
+      </div>
+      <div id="mk-editor" class="mt-4 max-w-full overflow-x-hidden"></div>
+    </div>
   `;
+  // 동기화 등으로 다시 그려질 때 미디어킷 편집기 복원 — 입력값 유지
+  if (perfSubTab === 'mediakit') renderMediakitEditor();
 }
 
 // ===== 미디어킷 링크/PDF =====
@@ -7475,6 +7496,8 @@ function switchPerfTab(tab) {
   document.querySelectorAll('.perf-tab-btn').forEach(btn => setSubTabActive(btn, btn.id === 'perf-tab-' + tab));
   document.querySelectorAll('.perf-section').forEach(s => s.classList.add('hidden'));
   document.getElementById('perf-' + tab).classList.remove('hidden');
+  // 이미 그려져 있으면 다시 안 그림 → 스크롤·펼침·입력값 유지
+  if (tab === 'mediakit' && !document.querySelector('#mk-editor details')) renderMediakitEditor();
 }
 
 function saveFollowerCount() {
@@ -7542,7 +7565,7 @@ function changeRevenueMonth(monthStr) {
 }
 
 // ===== 활동 채널 (수익 탭 서브탭) =====
-let revSubTab = 'status'; // 'status' | 'contracts'(수익) | 'expenses' | 'mediakit' | 'channels' — 리렌더 후에도 보존
+let revSubTab = 'status'; // 'status' | 'contracts'(수익) | 'expenses' | 'channels' — 리렌더 후에도 보존
 
 const ACTIVITY_CHANNELS = [
   {
@@ -7734,7 +7757,7 @@ function renderRevChannels() {
   const groups = ACTIVITY_CHANNELS.map(g => {
     let inner;
     if (g.special === 'mediakit') {
-      inner = `<button onclick="switchRevTab('mediakit')" class="text-sm text-botanical-terracotta font-medium hover:underline">미디어킷 관리 →</button>`;
+      inner = `<button onclick="switchTab('performance'); switchPerfTab('mediakit')" class="text-sm text-botanical-terracotta font-medium hover:underline">미디어킷 관리 →</button>`;
     } else {
       const customIds = new Set(custom.map(c => c.id));
       const ordered = orderedSites(g);
@@ -7825,7 +7848,6 @@ function switchRevTab(tab) {
   if (sec) sec.classList.remove('hidden');
   // 이미 그려져 있으면 다시 안 그림 → 스크롤·펼침·입력값 유지 (안 날아감)
   // 메모리에 _mkEdit 있으면 서버 재조회 없이 그 값으로 렌더 (미저장 입력 보존)
-  if (tab === 'mediakit' && !document.querySelector('#mk-editor details')) renderMediakitEditor();
 }
 
 // ========== 계약 ==========
@@ -8006,7 +8028,6 @@ function renderRevenue() {
       <button onclick="switchRevTab('status')" id="rev-tab-status" class="rev-tab-btn pb-2 text-[13px] border-b-2 -mb-px ${revSubTab === 'status' ? 'border-botanical-terracotta text-botanical-terracotta font-bold' : 'border-transparent text-botanical-sage font-medium hover:text-botanical-fg'}">현황</button>
       <button onclick="switchRevTab('contracts')" id="rev-tab-contracts" class="rev-tab-btn pb-2 text-[13px] border-b-2 -mb-px ${revSubTab === 'contracts' ? 'border-botanical-terracotta text-botanical-terracotta font-bold' : 'border-transparent text-botanical-sage font-medium hover:text-botanical-fg'}">수익</button>
       <button onclick="switchRevTab('expenses')" id="rev-tab-expenses" class="rev-tab-btn pb-2 text-[13px] border-b-2 -mb-px ${revSubTab === 'expenses' ? 'border-botanical-terracotta text-botanical-terracotta font-bold' : 'border-transparent text-botanical-sage font-medium hover:text-botanical-fg'}">지출</button>
-      <button onclick="switchRevTab('mediakit')" id="rev-tab-mediakit" class="rev-tab-btn pb-2 text-[13px] border-b-2 -mb-px ${revSubTab === 'mediakit' ? 'border-botanical-terracotta text-botanical-terracotta font-bold' : 'border-transparent text-botanical-sage font-medium hover:text-botanical-fg'}">미디어킷</button>
       <button onclick="switchRevTab('channels')" id="rev-tab-channels" class="rev-tab-btn pb-2 text-[13px] border-b-2 -mb-px ${revSubTab === 'channels' ? 'border-botanical-terracotta text-botanical-terracotta font-bold' : 'border-transparent text-botanical-sage font-medium hover:text-botanical-fg'}">활동 채널</button>
     </div>
 
@@ -8065,27 +8086,7 @@ function renderRevenue() {
       ${renderRevChannels()}
     </div>
 
-    <div id="rev-mediakit" class="rev-section ${revSubTab === 'mediakit' ? '' : 'hidden'}">
-      <div class="bg-white rounded-2xl p-5 shadow-sm">
-        <h3 class="font-medium mb-3">미디어킷 링크</h3>
-        ${(() => { const mkBtn='text-sm text-botanical-fg hover:text-botanical-terracotta underline underline-offset-2'; const dot='<span class="text-botanical-stone">·</span>';
-          const row = (label, lang, isPublic, withPdf) => `
-        <div class="flex flex-wrap items-center gap-x-2.5 gap-y-1 py-2.5 border-b border-botanical-stone/40">
-          <span class="text-xs font-semibold ${isPublic?'text-botanical-terracotta':'text-botanical-sage'} w-full">${label}</span>
-          <a href="${mediakitUrl(lang, isPublic)}" target="_blank" class="${mkBtn}">미리보기</a>${dot}
-          <button onclick="copyMediakitLink('${lang}', ${isPublic})" class="${mkBtn}">링크 복사</button>${withPdf?dot+`<button onclick="downloadMediakitPdf('${lang}', ${isPublic})" class="${mkBtn}">PDF</button>`:''}
-        </div>`;
-          return row('공개용 (프로필용 · 단가 숨김)', 'ko', true, false)
-               + row('협업 제안용 · 한국어 (단가 포함)', 'ko', false, true)
-               + row('협업 제안용 · 영어', 'en', false, true);
-        })()}
-        <p class="text-xs text-botanical-sage mt-2">공개용은 프로필 링크에 걸고, 문의 오면 협업 제안용을 보내요.</p>
-      </div>
-      <div id="mk-editor" class="mt-4 max-w-full overflow-x-hidden"></div>
-    </div>
   `;
-  // 수익 탭이 다시 그려질 때(동기화 등) 미디어킷 편집기가 열려 있었으면 복원 — 입력값 유지
-  if (revSubTab === 'mediakit') renderMediakitEditor();
 }
 
 // 판매 상품 목록 + 선택한 달 매출 — 상품 추가·이름 수정·삭제도 여기서
