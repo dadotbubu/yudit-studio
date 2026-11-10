@@ -7249,9 +7249,9 @@ function copyMediakitLink(lang, isPublic) {
   }
 }
 function downloadMediakitPdf(lang, isPublic) {
-  // 새 탭에서 열면서 인쇄 대화상자 자동 오픈 → 'PDF로 저장' 선택
+  // 새 탭에서 미디어킷이 PDF 파일을 직접 만든다 → 폰은 「PDF 저장하기」 버튼, 컴퓨터는 바로 받기
   const url = mediakitUrl(lang, isPublic);
-  window.open(url + (url.includes('?') ? '&' : '?') + 'print=1', '_blank');
+  window.open(url + (url.includes('?') ? '&' : '?') + 'download=pdf', '_blank');
 }
 
 // ===================== 미디어킷 편집기 =====================

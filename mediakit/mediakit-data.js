@@ -285,6 +285,7 @@
       if (f == null) f = 12517;
       d._followers = f;
       try { render(d); } catch (e) { console.warn('미디어킷 렌더 실패, 정적 유지:', e); }
+      if (/[?&]download=pdf/.test(location.search)) makePdf();
     });
   }
 
@@ -293,6 +294,64 @@
     var d = JSON.parse(JSON.stringify(DEFAULT));
     Object.keys(mk).forEach(function (k) { if (mk[k] != null) d[k] = mk[k]; });
     return d;
+  }
+
+  // ===== PDF 파일 받기 (?download=pdf) — 화면을 그림으로 떠서 PDF 한 장에 담는다 =====
+  // 인쇄 창은 폰에 「파일로 저장」이 없고, 아이폰 PDF 뷰어는 인쇄본을 깨뜨려서 그림 방식으로 간다
+  function loadScript(src) {
+    return new Promise(function (ok, no) { var s = document.createElement('script'); s.src = src; s.onload = ok; s.onerror = no; document.head.appendChild(s); });
+  }
+  function makePdf() {
+    var en = window.MK_LANG === 'en';
+    var name = en ? 'yudit_life_mediakit_en.pdf' : 'yudit_life_mediakit.pdf';
+    var bar = document.createElement('button');
+    bar.style.cssText = 'position:fixed;left:16px;right:16px;bottom:20px;z-index:99;padding:16px;border:0;border-radius:16px;background:#2f3b33;color:#fff;font-size:16px;font-weight:700;box-shadow:0 6px 20px rgba(0,0,0,.25)';
+    bar.textContent = en ? 'Preparing PDF…' : 'PDF 만드는 중…';
+    bar.disabled = true;
+    document.body.appendChild(bar);
+    var phone = document.querySelector('.phone');
+    var old = phone.getAttribute('style') || '';
+    var waits = [
+      loadScript('https://cdnjs.cloudflare.com/ajax/libs/html-to-image/1.11.11/html-to-image.min.js'),
+      loadScript('https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js'),
+      document.fonts ? document.fonts.ready : null
+    ].concat([].map.call(document.images, function (im) { return im.decode ? im.decode().catch(function () {}) : null; }));
+    Promise.all(waits)
+      .then(function () {
+        // 폰 화면 폭과 상관없이 430px 한 장으로 뜬다 (둥근 모서리·그림자 빼고)
+        phone.style.cssText = old + ';width:430px;max-width:430px;margin:0;border-radius:0;box-shadow:none';
+        var w = 430, h = phone.offsetHeight;
+        // ponytail: pixelRatio 2.5 — 아이폰 캔버스 한도(약 1,670만 화소) 안쪽. 미디어킷이 많이 길어지면 낮춘다
+        var opt = { pixelRatio: 2.5, width: w, height: h, backgroundColor: '#ffffff', quality: 0.92,
+          filter: function (n) { return !(n.classList && n.classList.contains('pdf')); } };
+        // 사파리는 첫 번째 그림에서 이미지가 빠지는 일이 있어 두 번 뜨고 두 번째 걸 쓴다
+        return htmlToImage.toJpeg(phone, opt)
+          .then(function () { return htmlToImage.toJpeg(phone, opt); })
+          .then(function (img) { return { img: img, w: w, h: h }; });
+      })
+      .then(function (r) {
+        phone.setAttribute('style', old);
+        var pdf = new window.jspdf.jsPDF({ unit: 'px', format: [r.w, r.h], orientation: 'portrait', hotfixes: ['px_scaling'] });
+        pdf.addImage(r.img, 'JPEG', 0, 0, r.w, r.h);
+        var file = new File([pdf.output('blob')], name, { type: 'application/pdf' });
+        var save = function () {
+          if (navigator.canShare && navigator.canShare({ files: [file] })) {
+            navigator.share({ files: [file] }).catch(function () {}); // 아이폰 → 「파일에 저장」
+          } else {
+            var a = document.createElement('a'); a.href = URL.createObjectURL(file); a.download = name;
+            document.body.appendChild(a); a.click(); a.remove();
+          }
+        };
+        bar.disabled = false;
+        bar.textContent = en ? 'Save PDF' : 'PDF 저장하기';
+        bar.onclick = save; // 폰은 손으로 눌러야 저장 창이 열린다
+        if (!matchMedia('(pointer: coarse)').matches) save(); // 컴퓨터는 바로 받기
+      })
+      .catch(function (e) {
+        phone.setAttribute('style', old);
+        console.warn('PDF 만들기 실패:', e);
+        bar.textContent = en ? 'PDF failed — please reload' : 'PDF 만들기 실패 — 새로고침해 주세요';
+      });
   }
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);
