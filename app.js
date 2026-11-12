@@ -7569,6 +7569,19 @@ let revSubTab = 'status'; // 'status' | 'contracts'(수익) | 'expenses' | 'chan
 
 const ACTIVITY_CHANNELS = [
   {
+    group: '마케팅 협업',
+    desc: '브랜드가 크리에이터를 골라 협찬·원고료 제안',
+    sites: [
+      { id: 'oneulook', name: '오늘룩', url: 'https://oneulook.com/', note: '패션·뷰티 협찬 앱. 제품 대여·증정·오프라인 초청. 모델 지원 후 심사 통과해야 이용. 뷰티 원고료 최대 50만 원.' },
+      { id: 'brandazine', name: '브랜더진', url: 'https://www.brandazine.com/', note: '패션·뷰티·라이프·F&B 브랜드 협찬·행사 초청. 앱에서 큐레이터로 가입, 아이템 대여·협찬 참여. 브랜드 세계관 심사.' },
+      { id: 'musebuy', name: '뮤즈바이', url: 'https://musebuy.co.kr/', note: '선정된 인플루언서 전용 쇼핑몰. 인기 브랜드 제품을 최대 99% 할인가로 구매하는 방식의 협찬.' },
+      { id: 'inpock', name: '인포크', url: 'https://inpock.co.kr/', note: '인포크링크(프로필 링크) 만든 곳. 브랜드매칭 「인포크딜」 · 공동구매 「인포크마켓」. 링크 쓰면 브랜드 제안이 들어옴.' },
+      { id: 'stylemate', name: '스타일메이트', url: 'https://stylemate.co.kr/', note: '패션·라이프스타일 협찬 플랫폼. 사이트는 브랜드용 캠페인 대행(AI) 소개 — 크리에이터는 앱으로 지원.' },
+      { id: 'marketit', name: '마켓잇', url: 'https://apps.apple.com/kr/app/id1120052079', note: '인스타 협찬 매칭 앱. 협찬·특별 할인·현금 리워드. 웹사이트는 없어지고 앱만 남음.' },
+      { id: 'featuring', name: '피처링', url: 'https://featuring.co/', note: '인플루언서 데이터·마케팅 플랫폼. 마케터가 섭외할 인플루언서를 찾는 곳 — 프로필이 잡혀 있으면 인바운드 제안.' },
+    ]
+  },
+  {
     group: '지식 상품 판매',
     desc: '전자책·강의·유료 구독 (내 상품)',
     sites: [
