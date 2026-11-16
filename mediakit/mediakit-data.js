@@ -158,7 +158,7 @@
       return '<div class="geo"><span>📍 ' + esc(r[L] || r.ko) + '</span><span class="v">' + r.pct + '%</span></div>';
     }).join('');
 
-    var reelsHtml = d.topContent.map(function (c) {
+    var reelsHtml = d.topContent.slice(0, 6).map(function (c) {
       return '<div class="reel"><div class="thumb" style="background:url(\'' + esc(c.img) + '\') center 18%/cover"></div>' +
         '<div class="meta"><span class="cat">' + esc(c.cat) + '</span><span class="view">👁️ ' + fmtNum(c.views) + '</span></div></div>';
     }).join('');
