@@ -5856,6 +5856,8 @@ function savePerfCell(el, contentId, field) {
   if (!content) return;
   if (!content.performance) content.performance = {};
   content.performance[field] = parseK(el.value);
+  // 칸마다 입력한 날 (업로드 후 며칠째 숫자인지 보려고)
+  content.performance.enteredAt = { ...(content.performance.enteredAt || {}), [field]: new Date().toLocaleDateString('sv-SE') };
 
   // 해당 콘텐츠가 속한 월의 요약 재계산
   const uploadDate = getUploadDate(content);
