@@ -3504,7 +3504,7 @@ function renderContentForm(content) {
               <label class="text-xs text-botanical-sage">성과 지표 <span class="text-botanical-sage/60">(읽기 전용)</span></label>
               <button type="button" onclick="goToPerformance()" class="text-xs text-botanical-terracotta hover:underline">성과분석에서 수정 →</button>
             </div>
-            <div class="grid grid-cols-5 gap-1 text-center">
+            <div class="grid grid-cols-6 gap-1 text-center">
               <div class="px-2 py-2 rounded-lg bg-botanical-cream/40 border border-botanical-stone/50">
                 <p class="text-[10px] text-botanical-sage">조회</p>
                 <p class="text-xs font-medium">${toK(content.performance.views)}</p>
@@ -3524,6 +3524,10 @@ function renderContentForm(content) {
               <div class="px-2 py-2 rounded-lg bg-botanical-cream/40 border border-botanical-stone/50">
                 <p class="text-[10px] text-botanical-sage">저장</p>
                 <p class="text-xs font-medium">${content.performance.saves || '-'}</p>
+              </div>
+              <div class="px-2 py-2 rounded-lg bg-botanical-cream/40 border border-botanical-stone/50">
+                <p class="text-[10px] text-botanical-sage">팔로우</p>
+                <p class="text-xs font-medium">${content.performance.follows || '-'}</p>
               </div>
             </div>
           </div>
@@ -6689,7 +6693,7 @@ function saveNewContent(formType) {
     isRevenue: formType === 'revenue',
     milestones: milestones,
     url: '',
-    performance: { views: null, likes: null, shares: null, comments: null, saves: null },
+    performance: { views: null, likes: null, shares: null, comments: null, saves: null, follows: null },
     reference: { links: [], analysis: '' },
     planDetail: '',
     script: { versions: [], currentVersion: 0 },
@@ -7106,6 +7110,7 @@ function renderPerformance() {
                 <th class="px-3 py-2 text-center font-medium whitespace-nowrap w-14">공유</th>
                 <th class="px-3 py-2 text-center font-medium whitespace-nowrap w-14">댓글</th>
                 <th class="px-3 py-2 text-center font-medium whitespace-nowrap w-14">저장</th>
+                <th class="px-3 py-2 text-center font-medium whitespace-nowrap w-14">팔로우</th>
               </tr>
             </thead>
             <tbody>
@@ -7132,8 +7137,9 @@ function renderPerformance() {
                   <td class="px-3 py-2"><input type="text" onchange="savePerfCell(this, ${c.id}, 'shares')" value="${c.performance.shares ? c.performance.shares.toLocaleString() : ''}" placeholder="-" class="w-full text-center bg-transparent border-b border-transparent hover:border-botanical-stone focus:border-botanical-sage focus:outline-none"></td>
                   <td class="px-3 py-2"><input type="text" onchange="savePerfCell(this, ${c.id}, 'comments')" value="${c.performance.comments ? c.performance.comments.toLocaleString() : ''}" placeholder="-" class="w-full text-center bg-transparent border-b border-transparent hover:border-botanical-stone focus:border-botanical-sage focus:outline-none"></td>
                   <td class="px-3 py-2"><input type="text" onchange="savePerfCell(this, ${c.id}, 'saves')" value="${c.performance.saves ? c.performance.saves.toLocaleString() : ''}" placeholder="-" class="w-full text-center bg-transparent border-b border-transparent hover:border-botanical-stone focus:border-botanical-sage focus:outline-none"></td>
+                  <td class="px-3 py-2"><input type="text" onchange="savePerfCell(this, ${c.id}, 'follows')" value="${c.performance.follows ? c.performance.follows.toLocaleString() : ''}" placeholder="-" class="w-full text-center bg-transparent border-b border-transparent hover:border-botanical-stone focus:border-botanical-sage focus:outline-none"></td>
                 </tr>
-              `;}).join('') : '<tr><td colspan="8" class="px-3 py-4 text-center text-botanical-sage">해당 월 콘텐츠 없음</td></tr>'}
+              `;}).join('') : '<tr><td colspan="9" class="px-3 py-4 text-center text-botanical-sage">해당 월 콘텐츠 없음</td></tr>'}
             </tbody>
           </table>
         </div>
@@ -7150,12 +7156,13 @@ function renderPerformance() {
                 <span onclick="goToContentExpanded(${c.id})" class="font-medium flex-1 min-w-0 truncate cursor-pointer hover:text-botanical-terracotta hover:underline">${needs ? '🔔 ' : ''}${c.title || '무제'}</span>
                 <span class="text-botanical-sage text-[10px]">${getUploadDate(c) ? getUploadDate(c).slice(5).replace('-', '/') : '-'}</span>
               </div>
-              <div class="grid grid-cols-5 gap-1 text-center text-xs">
+              <div class="grid grid-cols-6 gap-1 text-center text-xs">
                 <div><p class="text-[10px] text-botanical-sage mb-0.5">조회</p><input type="text" onchange="savePerfCell(this, ${c.id}, 'views')" value="${c.performance.views ? c.performance.views.toLocaleString() : ''}" placeholder="-" class="w-full text-center px-1 py-1 rounded border border-botanical-stone focus:border-botanical-sage focus:outline-none"></div>
                 <div><p class="text-[10px] text-botanical-sage mb-0.5">좋아요</p><input type="text" onchange="savePerfCell(this, ${c.id}, 'likes')" value="${c.performance.likes ? c.performance.likes.toLocaleString() : ''}" placeholder="-" class="w-full text-center px-1 py-1 rounded border border-botanical-stone focus:border-botanical-sage focus:outline-none"></div>
                 <div><p class="text-[10px] text-botanical-sage mb-0.5">공유</p><input type="text" onchange="savePerfCell(this, ${c.id}, 'shares')" value="${c.performance.shares ? c.performance.shares.toLocaleString() : ''}" placeholder="-" class="w-full text-center px-1 py-1 rounded border border-botanical-stone focus:border-botanical-sage focus:outline-none"></div>
                 <div><p class="text-[10px] text-botanical-sage mb-0.5">댓글</p><input type="text" onchange="savePerfCell(this, ${c.id}, 'comments')" value="${c.performance.comments ? c.performance.comments.toLocaleString() : ''}" placeholder="-" class="w-full text-center px-1 py-1 rounded border border-botanical-stone focus:border-botanical-sage focus:outline-none"></div>
                 <div><p class="text-[10px] text-botanical-sage mb-0.5">저장</p><input type="text" onchange="savePerfCell(this, ${c.id}, 'saves')" value="${c.performance.saves ? c.performance.saves.toLocaleString() : ''}" placeholder="-" class="w-full text-center px-1 py-1 rounded border border-botanical-stone focus:border-botanical-sage focus:outline-none"></div>
+                <div><p class="text-[10px] text-botanical-sage mb-0.5">팔로우</p><input type="text" onchange="savePerfCell(this, ${c.id}, 'follows')" value="${c.performance.follows ? c.performance.follows.toLocaleString() : ''}" placeholder="-" class="w-full text-center px-1 py-1 rounded border border-botanical-stone focus:border-botanical-sage focus:outline-none"></div>
               </div>
             </div>
           `;}).join('') : '<p class="text-sm text-botanical-sage text-center py-4">해당 월 콘텐츠 없음</p>'}
