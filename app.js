@@ -1338,8 +1338,9 @@ function switchTab(tabName) {
   localStorage.setItem('yudit_currentTab', tabName);
   localStorage.setItem('yudit_lastActiveTime', Date.now().toString());
 
-  // Lazy Loading: 처음 클릭한 탭만 렌더링
-  if (!tabRendered[tabName]) {
+  // Lazy Loading: 처음 클릭한 탭만 렌더링 — 성과 탭은 다른 탭에서 고친 제목 등이 보이게 매번 다시 그린다 (미디어킷 편집 중만 빼고)
+  const perfStale = tabName === 'performance' && !(perfSubTab === 'mediakit' && document.querySelector('#mk-editor details'));
+  if (!tabRendered[tabName] || perfStale) {
     if (tabName === 'calendar') renderCalendar();
     else if (tabName === 'dashboard') renderDashboard();
     else if (tabName === 'content') renderContentList();
