@@ -3919,7 +3919,11 @@ function renderContentForm(content) {
             <span class="w-6 h-6 rounded-full bg-botanical-sage/20 text-botanical-sage text-xs flex items-center justify-center">3</span>
             캡션 작성
           </h3>
-          <button onclick="copyCaption(${content.id})" class="self-start px-3 py-1 rounded-full text-xs border border-botanical-stone hover:bg-botanical-cream transition-all">캡션 복사</button>
+        </div>
+        <div class="flex items-center gap-2 mb-3">
+          <button onclick="clearCaption(${content.id})" class="px-3 py-1 rounded-full text-xs text-botanical-sage border border-botanical-stone hover:bg-botanical-cream transition-all">캡션 지우기</button>
+          <button id="cap-undo-${content.id}" onclick="undoClearCaption(${content.id})" class="hidden px-3 py-1 rounded-full text-xs text-botanical-terracotta border border-botanical-terracotta hover:bg-botanical-cream transition-all">되돌리기</button>
+          <button onclick="copyCaption(${content.id})" class="ml-auto px-3 py-1 rounded-full text-xs border border-botanical-stone hover:bg-botanical-cream transition-all">캡션 복사</button>
         </div>
 
         <!-- 캡션 버전 탭 -->
@@ -3937,7 +3941,7 @@ function renderContentForm(content) {
           <button onclick="addCaptionVersion(${content.id})" class="px-3 py-1 rounded-full text-xs border border-botanical-stone hover:bg-botanical-cream transition-all">+ 버전</button>
         </div>
 
-        <textarea id="caption-${content.id}" rows="3" oninput="autoResize(this);updateCaptionText(${content.id}, this.value)" placeholder="못다한 얘기 / 당장 쓸 팁 / 솔직한 생각 등" class="auto-grow unified-text w-full px-3 py-2 rounded-lg border border-botanical-stone focus:outline-none focus:border-botanical-sage resize-none overflow-hidden">${currentCaptionText}</textarea>
+        <textarea id="caption-${content.id}" rows="3" oninput="autoResize(this);updateCaptionText(${content.id}, this.value);document.getElementById('cap-undo-${content.id}')?.classList.add('hidden')" placeholder="못다한 얘기 / 당장 쓸 팁 / 솔직한 생각 등" class="auto-grow unified-text w-full px-3 py-2 rounded-lg border border-botanical-stone focus:outline-none focus:border-botanical-sage resize-none overflow-hidden">${currentCaptionText}</textarea>
       </div>`;
       })()}
 
@@ -4798,6 +4802,27 @@ function clearSubtitleCell(contentId, idx) {
 
   renderContentList();
   reopenForm(contentId);
+}
+
+// 캡션 지우기 — 확인창 대신 «되돌리기» 버튼 (새로 타이핑하면 사라진다)
+const _captionUndo = {};
+function clearCaption(contentId) {
+  const el = document.getElementById('caption-' + contentId);
+  if (!el || !el.value) return;
+  _captionUndo[contentId] = el.value;
+  el.value = '';
+  autoResize(el);
+  updateCaptionText(contentId, '');
+  document.getElementById('cap-undo-' + contentId)?.classList.remove('hidden');
+}
+function undoClearCaption(contentId) {
+  const el = document.getElementById('caption-' + contentId);
+  if (!el || _captionUndo[contentId] == null) return;
+  el.value = _captionUndo[contentId];
+  delete _captionUndo[contentId];
+  autoResize(el);
+  updateCaptionText(contentId, el.value);
+  document.getElementById('cap-undo-' + contentId)?.classList.add('hidden');
 }
 
 function copyCaption(contentId) {
