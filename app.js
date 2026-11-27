@@ -7659,10 +7659,15 @@ function channelJoinedMap() {
 function customChannels() {
   return (revenueData && revenueData.channels && revenueData.channels.custom) || [];
 }
+// 기본 채널은 코드에 박혀 있어서 지우는 대신 숨긴다
+function hiddenChannels() {
+  return new Set((revenueData && revenueData.channels && revenueData.channels.hidden) || []);
+}
 
 // 그룹 내 사이트를 저장된 순서대로 반환 (빌트인+커스텀 합침)
 function orderedSites(g) {
-  const all = (g.sites || []).concat(customChannels().filter(c => c.group === g.group));
+  const hidden = hiddenChannels();
+  const all = (g.sites || []).filter(s => !hidden.has(s.id)).concat(customChannels().filter(c => c.group === g.group));
   const ord = ((revenueData && revenueData.channels && revenueData.channels.order) || {})[g.group] || [];
   const byId = {};
   all.forEach(s => { byId[s.id] = s; });
@@ -7719,7 +7724,8 @@ function chDragEnd() {
 function channelProgressText() {
   const joined = channelJoinedMap();
   const ids = [];
-  ACTIVITY_CHANNELS.forEach(g => (g.sites || []).forEach(s => ids.push(s.id)));
+  const hidden = hiddenChannels();
+  ACTIVITY_CHANNELS.forEach(g => (g.sites || []).forEach(s => { if (!hidden.has(s.id)) ids.push(s.id); }));
   customChannels().forEach(c => ids.push(c.id));
   const done = ids.filter(id => joined[id]).length;
   return `가입 ${done} / ${ids.length}`;
@@ -7750,7 +7756,7 @@ function channelRow(s, joined, isCustom, groupName) {
         <div class="flex-1 min-w-0 flex items-center gap-2">${nameEl}${catTag}${memo ? '<span class="w-1.5 h-1.5 rounded-full bg-botanical-terracotta shrink-0" title="메모 있음"></span>' : ''}</div>
         ${on ? '<span class="text-[10px] px-1.5 py-0.5 rounded-full bg-botanical-cream text-botanical-sage shrink-0">가입</span>' : ''}
         <button onclick="toggleChannelDetail('${detailId}')" class="text-botanical-sage text-xs shrink-0 hover:text-botanical-terracotta w-5 h-5 rounded-full border border-botanical-stone" title="설명·메모">?</button>
-        ${isCustom ? `<button onclick="deleteCustomChannel('${s.id}')" class="text-botanical-clay text-base leading-none shrink-0 hover:text-botanical-terracotta" title="삭제">×</button>` : ''}
+        <button onclick="deleteChannel('${s.id}', ${isCustom})" class="text-botanical-clay text-base leading-none shrink-0 hover:text-botanical-terracotta" title="삭제">×</button>
       </div>
       <div id="${detailId}" class="hidden mt-2 ml-7 pl-3 border-l-2 border-botanical-stone/60">
         ${s.note ? `<p class="text-xs text-botanical-sage leading-relaxed mb-2">${esc(s.note)}</p>` : ''}
@@ -7844,9 +7850,14 @@ function addCustomChannel() {
   refreshRevChannels();
 }
 
-function deleteCustomChannel(id) {
-  if (!revenueData.channels || !revenueData.channels.custom) return;
-  revenueData.channels.custom = revenueData.channels.custom.filter(c => c.id !== id);
+function deleteChannel(id, isCustom) {
+  if (!revenueData.channels) revenueData.channels = {};
+  const ch = revenueData.channels;
+  const s = isCustom ? (ch.custom || []).find(c => c.id === id)
+    : ACTIVITY_CHANNELS.flatMap(g => g.sites || []).find(c => c.id === id);
+  if (!s || !confirm(`「${s.name}」 지울까요?`)) return;
+  if (isCustom) ch.custom = ch.custom.filter(c => c.id !== id);
+  else ch.hidden = [...hiddenChannels(), id];
   if (revenueData.channels.joined) delete revenueData.channels.joined[id];
   markDirty('revenue');
   saveAllData();
